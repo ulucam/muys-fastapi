@@ -3,10 +3,11 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User
+from app.schemas import Token, UserResponse
 import os
 from dotenv import load_dotenv
 
@@ -55,20 +56,3 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     if not user.aktif:
         raise HTTPException(status_code=403, detail="Hesabınız pasif durumda!")
     return user
-
-async def get_current_active_user(current_user: User = Depends(get_current_user)):
-    if not current_user.aktif:
-        raise HTTPException(status_code=400, detail="Pasif kullanıcı")
-    return current_user
-
-def rol_gerekli(izinli_roller: list):
-    def decorator(func):
-        async def wrapper(*args, **kwargs):
-            current_user = kwargs.get('current_user')
-            if not current_user:
-                raise HTTPException(status_code=401, detail="Giriş yapın!")
-            if current_user.rol not in izinli_roller:
-                raise HTTPException(status_code=403, detail="Bu sayfaya erişim yetkiniz yok!")
-            return await func(*args, **kwargs)
-        return wrapper
-    return decorator
