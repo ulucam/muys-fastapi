@@ -2,7 +2,6 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime, date
 from typing import Optional, List
 
-# ===== KULLANICI =====
 class UserBase(BaseModel):
     kullanici_adi: str
     email: EmailStr
@@ -21,11 +20,9 @@ class UserResponse(UserBase):
     id: int
     aktif: bool
     created_at: datetime
-    
     class Config:
         from_attributes = True
 
-# ===== MÜŞTERİ =====
 class MusteriBase(BaseModel):
     firma_kodu: str
     firma_adi: str
@@ -42,20 +39,15 @@ class MusteriBase(BaseModel):
 class MusteriCreate(MusteriBase):
     pass
 
-class MusteriUpdate(MusteriBase):
-    pass
-
 class MusteriResponse(MusteriBase):
     id: int
     bakiye: float
     toplam_borc: float
     toplam_alacak: float
     created_at: datetime
-    
     class Config:
         from_attributes = True
 
-# ===== ÜRÜN =====
 class UrunBase(BaseModel):
     kodu: str
     adi: str
@@ -71,11 +63,9 @@ class UrunCreate(UrunBase):
 class UrunResponse(UrunBase):
     id: int
     created_at: datetime
-    
     class Config:
         from_attributes = True
 
-# ===== SİPARİŞ =====
 class SiparisKalemBase(BaseModel):
     urun_id: int
     miktar: float
@@ -98,11 +88,9 @@ class SiparisResponse(BaseModel):
     durum: str
     notlar: Optional[str]
     toplam_tutar: float
-    
     class Config:
         from_attributes = True
 
-# ===== CARİ =====
 class CariHareketCreate(BaseModel):
     musteri_id: int
     hareket_tipi: str
@@ -122,11 +110,9 @@ class CariHareketResponse(BaseModel):
     referans_no: Optional[str]
     odeme_durumu: str
     created_at: datetime
-    
     class Config:
         from_attributes = True
 
-# ===== TOKEN =====
 class Token(BaseModel):
     access_token: str
     token_type: str
