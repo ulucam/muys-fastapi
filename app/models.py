@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
 
-# ===== KULLANICI =====
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -12,11 +11,10 @@ class User(Base):
     sifre_hash = Column(String(200), nullable=False)
     adi = Column(String(100))
     soyadi = Column(String(100))
-    rol = Column(String(20), default="Operator")  # Admin, Muhasebe, Uretim, Operator
+    rol = Column(String(20), default="Operator")
     aktif = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-# ===== MÜŞTERİ =====
 class Musteri(Base):
     __tablename__ = "musteriler"
     id = Column(Integer, primary_key=True, index=True)
@@ -34,14 +32,10 @@ class Musteri(Base):
     bakiye = Column(Float, default=0)
     toplam_borc = Column(Float, default=0)
     toplam_alacak = Column(Float, default=0)
-    risk_limiti = Column(Float, default=0)
-    vade_gunu = Column(Integer, default=30)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
     siparisler = relationship("Siparis", back_populates="musteri")
     cari_hareketler = relationship("CariHareket", back_populates="musteri")
 
-# ===== ÜRÜN =====
 class Urun(Base):
     __tablename__ = "urunler"
     id = Column(Integer, primary_key=True, index=True)
@@ -54,7 +48,6 @@ class Urun(Base):
     birim_fiyat = Column(Float, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-# ===== SİPARİŞ =====
 class Siparis(Base):
     __tablename__ = "siparisler"
     id = Column(Integer, primary_key=True, index=True)
@@ -65,7 +58,6 @@ class Siparis(Base):
     durum = Column(String(20), default="Beklemede")
     notlar = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
     musteri = relationship("Musteri", back_populates="siparisler")
     kalemler = relationship("SiparisKalem", back_populates="siparis", cascade="all, delete-orphan")
 
@@ -77,11 +69,9 @@ class SiparisKalem(Base):
     miktar = Column(Float, nullable=False)
     birim_fiyat = Column(Float, default=0)
     toplam_tutar = Column(Float, default=0)
-    
     siparis = relationship("Siparis", back_populates="kalemler")
     urun = relationship("Urun")
 
-# ===== CARİ HAREKET =====
 class CariHareket(Base):
     __tablename__ = "cari_hareketler"
     id = Column(Integer, primary_key=True, index=True)
@@ -96,5 +86,4 @@ class CariHareket(Base):
     odeme_durumu = Column(String(20), default="Bekliyor")
     odeme_tarihi = Column(Date)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
     musteri = relationship("Musteri", back_populates="cari_hareketler")
