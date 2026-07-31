@@ -71,7 +71,7 @@
         </form>
 
         <div class="footer">
-            <p style="font-size:12px; color:#999; margin-top:15px;">Demo: admin / admin123</p>
+            <p style="font-size:12px; color:#999; margin-top:15px;">Demo: Version 1,00</p>
             <p style="font-size:12px; color:#999;">© 2026 MÜYS</p>
         </div>
     </div>
@@ -91,7 +91,9 @@
             try {
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
                     body: formData
                 });
 
@@ -105,7 +107,9 @@
                     messageDiv.textContent = '✅ Giriş başarılı! Yönlendiriliyorsunuz...';
                     messageDiv.style.display = 'block';
 
-                    setTimeout(() => { window.location.href = '/dashboard'; }, 1000);
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
                 } else {
                     messageDiv.className = 'alert alert-danger';
                     messageDiv.textContent = '❌ ' + (data.detail || 'Hatalı giriş!');
