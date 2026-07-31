@@ -56,3 +56,40 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     if not user.aktif:
         raise HTTPException(status_code=403, detail="Hesabınız pasif durumda!")
     return user
+
+from functools import wraps
+
+def rol_gerekli(izinli_roller: list):
+    """Belirtilen rollerden birine sahip değilse erişimi engelle"""
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # current_user'ı kwargs'dan veya args'dan bul
+            current_user = kwargs.get('current_user')
+            if not current_user:
+                # Eğer current_user yoksa, onu bulmaya çalış
+                from fastapi import Depends
+                from app.auth import get_current_user
+                # Bu durumda dependency injection ile çalışıyor
+                # Normalde dekoratör doğru çalışır
+                pass
+            
+            # Eğer current_user hala yoksa, args'dan al
+            if not current_user and args:
+                # İlk argüman genelde current_user'dır
+                for arg in args:
+                    if hasattr(arg, 'rol'):
+                        current_user = arg
+                        break
+            
+            if not current_user:
+                from fastapi import HTTPException, status
+                raise HTTPException(status_code=401, detail="Giriş yapın!")
+            
+            if current_user.rol not in izinli_roller:
+                from fastapi import HTTPException, status
+                raise HTTPException(status_code=403, detail="Bu sayfaya erişim yetkiniz yok!")
+            
+            return await func(*args, **kwargs)
+        return wrapper
+    return decorator
