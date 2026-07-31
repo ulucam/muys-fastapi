@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MÜYS - Üretim Yönetim</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background: linear-gradient(135deg, #1a2332, #2a3a4a);
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: rgba(255,255,255,0.05);
+            padding: 50px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        h1 {
+            color: #ff6b35;
+            font-size: 48px;
+            margin: 0;
+        }
+        .status {
+            color: #28a745;
+            font-size: 20px;
+            margin-top: 20px;
+        }
+        .sub {
+            color: #8a9aaa;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        a {
+            color: #ff6b35;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏭 MÜYS</h1>
+        <p class="status">✅ FastAPI ile çalışıyor!</p>
+        <p class="sub">Mysto Üretim Yönetim Sistemi</p>
+        <p><a href="/api/health">🔍 Health Check</a></p>
+    </div>
+</body>
+</html>
