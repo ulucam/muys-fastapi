@@ -1,1 +1,185 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MÜYS - Giriş</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2332 0%, #2a3a4a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .login-container .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-container .logo h1 {
+            color: #ff6b35;
+            font-size: 28px;
+        }
+        .login-container .logo small {
+            color: #8a9aaa;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            color: #1a2332;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #d1d9e6;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: 0.3s;
+        }
+        .form-group input:focus {
+            border-color: #ff6b35;
+            outline: none;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: #ff6b35;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-login:hover {
+            background: #e55a2b;
+        }
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #8a9aaa;
+            font-size: 13px;
+        }
+        .footer a {
+            color: #ff6b35;
+            text-decoration: none;
+        }
+        @media (max-width: 480px) {
+            .login-container { padding: 25px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>🏭 MÜYS</h1>
+            <small>Mysto Üretim Yönetim Sistemi</small>
+        </div>
 
+        <!-- Mesajlar -->
+        <div id="message" style="display:none;" class="alert"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label><i class="fas fa-user"></i> Kullanıcı Adı</label>
+                <input type="text" id="username" placeholder="Kullanıcı adınız" required>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-lock"></i> Şifre</label>
+                <input type="password" id="password" placeholder="Şifreniz" required>
+            </div>
+            <button type="submit" class="btn-login">Giriş Yap</button>
+        </form>
+
+        <div class="footer">
+            <p style="font-size:12px; color:#999; margin-top:15px;">
+                Demo: admin / admin123
+            </p>
+            <p style="font-size:12px; color:#999;">© 2026 MÜYS</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
+            
+            // Form verilerini hazırla (OAuth2 formatında)
+            const formData = new URLSearchParams();
+            formData.append('username', username);
+            formData.append('password', password);
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Token'ı localStorage'a kaydet
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    messageDiv.className = 'alert alert-success';
+                    messageDiv.textContent = '✅ Giriş başarılı! Yönlendiriliyorsunuz...';
+                    messageDiv.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    messageDiv.className = 'alert alert-danger';
+                    messageDiv.textContent = '❌ ' + (data.detail || 'Hatalı giriş!');
+                    messageDiv.style.display = 'block';
+                }
+            } catch (error) {
+                messageDiv.className = 'alert alert-danger';
+                messageDiv.textContent = '❌ Sunucu hatası! Lütfen tekrar deneyin.';
+                messageDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
