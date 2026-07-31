@@ -71,9 +71,7 @@
         </form>
 
         <div class="footer">
-            <p style="font-size:12px; color:#999; margin-top:15px;">
-                Demo: admin / admin123
-            </p>
+            <p style="font-size:12px; color:#999; margin-top:15px;">Demo: admin / admin123</p>
             <p style="font-size:12px; color:#999;">© 2026 MÜYS</p>
         </div>
     </div>
@@ -81,7 +79,6 @@
     <script>
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const messageDiv = document.getElementById('message');
@@ -96,17 +93,14 @@
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: formData
                 });
-
                 const data = await response.json();
 
                 if (response.ok) {
                     localStorage.setItem('access_token', data.access_token);
                     localStorage.setItem('user', JSON.stringify(data.user));
-
                     messageDiv.className = 'alert alert-success';
                     messageDiv.textContent = '✅ Giriş başarılı! Yönlendiriliyorsunuz...';
                     messageDiv.style.display = 'block';
-
                     setTimeout(() => { window.location.href = '/dashboard'; }, 1000);
                 } else {
                     messageDiv.className = 'alert alert-danger';
