@@ -7,3 +7,4 @@ python-multipart
 python-dotenv
 jinja2
 openpyxl
+email-validator
