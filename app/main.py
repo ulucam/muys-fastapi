@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -60,6 +60,38 @@ async def dashboard_page(request: Request):
 async def siparisler_page(request: Request):
     return templates.TemplateResponse("siparisler.html", {"request": request})
 
+@app.get("/musteriler", response_class=HTMLResponse)
+async def musteriler_page(request: Request):
+    return templates.TemplateResponse("musteriler.html", {"request": request})
+
+@app.get("/urunler", response_class=HTMLResponse)
+async def urunler_page(request: Request):
+    return templates.TemplateResponse("urunler.html", {"request": request})
+
+@app.get("/uretim", response_class=HTMLResponse)
+async def uretim_page(request: Request):
+    return templates.TemplateResponse("uretim.html", {"request": request})
+
+@app.get("/stok", response_class=HTMLResponse)
+async def stok_page(request: Request):
+    return templates.TemplateResponse("stok.html", {"request": request})
+
+@app.get("/cari", response_class=HTMLResponse)
+async def cari_page(request: Request):
+    return templates.TemplateResponse("cari.html", {"request": request})
+
+@app.get("/excel", response_class=HTMLResponse)
+async def excel_page(request: Request):
+    return templates.TemplateResponse("excel.html", {"request": request})
+
+# ===== API =====
+
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok", "message": "MÜYS API çalışıyor! 🚀"}
+
+# ===== ÇALIŞTIR =====
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=10000)
