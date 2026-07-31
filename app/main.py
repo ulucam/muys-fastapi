@@ -4,7 +4,6 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routes import auth, dashboard, musteriler, urunler, siparisler, uretim, stok, cari, excel
 import os
 
 # Veritabanı tablolarını oluştur
@@ -27,7 +26,12 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Templates
 templates = Jinja2Templates(directory="templates")
 
-# Routes
+# ===== ROUTES =====
+from app.routes import (
+    auth, dashboard, musteriler, urunler, 
+    siparisler, uretim, stok, cari, excel
+)
+
 app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(musteriler.router)
@@ -56,18 +60,6 @@ async def dashboard_page(request: Request):
 async def siparisler_page(request: Request):
     return templates.TemplateResponse("siparisler.html", {"request": request})
 
-@app.get("/musteriler", response_class=HTMLResponse)
-async def musteriler_page(request: Request):
-    return templates.TemplateResponse("musteriler.html", {"request": request})
-
-@app.get("/urunler", response_class=HTMLResponse)
-async def urunler_page(request: Request):
-    return templates.TemplateResponse("urunler.html", {"request": request})
-
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok", "message": "MÜYS API çalışıyor! 🚀"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=10000)
