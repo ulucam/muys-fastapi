@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MÜYS - Giriş</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -42,9 +43,8 @@
             cursor: pointer; transition: 0.3s;
         }
         .btn-login:hover { background: #e55a2b; }
-        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; display: none; }
-        .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; display: block; }
-        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; display: block; }
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; }
+        .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .footer { text-align: center; margin-top: 20px; color: #8a9aaa; font-size: 13px; }
         @media (max-width: 480px) { .login-container { padding: 25px; } }
     </style>
@@ -56,71 +56,26 @@
             <small>Mysto Üretim Yönetim Sistemi</small>
         </div>
 
-        <div id="message" class="alert"></div>
+        {% if hata %}
+        <div class="alert alert-danger">{{ hata }}</div>
+        {% endif %}
 
-        <form id="loginForm">
+        <form method="POST" action="/login">
             <div class="form-group">
-                <label>👤 Kullanıcı Adı</label>
-                <input type="text" id="username" placeholder="Kullanıcı adınız" required>
+                <label><i class="fas fa-user"></i> Kullanıcı Adı</label>
+                <input type="text" name="kullanici_adi" placeholder="Kullanıcı adınız" required autofocus>
             </div>
             <div class="form-group">
-                <label>🔒 Şifre</label>
-                <input type="password" id="password" placeholder="Şifreniz" required>
+                <label><i class="fas fa-lock"></i> Şifre</label>
+                <input type="password" name="sifre" placeholder="Şifreniz" required>
             </div>
-            <button type="submit" class="btn-login">Giriş Yap</button>
+            <button type="submit" class="btn-login"><i class="fas fa-sign-in-alt"></i> Giriş Yap</button>
         </form>
 
         <div class="footer">
-            <p style="font-size:12px; color:#999; margin-top:15px;">Demo: admin / admin123</p>
-            <p style="font-size:12px; color:#999;">© 2026 MÜYS</p>
+            <p>Demo : Ürgüp Mertaş Firması</p>
+            <p style="margin-top:10px;">© 2026 MÜYS</p>
         </div>
     </div>
-
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const messageDiv = document.getElementById('message');
-
-            const formData = new URLSearchParams();
-            formData.append('username', username);
-            formData.append('password', password);
-
-            try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    localStorage.setItem('access_token', data.access_token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-
-                    messageDiv.className = 'alert alert-success';
-                    messageDiv.textContent = '✅ Giriş başarılı! Yönlendiriliyorsunuz...';
-                    messageDiv.style.display = 'block';
-
-                    setTimeout(() => {
-                        window.location.href = '/dashboard';
-                    }, 1000);
-                } else {
-                    messageDiv.className = 'alert alert-danger';
-                    messageDiv.textContent = '❌ ' + (data.detail || 'Hatalı giriş!');
-                    messageDiv.style.display = 'block';
-                }
-            } catch (error) {
-                messageDiv.className = 'alert alert-danger';
-                messageDiv.textContent = '❌ Sunucu hatası! Lütfen tekrar deneyin.';
-                messageDiv.style.display = 'block';
-            }
-        });
-    </script>
 </body>
 </html>
