@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <div>
+
+        <h3 class="mb-0">
+            👥 Müşteri Detayı
+        </h3>
+
+        <small class="text-muted">
+            {{ musteri.firma_adi }}
+        </small>
+
+    </div>
+
+    <a href="/musteriler"
+       class="btn btn-secondary">
+
+        ← Geri Dön
+
+    </a>
+
+</div>
+
+
+<div class="row">
+
+    <div class="col-lg-8">
+
+        <div class="card shadow-sm mb-4">
+
+            <div class="card-header bg-primary text-white">
+
+                Firma Bilgileri
+
+            </div>
+
+            <div class="card-body">
+
+                <div class="row">
+
+                    <div class="col-md-6 mb-3">
+
+                        <strong>Müşteri Kodu</strong><br>
+
+                        {{ musteri.musteri_kodu }}
+
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+
+                        <strong>Firma Adı</strong><br>
+
+                        {{ musteri.firma_adi }}
+
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+
+                        <strong>Yetkili Kişi</strong><br>
+
+                        {{ musteri.yetkili or "-" }}
+
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+
+                        <strong>Telefon</strong><br>
+
+                        {{ musteri.telefon or "-" }}
+
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+
+                        <strong>E-Posta</strong><br>
+
+                        {{ musteri.email or "-" }}
+
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+
+                        <strong>Vergi Dairesi</strong><br>
+
+                        {{ musteri.vergi_dairesi or "-" }}
+
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+
+                        <strong>Vergi No</strong><br>
+
+                        {{ musteri.vergi_no or "-" }}
+
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+
+                        <strong>İl / İlçe</strong><br>
+
+                        {{ musteri.il }} / {{ musteri.ilce }}
+
+                    </div>
+
+                    <div class="col-12">
+
+                        <strong>Adres</strong>
+
+                        <div class="border rounded p-3 bg-light mt-2">
+
+                            {{ musteri.adres or "-" }}
+
+                        </div>
+
+                    </div>
+
+                    <div class="col-12 mt-3">
+
+                        <strong>Açıklama</strong>
+
+                        <div class="border rounded p-3 bg-light mt-2">
+
+                            {{ musteri.aciklama or "-" }}
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-4">
+
+        <div class="card shadow-sm mb-4">
+
+            <div class="card-header bg-success text-white">
+
+                Sipariş Özeti
+
+            </div>
+
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between mb-3">
+
+                    <span>Bekleyen Sipariş</span>
+
+                    <span class="badge bg-warning text-dark">
+
+                        {{ bekleyen_siparis }}
+
+                    </span>
+
+                </div>
+
+                <div class="d-flex justify-content-between mb-3">
+
+                    <span>Üretimdeki Sipariş</span>
+
+                    <span class="badge bg-primary">
+
+                        {{ uretimdeki_siparis }}
+
+                    </span>
+
+                </div>
+
+                <div class="d-flex justify-content-between mb-3">
+
+                    <span>Tamamlanan Sipariş</span>
+
+                    <span class="badge bg-success">
+
+                        {{ tamamlanan_siparis }}
+
+                    </span>
+
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between">
+
+                    <strong>Toplam Sipariş</strong>
+
+                    <strong>
+
+                        {{ toplam_siparis }}
+
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-dark text-white">
+
+        Sipariş Geçmişi
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Sipariş No</th>
+
+                        <th>Tarih</th>
+
+                        <th>Ürün</th>
+
+                        <th>Miktar</th>
+
+                        <th>Durum</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+                    {% if siparislar %}
+
+    {% for siparis in siparislar %}
+
+    <tr>
+
+        <td>
+
+            {{ siparis.siparis_no }}
+
+        </td>
+
+        <td>
+
+            {% if siparis.created_at %}
+
+                {{ siparis.created_at.strftime("%d.%m.%Y") }}
+
+            {% else %}
+
+                -
+
+            {% endif %}
+
+        </td>
+
+        <td>
+
+            {{ siparis.urun_adi }}
+
+        </td>
+
+        <td>
+
+            {{ siparis.miktar }}
+
+        </td>
+
+        <td>
+
+            {% if siparis.durum == "Bekliyor" %}
+
+                <span class="badge bg-warning text-dark">
+                    Bekliyor
+                </span>
+
+            {% elif siparis.durum == "Üretimde" %}
+
+                <span class="badge bg-primary">
+                    Üretimde
+                </span>
+
+            {% elif siparis.durum == "Tamamlandı" %}
+
+                <span class="badge bg-success">
+                    Tamamlandı
+                </span>
+
+            {% elif siparis.durum == "İptal" %}
+
+                <span class="badge bg-danger">
+                    İptal
+                </span>
+
+            {% else %}
+
+                <span class="badge bg-secondary">
+                    {{ siparis.durum }}
+                </span>
+
+            {% endif %}
+
+        </td>
+
+    </tr>
+
+    {% endfor %}
+
+{% else %}
+
+<tr>
+
+    <td colspan="5" class="text-center text-muted py-5">
+
+        <h5 class="mb-3">
+
+            📦 Henüz sipariş bulunmuyor
+
+        </h5>
+
+        <small>
+
+            Bu müşteriye ait oluşturulmuş herhangi bir sipariş bulunmamaktadır.
+
+        </small>
+
+    </td>
+
+</tr>
+
+{% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
