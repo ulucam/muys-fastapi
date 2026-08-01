@@ -1,13 +1,14 @@
 from pydantic import BaseModel, EmailStr
-from datetime import datetime, date
+from datetime import datetime
 from typing import Optional, List
 
+# ===== KULLANICI =====
 class UserBase(BaseModel):
     kullanici_adi: str
     email: EmailStr
     adi: Optional[str] = None
     soyadi: Optional[str] = None
-    rol: str = "Operator"
+    telefon: Optional[str] = None
 
 class UserCreate(UserBase):
     sifre: str
@@ -18,44 +19,45 @@ class UserLogin(BaseModel):
 
 class UserResponse(UserBase):
     id: int
+    rol_id: int
     aktif: bool
     created_at: datetime
+    
     class Config:
         from_attributes = True
 
+# ===== MÜŞTERİ =====
 class MusteriBase(BaseModel):
-    firma_kodu: str
-    firma_adi: str
-    yetkili: Optional[str] = None
+    kodu: str
+    adi: str
     telefon: Optional[str] = None
     email: Optional[str] = None
-    il: Optional[str] = None
-    ilce: Optional[str] = None
-    acik_adres: Optional[str] = None
+    adres: Optional[str] = None
     vergi_no: Optional[str] = None
-    musteri_tipi: str = "Alıcı"
-    odeme_tipi: str = "Vadeli"
 
 class MusteriCreate(MusteriBase):
     pass
 
 class MusteriResponse(MusteriBase):
     id: int
-    bakiye: float
-    toplam_borc: float
-    toplam_alacak: float
     created_at: datetime
+    
     class Config:
         from_attributes = True
 
+# ===== ÜRÜN =====
 class UrunBase(BaseModel):
     kodu: str
     adi: str
-    birim: str = "Adet"
-    urun_tipi: str = "Mamul"
-    mevcut_stok: float = 0
-    min_stok: float = 0
-    birim_fiyat: float = 0
+    aciklama: Optional[str] = None
+    birim: Optional[str] = "Adet"
+    urun_tipi: Optional[str] = "Mamul"
+    tahmini_uretim_suresi: Optional[float] = 0
+    min_stok: Optional[float] = 0
+    mevcut_stok: Optional[float] = 0
+    birim_fiyat: Optional[float] = 0
+    malzeme: Optional[str] = None
+    kalinlik: Optional[float] = None
 
 class UrunCreate(UrunBase):
     pass
@@ -63,57 +65,49 @@ class UrunCreate(UrunBase):
 class UrunResponse(UrunBase):
     id: int
     created_at: datetime
+    updated_at: datetime
+    
     class Config:
         from_attributes = True
 
+# ===== SİPARİŞ =====
 class SiparisKalemBase(BaseModel):
     urun_id: int
     miktar: float
-    birim_fiyat: Optional[float] = 0
 
-class SiparisCreate(BaseModel):
-    siparis_no: str
-    musteri_id: int
-    teslim_tarihi: Optional[date] = None
-    notlar: Optional[str] = None
-    kalemler: List[SiparisKalemBase]
+class SiparisKalemCreate(SiparisKalemBase):
+    pass
 
-class SiparisResponse(BaseModel):
+class SiparisKalemResponse(SiparisKalemBase):
     id: int
-    siparis_no: str
-    musteri_id: int
-    musteri_adi: str
-    siparis_tarihi: datetime
-    teslim_tarihi: Optional[date]
+    uretilen_miktar: float
     durum: str
-    notlar: Optional[str]
-    toplam_tutar: float
+    
     class Config:
         from_attributes = True
 
-class CariHareketCreate(BaseModel):
+class SiparisBase(BaseModel):
+    siparis_no: str
     musteri_id: int
-    hareket_tipi: str
-    tutar: float
-    aciklama: Optional[str] = None
-    referans_no: Optional[str] = None
-    vade_tarihi: Optional[date] = None
+    teslim_tarihi: Optional[datetime] = None
+    notlar: Optional[str] = None
 
-class CariHareketResponse(BaseModel):
+class SiparisCreate(SiparisBase):
+    kalemler: List[SiparisKalemCreate]
+
+class SiparisResponse(SiparisBase):
     id: int
-    musteri_id: int
-    hareket_tipi: str
-    tutar: float
-    borc: float
-    alacak: float
-    aciklama: Optional[str]
-    referans_no: Optional[str]
-    odeme_durumu: str
+    durum: str
     created_at: datetime
+    kalemler: List[SiparisKalemResponse]
+    
     class Config:
         from_attributes = True
 
+# ===== TOKEN =====
 class Token(BaseModel):
     access_token: str
     token_type: str
-    user: UserResponse
+
+class TokenData(BaseModel):
+    kullanici_adi: Optional[str] = None
