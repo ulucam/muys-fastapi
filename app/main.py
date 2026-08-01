@@ -8,11 +8,24 @@ from datetime import datetime
 import os
 
 # ===== KONFIG =====
-DATABASE_URL = "sqlite:///./muys.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./muys.db")
 SECRET_KEY = "gizli-anahtar-2026"
 
 # ===== VERİTABANI =====
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+if DATABASE_URL.startswith("postgresql://"):
+    engine = create_engine(DATABASE_URL)
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
+
+
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
