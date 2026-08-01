@@ -1,52 +1,64 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
 from app.database import Base
+from datetime import datetime
+
+class Rol(Base):
+    __tablename__ = "roller"
+    id = Column(Integer, primary_key=True, index=True)
+    adi = Column(String(50), unique=True, nullable=False)
+    aciklama = Column(String(200))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    kullanicilar = relationship("User", back_populates="rol")
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "kullanicilar"
     id = Column(Integer, primary_key=True, index=True)
     kullanici_adi = Column(String(50), unique=True, nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     sifre_hash = Column(String(200), nullable=False)
     adi = Column(String(100))
     soyadi = Column(String(100))
-    rol = Column(String(20), default="Operator")
+    telefon = Column(String(20))
+    rol_id = Column(Integer, ForeignKey("roller.id"), default=3)
     aktif = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    rol = relationship("Rol", back_populates="kullanicilar")
+    siparisler = relationship("Siparis", back_populates="musteri")
 
 class Musteri(Base):
     __tablename__ = "musteriler"
     id = Column(Integer, primary_key=True, index=True)
-    firma_kodu = Column(String(20), unique=True, nullable=False)
-    firma_adi = Column(String(100), nullable=False)
-    yetkili = Column(String(100))
+    kodu = Column(String(20), unique=True, index=True)
+    adi = Column(String(100), nullable=False)
     telefon = Column(String(20))
     email = Column(String(100))
-    il = Column(String(50))
-    ilce = Column(String(50))
-    acik_adres = Column(Text)
+    adres = Column(Text)
     vergi_no = Column(String(20))
-    musteri_tipi = Column(String(20), default="Alıcı")
-    odeme_tipi = Column(String(20), default="Vadeli")
-    bakiye = Column(Float, default=0)
-    toplam_borc = Column(Float, default=0)
-    toplam_alacak = Column(Float, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
+    
     siparisler = relationship("Siparis", back_populates="musteri")
-    cari_hareketler = relationship("CariHareket", back_populates="musteri")
 
 class Urun(Base):
     __tablename__ = "urunler"
     id = Column(Integer, primary_key=True, index=True)
-    kodu = Column(String(20), unique=True, nullable=False)
+    kodu = Column(String(20), unique=True, index=True, nullable=False)
     adi = Column(String(100), nullable=False)
+    aciklama = Column(Text)
     birim = Column(String(10), default="Adet")
-    urun_tipi = Column(String(20), default="Mamul")
-    mevcut_stok = Column(Float, default=0)
+    urun_tipi = Column(String(20), default="Mamul")  # Hammadde, YariMamul, Mamul, TicariMamul
+    tahmini_uretim_suresi = Column(Float, default=0)
     min_stok = Column(Float, default=0)
+    mevcut_stok = Column(Float, default=0)
     birim_fiyat = Column(Float, default=0)
+    malzeme = Column(String(50))
+    kalinlik = Column(Float)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    siparis_kalemleri = relationship("SiparisKalem", back_populates="urun")
 
 class Siparis(Base):
     __tablename__ = "siparisler"
@@ -54,10 +66,12 @@ class Siparis(Base):
     siparis_no = Column(String(30), unique=True, nullable=False)
     musteri_id = Column(Integer, ForeignKey("musteriler.id"))
     siparis_tarihi = Column(DateTime, default=datetime.utcnow)
-    teslim_tarihi = Column(Date)
-    durum = Column(String(20), default="Beklemede")
+    teslim_tarihi = Column(DateTime)
+    durum = Column(String(20), default="Beklemede")  # Beklemede, Uretimde, Tamamlandi
     notlar = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
     musteri = relationship("Musteri", back_populates="siparisler")
     kalemler = relationship("SiparisKalem", back_populates="siparis", cascade="all, delete-orphan")
 
@@ -67,23 +81,8 @@ class SiparisKalem(Base):
     siparis_id = Column(Integer, ForeignKey("siparisler.id"))
     urun_id = Column(Integer, ForeignKey("urunler.id"))
     miktar = Column(Float, nullable=False)
-    birim_fiyat = Column(Float, default=0)
-    toplam_tutar = Column(Float, default=0)
+    uretilen_miktar = Column(Float, default=0)
+    durum = Column(String(20), default="Beklemede")
+    
     siparis = relationship("Siparis", back_populates="kalemler")
-    urun = relationship("Urun")
-
-class CariHareket(Base):
-    __tablename__ = "cari_hareketler"
-    id = Column(Integer, primary_key=True, index=True)
-    musteri_id = Column(Integer, ForeignKey("musteriler.id"))
-    hareket_tipi = Column(String(30), nullable=False)
-    tutar = Column(Float, nullable=False)
-    borc = Column(Float, default=0)
-    alacak = Column(Float, default=0)
-    aciklama = Column(Text)
-    referans_no = Column(String(50))
-    vade_tarihi = Column(Date)
-    odeme_durumu = Column(String(20), default="Bekliyor")
-    odeme_tarihi = Column(Date)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    musteri = relationship("Musteri", back_populates="cari_hareketler")
+    urun = relationship("Urun", back_populates="siparis_kalemleri")
