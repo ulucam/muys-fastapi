@@ -1,84 +1,16 @@
 {% extends "base.html" %}
 
 {% block title %}Siparişler{% endblock %}
-{% block page_title %}📝 Siparişler{% endblock %}
+{% block page_title %}📝 Sipariş Yönetimi{% endblock %}
 
 {% block content %}
 
 <div class="kart">
-    <div class="kart-title"><i class="fas fa-list"></i> Sipariş Listesi</div>
-    <div id="siparisListesi">
-        <div style="text-align:center; padding:20px; color:#999;">Yükleniyor...</div>
+    <div class="kart-title">📋 Sipariş Listesi</div>
+    <div style="color:#999; text-align:center; padding:30px;">
+        <i class="fas fa-inbox" style="font-size:40px; display:block; margin-bottom:10px;"></i>
+        Sipariş özelliği geliştirme aşamasında
     </div>
 </div>
 
-{% endblock %}
-
-{% block scripts %}
-<script>
-async function loadSiparisler() {
-    try {
-        const response = await apiFetch('/api/siparisler/');
-        const data = await response.json();
-        
-        if (data.length === 0) {
-            document.getElementById('siparisListesi').innerHTML = `
-                <div style="text-align:center; padding:20px; color:#999;">
-                    <i class="fas fa-inbox" style="font-size:24px; display:block; margin-bottom:8px;"></i>
-                    Henüz sipariş yok
-                </div>
-            `;
-            return;
-        }
-        
-        let html = `
-            <div style="overflow-x:auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Sipariş No</th>
-                            <th>Müşteri</th>
-                            <th>Tarih</th>
-                            <th>Teslim</th>
-                            <th>Tutar</th>
-                            <th>Durum</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        data.forEach(s => {
-            const durumClass = {
-                'Beklemede': 'badge-beklemede',
-                'Uretimde': 'badge-uretimde',
-                'Tamamlandi': 'badge-tamamlandi'
-            }[s.durum] || 'badge-beklemede';
-            
-            html += `
-                <tr>
-                    <td><strong>${s.siparis_no}</strong></td>
-                    <td>${s.musteri_adi}</td>
-                    <td>${new Date(s.siparis_tarihi).toLocaleDateString('tr-TR')}</td>
-                    <td>${s.teslim_tarihi ? new Date(s.teslim_tarihi).toLocaleDateString('tr-TR') : '-'}</td>
-                    <td><strong>${s.toplam_tutar?.toFixed(2) || '0.00'} ₺</strong></td>
-                    <td><span class="badge ${durumClass}">${s.durum}</span></td>
-                </tr>
-            `;
-        });
-        
-        html += `</tbody></table></div>`;
-        document.getElementById('siparisListesi').innerHTML = html;
-        
-    } catch (error) {
-        console.error('Siparişler yüklenirken hata:', error);
-        document.getElementById('siparisListesi').innerHTML = `
-            <div style="text-align:center; padding:20px; color:#dc3545;">
-                ❌ Siparişler yüklenirken hata oluştu!
-            </div>
-        `;
-    }
-}
-
-loadSiparisler();
-</script>
 {% endblock %}
