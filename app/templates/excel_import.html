@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Excel İmport{% endblock %}
+{% block page_title %}📥 Excel'den Veri Aktar{% endblock %}
+
+{% block content %}
+
+<div class="kart" style="border-left:4px solid #28a745;">
+    <div class="kart-title">📤 Excel Dosyası Yükle</div>
+    <form id="excelForm" enctype="multipart/form-data" class="form-grup">
+        <input type="file" name="excel_file" accept=".xlsx,.xls" required>
+        <button type="submit" class="btn btn-success">Yükle</button>
+    </form>
+    <div style="margin-top:10px; color:#999; font-size:13px;">
+        📋 Excel formatı: Musteriler, Urunler, Siparisler, Receteler sayfaları olmalı
+    </div>
+</div>
+
+{% endblock %}

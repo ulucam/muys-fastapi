@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}📊 Dashboard{% endblock %}
+
+{% block content %}
+
+<div class="grid-4">
+    <div class="stat-card orange">
+        <div class="icon"><i class="fas fa-shopping-cart"></i></div>
+        <div class="number">{{ toplam_siparis }}</div>
+        <div class="label">Toplam Sipariş</div>
+    </div>
+    <div class="stat-card blue">
+        <div class="icon"><i class="fas fa-users"></i></div>
+        <div class="number">{{ toplam_musteri }}</div>
+        <div class="label">Toplam Müşteri</div>
+    </div>
+    <div class="stat-card green">
+        <div class="icon"><i class="fas fa-box"></i></div>
+        <div class="number">{{ toplam_urun }}</div>
+        <div class="label">Toplam Ürün</div>
+    </div>
+    <div class="stat-card red">
+        <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="number">0</div>
+        <div class="label">Kritik Stok</div>
+    </div>
+</div>
+
+<div class="kart">
+    <div class="kart-title">⚙️ Bugünkü Üretim</div>
+    <div style="font-size:28px; font-weight:bold; color:#ff6b35;">0 adet</div>
+    <div style="color:#8a9aaa;">bugün üretildi</div>
+</div>
+
+<div class="kart">
+    <div class="kart-title">📋 Son Siparişler</div>
+    <div style="color:#999; text-align:center; padding:20px;">Henüz sipariş yok</div>
+</div>
+
+{% endblock %}
