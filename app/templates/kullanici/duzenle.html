@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="row">
+
+        <div class="col-lg-8 col-xl-7">
+
+            <div class="card shadow">
+
+                <div class="card-header bg-warning">
+
+                    <h4 class="mb-0">
+                        ✏️ Kullanıcı Düzenle
+                    </h4>
+
+                </div>
+
+                <div class="card-body">
+
+                    <form method="post" action="/kullanicilar/duzenle/{{ kullanici.id }}">
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">Kullanıcı Adı</label>
+
+                                <input
+                                    type="text"
+                                    name="kullanici_adi"
+                                    class="form-control"
+                                    value="{{ kullanici.kullanici_adi }}"
+                                    required>
+
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">Rol</label>
+
+                                <select
+                                    name="rol"
+                                    class="form-select">
+
+                                    <option {% if kullanici.rol=="Admin" %}selected{% endif %}>Admin</option>
+
+                                    <option {% if kullanici.rol=="Yönetici" %}selected{% endif %}>Yönetici</option>
+
+                                    <option {% if kullanici.rol=="Üretim" %}selected{% endif %}>Üretim</option>
+
+                                    <option {% if kullanici.rol=="Depo" %}selected{% endif %}>Depo</option>
+
+                                    <option {% if kullanici.rol=="Satış" %}selected{% endif %}>Satış</option>
+
+                                    <option {% if kullanici.rol=="Operatör" %}selected{% endif %}>Operatör</option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">Ad Soyad</label>
+
+                            <input
+                                type="text"
+                                name="ad_soyad"
+                                class="form-control"
+                                value="{{ kullanici.ad_soyad }}"
+                                required>
+
+                        </div>
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">Telefon</label>
+
+                                <input
+                                    type="text"
+                                    name="telefon"
+                                    class="form-control"
+                                    value="{{ kullanici.telefon }}">
+
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">E-Posta</label>
+
+                                <input
+                                    type="email"
+                                    name="email"
+                                    class="form-control"
+                                    value="{{ kullanici.email }}">
+
+                            </div>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">Durum</label>
+
+                            <select
+                                name="aktif"
+                                class="form-select">
+
+                                <option value="1" {% if kullanici.aktif %}selected{% endif %}>Aktif</option>
+
+                                <option value="0" {% if not kullanici.aktif %}selected{% endif %}>Pasif</option>
+
+                            </select>
+
+                        </div>
+
+                        <hr>
+
+                        <div class="text-end">
+
+                            <a href="/kullanicilar"
+                               class="btn btn-secondary">
+
+                                İptal
+
+                            </a>
+
+                            <button
+                                class="btn btn-success">
+
+                                Güncelle
+
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
