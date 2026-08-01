@@ -1,137 +1,206 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import FastAPI, Request, Form, Depends
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from sqlalchemy.orm import Session
-from datetime import timedelta
-from typing import List
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from datetime import datetime
+import os
 
-from app.config import Config
-from app.database import get_db, engine, Base
-from app.models import Rol, User, Musteri, Urun, Siparis, SiparisKalem
-from app.schemas import UserCreate, UserLogin, Token, MusteriCreate, UrunCreate, SiparisCreate
-from app.auth import (
-    authenticate_user, create_access_token, get_current_user, 
-    get_current_active_user, get_password_hash, oauth2_scheme
-)
+# ===== KONFIG =====
+DATABASE_URL = "sqlite:///./muys.db"
+SECRET_KEY = "gizli-anahtar-2026"
 
-# ===== UYGULAMA =====
-app = FastAPI(title="MÜYS - Mysto Üretim Yönetim Sistemi", version="1.0.0")
+# ===== VERİTABANI =====
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-# ===== ŞABLONLAR =====
-templates = Jinja2Templates(directory="app/templates")
+# ===== MODELLER =====
+class User(Base):
+    __tablename__ = "kullanicilar"
+    id = Column(Integer, primary_key=True, index=True)
+    kullanici_adi = Column(String(50), unique=True, nullable=False)
+    email = Column(String(100), unique=True, nullable=False)
+    sifre = Column(String(200), nullable=False)  # Düz metin (basitlik için)
+    adi = Column(String(100))
+    aktif = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-# ===== VERİTABANINI OLUŞTUR =====
+class Musteri(Base):
+    __tablename__ = "musteriler"
+    id = Column(Integer, primary_key=True, index=True)
+    kodu = Column(String(20), unique=True)
+    adi = Column(String(100), nullable=False)
+    telefon = Column(String(20))
+    email = Column(String(100))
+    adres = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class Urun(Base):
+    __tablename__ = "urunler"
+    id = Column(Integer, primary_key=True, index=True)
+    kodu = Column(String(20), unique=True, nullable=False)
+    adi = Column(String(100), nullable=False)
+    birim = Column(String(10), default="Adet")
+    urun_tipi = Column(String(20), default="Mamul")
+    mevcut_stok = Column(Float, default=0)
+    min_stok = Column(Float, default=0)
+    birim_fiyat = Column(Float, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class Siparis(Base):
+    __tablename__ = "siparisler"
+    id = Column(Integer, primary_key=True, index=True)
+    siparis_no = Column(String(30), unique=True)
+    musteri_id = Column(Integer, ForeignKey("musteriler.id"))
+    durum = Column(String(20), default="Beklemede")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+# Tabloları oluştur
 Base.metadata.create_all(bind=engine)
 
-# ===== ROUTES =====
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request, current_user: User = Depends(get_current_user)):
-    return templates.TemplateResponse("index.html", {"request": request, "user": current_user})
+# ===== ADMIN OLUŞTUR =====
+with SessionLocal() as db:
+    if not db.query(User).filter(User.kullanici_adi == "admin").first():
+        admin = User(
+            kullanici_adi="admin",
+            email="admin@muys.com",
+            sifre="admin123",
+            adi="Admin",
+            aktif=1
+        )
+        db.add(admin)
+        db.commit()
+        print("✅ Admin: admin / admin123")
 
+# ===== UYGULAMA =====
+app = FastAPI(title="MÜYS")
+templates = Jinja2Templates(directory="app/templates")
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# ===== GİRİŞ =====
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
-@app.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = authenticate_user(db, form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Hatalı kullanıcı adı veya şifre!",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=Config.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.kullanici_adi}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+@app.post("/login", response_class=HTMLResponse)
+async def login_post(request: Request, db: Session = Depends(get_db)):
+    form = await request.form()
+    kullanici_adi = form.get("kullanici_adi")
+    sifre = form.get("sifre")
+    
+    user = db.query(User).filter(
+        User.kullanici_adi == kullanici_adi,
+        User.sifre == sifre
+    ).first()
+    
+    if user:
+        return RedirectResponse(url="/", status_code=303)
+    else:
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "hata": "Hatalı kullanıcı adı veya şifre!"
+        })
 
-@app.get("/logout")
-async def logout():
-    return RedirectResponse(url="/login")
+# ===== ANA SAYFA =====
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request, db: Session = Depends(get_db)):
+    toplam_siparis = db.query(Siparis).count()
+    toplam_musteri = db.query(Musteri).count()
+    toplam_urun = db.query(Urun).count()
+    
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "toplam_siparis": toplam_siparis,
+        "toplam_musteri": toplam_musteri,
+        "toplam_urun": toplam_urun
+    })
 
 # ===== MÜŞTERİLER =====
 @app.get("/musteriler", response_class=HTMLResponse)
-async def musteriler_page(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def musteriler_page(request: Request, db: Session = Depends(get_db)):
     musteriler = db.query(Musteri).all()
-    return templates.TemplateResponse("musteriler.html", {"request": request, "musteriler": musteriler, "user": current_user})
+    return templates.TemplateResponse("musteriler.html", {
+        "request": request,
+        "musteriler": musteriler
+    })
 
 @app.post("/musteri_ekle")
-async def musteri_ekle(musteri: MusteriCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    db_musteri = Musteri(**musteri.model_dump())
-    db.add(db_musteri)
+async def musteri_ekle(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    form = await request.form()
+    musteri = Musteri(
+        kodu=form.get("kodu"),
+        adi=form.get("adi"),
+        telefon=form.get("telefon"),
+        email=form.get("email"),
+        adres=form.get("adres")
+    )
+    db.add(musteri)
     db.commit()
-    db.refresh(db_musteri)
-    return {"durum": "başarılı", "mesaj": "Müşteri eklendi", "id": db_musteri.id}
+    return {"durum": "başarılı", "mesaj": "Müşteri eklendi"}
 
 # ===== ÜRÜNLER =====
 @app.get("/urunler", response_class=HTMLResponse)
-async def urunler_page(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def urunler_page(request: Request, db: Session = Depends(get_db)):
     urunler = db.query(Urun).all()
-    return templates.TemplateResponse("urunler.html", {"request": request, "urunler": urunler, "user": current_user})
+    return templates.TemplateResponse("urunler.html", {
+        "request": request,
+        "urunler": urunler
+    })
 
 @app.post("/urun_ekle")
-async def urun_ekle(urun: UrunCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    db_urun = Urun(**urun.model_dump())
-    db.add(db_urun)
-    db.commit()
-    db.refresh(db_urun)
-    return {"durum": "başarılı", "mesaj": "Ürün eklendi", "id": db_urun.id}
-
-# ===== SİPARİŞLER =====
-@app.get("/siparisler", response_class=HTMLResponse)
-async def siparisler_page(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    siparisler = db.query(Siparis).all()
-    musteriler = db.query(Musteri).all()
-    urunler = db.query(Urun).all()
-    return templates.TemplateResponse("siparisler.html", {"request": request, "siparisler": siparisler, "musteriler": musteriler, "urunler": urunler, "user": current_user})
-
-@app.post("/siparis_ekle")
-async def siparis_ekle(siparis: SiparisCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    db_siparis = Siparis(
-        siparis_no=siparis.siparis_no,
-        musteri_id=siparis.musteri_id,
-        teslim_tarihi=siparis.teslim_tarihi,
-        notlar=siparis.notlar
+async def urun_ekle(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    form = await request.form()
+    urun = Urun(
+        kodu=form.get("kodu"),
+        adi=form.get("adi"),
+        birim=form.get("birim", "Adet"),
+        urun_tipi=form.get("urun_tipi", "Mamul"),
+        mevcut_stok=float(form.get("mevcut_stok", 0)),
+        min_stok=float(form.get("min_stok", 0)),
+        birim_fiyat=float(form.get("birim_fiyat", 0))
     )
-    db.add(db_siparis)
+    db.add(urun)
     db.commit()
-    db.refresh(db_siparis)
-    
-    for kalem in siparis.kalemler:
-        db_kalem = SiparisKalem(
-            siparis_id=db_siparis.id,
-            urun_id=kalem.urun_id,
-            miktar=kalem.miktar
-        )
-        db.add(db_kalem)
-    
-    db.commit()
-    return {"durum": "başarılı", "mesaj": f"Sipariş {siparis.siparis_no} eklendi", "id": db_siparis.id}
+    return {"durum": "başarılı", "mesaj": "Ürün eklendi"}
 
-# ===== ÜRETİM =====
+# ===== DİĞER SAYFALAR =====
+@app.get("/siparisler", response_class=HTMLResponse)
+async def siparisler_page(request: Request):
+    return templates.TemplateResponse("siparisler.html", {"request": request})
+
 @app.get("/uretim", response_class=HTMLResponse)
-async def uretim_page(request: Request, current_user: User = Depends(get_current_user)):
-    return templates.TemplateResponse("uretim.html", {"request": request, "user": current_user})
+async def uretim_page(request: Request):
+    return templates.TemplateResponse("uretim.html", {"request": request})
 
-# ===== STOK =====
 @app.get("/stok", response_class=HTMLResponse)
-async def stok_page(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def stok_page(request: Request, db: Session = Depends(get_db)):
     urunler = db.query(Urun).all()
-    return templates.TemplateResponse("stok.html", {"request": request, "urunler": urunler, "user": current_user})
+    return templates.TemplateResponse("stok.html", {
+        "request": request,
+        "urunler": urunler
+    })
 
-# ===== REÇETE =====
 @app.get("/recete", response_class=HTMLResponse)
-async def recete_page(request: Request, current_user: User = Depends(get_current_user)):
-    return templates.TemplateResponse("recete.html", {"request": request, "user": current_user})
+async def recete_page(request: Request):
+    return templates.TemplateResponse("recete.html", {"request": request})
 
-# ===== EXCEL İMPORT =====
 @app.get("/excel_import", response_class=HTMLResponse)
-async def excel_import_page(request: Request, current_user: User = Depends(get_current_user)):
-    return templates.TemplateResponse("excel_import.html", {"request": request, "user": current_user})
+async def excel_import_page(request: Request):
+    return templates.TemplateResponse("excel_import.html", {"request": request})
 
 # ===== BAŞLAT =====
 if __name__ == "__main__":
