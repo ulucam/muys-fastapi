@@ -1,0 +1,53 @@
+# app/roles.py
+
+ADMIN = [
+    "Admin"
+]
+
+YONETIM = [
+    "Admin",
+    "Yönetici"
+]
+
+MUSTERI = [
+    "Admin",
+    "Yönetici",
+    "Satış",
+    "Üretim"
+]
+
+MUSTERI_YONET = [
+    "Admin",
+    "Yönetici",
+    "Satış"
+]
+
+SIPARIS = [
+    "Admin",
+    "Yönetici",
+    "Satış",
+    "Üretim"
+]
+
+STOK = [
+    "Admin",
+    "Yönetici",
+    "Depo"
+]
+
+URETIM = [
+    "Admin",
+    "Yönetici",
+    "Üretim",
+    "Operatör"
+]
+
+RECETE = [
+    "Admin",
+    "Yönetici",
+    "Üretim"
+]
+
+KULLANICI = [
+    "Admin"
+]
