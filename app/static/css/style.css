@@ -1,0 +1,249 @@
+
+/* GENEL */
+
+body{
+
+    background:#f4f6f9;
+    overflow:hidden;
+
+}
+
+
+
+/* SOL MENÜ */
+
+.sidebar{
+
+    width:260px;
+    height:100vh;
+    position:fixed;
+    left:0;
+    top:0;
+    background:#1d3557;
+    color:white;
+    display:flex;
+    flex-direction:column;
+    z-index:1000;
+
+}
+
+
+
+.logo{
+
+    height:90px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    border-bottom:1px solid rgba(255,255,255,.15);
+
+}
+
+
+.logo img{
+
+    max-width:190px;
+    max-height:75px;
+    object-fit:contain;
+
+}
+
+
+
+/* MENÜ */
+
+.menu{
+
+    flex:1;
+    overflow-y:auto;
+    padding-top:10px;
+
+}
+
+
+.menu a{
+
+    color:white;
+    text-decoration:none;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 20px;
+
+}
+
+
+.menu a:hover{
+
+    background:#2a4b74;
+
+}
+
+
+
+.submenu{
+
+    background:#27496d;
+
+}
+
+
+.submenu a{
+
+    padding-left:45px;
+    font-size:14px;
+
+}
+
+
+
+.arrow{
+
+    transition:.3s;
+
+}
+
+
+.menu-toggle[aria-expanded="true"] .arrow{
+
+    transform:rotate(180deg);
+
+}
+
+
+
+
+/* ALT MENÜ */
+
+
+.bottom{
+
+    border-top:1px solid rgba(255,255,255,.15);
+    padding:15px;
+
+}
+
+
+
+/* ANA İÇERİK */
+
+
+.content{
+
+    margin-left:260px;
+    height:100vh;
+
+}
+
+
+
+.topbar{
+
+    height:60px;
+    background:white;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 25px;
+    border-bottom:1px solid #ddd;
+
+}
+
+
+
+.page{
+
+    height:calc(100vh - 60px);
+    overflow-y:auto;
+    padding:25px;
+
+}
+
+
+
+
+
+/* MOBİL ÜST BAR */
+
+
+.mobile-topbar{
+
+    display:none;
+
+}
+
+
+
+
+
+/* TELEFON */
+
+@media(max-width:768px){
+
+
+    body{
+
+        overflow:auto;
+
+    }
+
+
+
+    .sidebar{
+
+        left:-260px;
+        transition:.3s;
+
+    }
+
+
+
+    .sidebar.active{
+
+        left:0;
+
+    }
+
+
+
+    .content{
+
+        margin-left:0;
+
+    }
+
+
+
+    .topbar{
+
+        display:none;
+
+    }
+
+
+
+    .mobile-topbar{
+
+        display:flex;
+        height:60px;
+        background:white;
+        align-items:center;
+        justify-content:space-between;
+        padding:0 15px;
+        border-bottom:1px solid #ddd;
+        position:relative;
+        z-index:900;
+
+    }
+
+
+
+    .page{
+
+        height:auto;
+        padding:15px;
+
+    }
+
+
+}

@@ -1,28 +1,38 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Request, Depends
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.models import Siparis, Urun, Musteri, User
-from app.auth import get_current_user
+from app.models.musteri import Musteri
+from app.models.urun import Urun
+from app.models.siparis import Siparis
 
-router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
-@router.get("/")
-def get_dashboard(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+router = APIRouter()
+
+templates = Jinja2Templates(
+    directory="app/templates"
+)
+
+
+@router.get("/", response_class=HTMLResponse)
+async def dashboard(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+
     toplam_siparis = db.query(Siparis).count()
-    aktif_siparis = db.query(Siparis).filter(Siparis.durum.in_(['Beklemede', 'Onaylandi', 'Uretimde'])).count()
-    tamamlanan_siparis = db.query(Siparis).filter(Siparis.durum == 'Tamamlandi').count()
-    bekleyen_siparis = db.query(Siparis).filter(Siparis.durum == 'Beklemede').count()
-    kritik_stok = db.query(Urun).filter(Urun.mevcut_stok <= Urun.min_stok, Urun.min_stok > 0).count()
     toplam_musteri = db.query(Musteri).count()
     toplam_urun = db.query(Urun).count()
-    
-    return {
-        "toplam_siparis": toplam_siparis,
-        "aktif_siparis": aktif_siparis,
-        "tamamlanan_siparis": tamamlanan_siparis,
-        "bekleyen_siparis": bekleyen_siparis,
-        "kritik_stok": kritik_stok,
-        "toplam_musteri": toplam_musteri,
-        "toplam_urun": toplam_urun,
-        "rol": current_user.rol
-    }
+
+
+    return templates.TemplateResponse(
+        "dashboard/index.html",
+        {
+            "request": request,
+            "toplam_siparis": toplam_siparis,
+            "toplam_musteri": toplam_musteri,
+            "toplam_urun": toplam_urun
+        }
+    )

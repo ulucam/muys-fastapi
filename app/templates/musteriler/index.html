@@ -1,25 +1,22 @@
 {% extends "base.html" %}
 
-{% block title %}Müşteriler{% endblock %}
-{% block page_title %}👤 Müşteri Yönetimi{% endblock %}
-
 {% block content %}
 
-<div class="kart">
-    <div class="kart-title">➕ Yeni Müşteri Ekle</div>
-    <form id="musteriForm" class="form-grup">
-        <input type="text" name="kodu" placeholder="Müşteri Kodu" required>
-        <input type="text" name="adi" placeholder="Müşteri Adı" required>
-        <input type="text" name="telefon" placeholder="Telefon">
-        <input type="email" name="email" placeholder="Email">
-        <input type="text" name="adres" placeholder="Adres">
-        <button type="submit" class="btn btn-primary">Ekle</button>
-    </form>
-</div>
+<div class="container-fluid">
 
-<div class="kart">
-    <div class="kart-title">📋 Müşteri Listesi</div>
-    <table>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <h2>Müşteriler</h2>
+
+        <button class="btn btn-primary">
+            + Yeni Müşteri
+        </button>
+
+    </div>
+
+
+    <table class="table table-bordered">
+
         <thead>
             <tr>
                 <th>Kodu</th>
@@ -29,36 +26,42 @@
                 <th>Adres</th>
             </tr>
         </thead>
+
+
         <tbody>
-            {% for m in musteriler %}
+
+        {% for musteri in musteriler %}
+
             <tr>
-                <td><strong>{{ m.kodu }}</strong></td>
-                <td>{{ m.adi }}</td>
-                <td>{{ m.telefon or '-' }}</td>
-                <td>{{ m.email or '-' }}</td>
-                <td>{{ m.adres or '-' }}</td>
+
+                <td>{{ musteri.kodu }}</td>
+
+                <td>{{ musteri.adi }}</td>
+
+                <td>{{ musteri.telefon }}</td>
+
+                <td>{{ musteri.email }}</td>
+
+                <td>{{ musteri.adres }}</td>
+
             </tr>
-            {% else %}
-            <tr><td colspan="5" style="text-align:center; color:#999; padding:20px;">Henüz müşteri yok</td></tr>
-            {% endfor %}
+
+        {% else %}
+
+            <tr>
+                <td colspan="5">
+                    Henüz müşteri yok.
+                </td>
+            </tr>
+
+        {% endfor %}
+
         </tbody>
+
     </table>
+
+
 </div>
 
-{% endblock %}
 
-{% block scripts %}
-<script>
-$('#musteriForm').submit(function(e) {
-    e.preventDefault();
-    $.post('/musteri_ekle', $(this).serialize(), function(data) {
-        if (data.durum === 'başarılı') {
-            alert('✅ ' + data.mesaj);
-            location.reload();
-        } else {
-            alert('❌ Hata: ' + data.mesaj);
-        }
-    });
-});
-</script>
 {% endblock %}

@@ -1,249 +1,342 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
+
     <meta charset="UTF-8">
-    <title>MÜYS</title>
+
+    <title>MÜYS - Üretim Yönetim Sistemi</title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <style>
 
-        body{
-            overflow:hidden;
-            background:#f4f6f9;
-        }
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
 
-        .sidebar{
-            width:260px;
-            height:100vh;
-            position:fixed;
-            left:0;
-            top:0;
-            background:#1d3557;
-            color:white;
-            display:flex;
-            flex-direction:column;
-        }
-
-        .logo{
-
-            height:90px;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            font-size:28px;
-            font-weight:bold;
-            border-bottom:1px solid rgba(255,255,255,.15);
-
-        }
-
-        .logo span{
-
-            color:#7bdff2;
-
-        }
-
-        .menu{
-
-            flex:1;
-            overflow:auto;
-            padding-top:10px;
-
-        }
-
-        .menu a{
-
-            color:white;
-            text-decoration:none;
-            display:block;
-            padding:12px 20px;
-
-        }
-
-        .menu a:hover{
-
-            background:#2a4b74;
-
-        }
-
-        .submenu{
-
-            background:#27496d;
-
-        }
-
-        .submenu a{
-
-            padding-left:45px;
-            font-size:14px;
-
-        }
-
-        .bottom{
-
-            border-top:1px solid rgba(255,255,255,.15);
-            padding:15px;
-
-        }
-
-        .content{
-
-            margin-left:260px;
-
-        }
-
-        .topbar{
-
-            height:60px;
-            background:white;
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            padding:0 25px;
-            border-bottom:1px solid #ddd;
-
-        }
-
-        .page{
-
-            padding:25px;
-
-        }
-
-        .btn-excel{
-
-            margin-left:10px;
-
-        }
-
-    </style>
 
 </head>
 
+
 <body>
 
-<div class="sidebar">
 
-    <div class="logo">
+<!-- MOBİL ÜST MENÜ -->
 
-        M<span>Ü</span>YS
+<div class="mobile-topbar">
 
-    </div>
+    <button class="btn btn-primary"
+            onclick="menuAc()">
 
-    <div class="menu">
+        ☰
 
-        <a href="/">🏠 Dashboard</a>
+    </button>
 
-        <a data-bs-toggle="collapse" href="#uretimMenu">
-            🏭 Üretim
-        </a>
 
-        <div class="collapse submenu" id="uretimMenu">
+    <span>
+        MÜYS
+    </span>
 
-            <a href="#">Üretim Planı</a>
-
-            <a href="#">Günlük Üretim</a>
-
-            <a href="#">İş Emirleri</a>
-
-        </div>
-
-        <a data-bs-toggle="collapse" href="#siparisMenu">
-            📦 Siparişler
-        </a>
-
-        <div class="collapse submenu" id="siparisMenu">
-
-            <a href="#">Yeni Sipariş</a>
-
-            <a href="#">Sipariş Listesi</a>
-
-            <a href="#">Bekleyen Siparişler</a>
-
-            <a href="#">Tamamlanan Siparişler</a>
-
-        </div>
-
-        <a data-bs-toggle="collapse" href="#stokMenu">
-            📦 Stok
-        </a>
-
-        <div class="collapse submenu" id="stokMenu">
-
-            <a href="#">Hammadde</a>
-
-            <a href="#">Ara Ürün</a>
-
-            <a href="#">Mamul</a>
-
-            <a href="#">Stok Hareketleri</a>
-
-        </div>
-
-        <a href="#">
-            📋 Reçeteler
-        </a>
-
-        <a href="#">
-            👥 Müşteriler
-        </a>
-
-    </div>
-
-    <div class="bottom">
-
-        <a href="#" class="text-white text-decoration-none d-block mb-3">
-            ⚙️ Ayarlar
-        </a>
-
-        <div class="d-flex">
-
-            <a href="/logout" class="btn btn-danger btn-sm">
-                🚪 Çıkış
-            </a>
-
-            <a href="/excel_import"
-               class="btn btn-success btn-sm btn-excel">
-                Excel Aktar
-            </a>
-
-        </div>
-
-    </div>
 
 </div>
 
+
+
+<!-- SOL MENÜ -->
+
+<div class="sidebar" id="sidebar">
+
+
+    <div class="logo">
+
+        <img src="{{ url_for('static', path='img/logo_menu.png') }}"
+             alt="MÜYS Logo">
+
+    </div>
+
+
+
+    <div class="menu accordion" id="mainMenu">
+
+
+        <a href="/">
+            🏠 Dashboard
+        </a>
+
+
+
+        <!-- ÜRETİM -->
+
+        <a class="menu-toggle"
+           data-bs-toggle="collapse"
+           href="#uretimMenu">
+
+            🏭 Üretim
+
+            <span class="arrow">
+                ▼
+            </span>
+
+        </a>
+
+
+        <div class="collapse submenu"
+             id="uretimMenu"
+             data-bs-parent="#mainMenu">
+
+
+            <a href="/uretim">
+                Üretim Planı
+            </a>
+
+
+            <a href="#">
+                Günlük Üretim
+            </a>
+
+
+            <a href="#">
+                İş Emirleri
+            </a>
+
+
+        </div>
+
+
+
+
+
+        <!-- SİPARİŞ -->
+
+        <a class="menu-toggle"
+           data-bs-toggle="collapse"
+           href="#siparisMenu">
+
+
+            📦 Siparişler
+
+            <span class="arrow">
+                ▼
+            </span>
+
+
+        </a>
+
+
+
+        <div class="collapse submenu"
+             id="siparisMenu"
+             data-bs-parent="#mainMenu">
+
+
+            <a href="/siparisler">
+                Sipariş Listesi
+            </a>
+
+
+            <a href="#">
+                Yeni Sipariş
+            </a>
+
+
+            <a href="#">
+                Bekleyen Siparişler
+            </a>
+
+
+            <a href="#">
+                Tamamlanan Siparişler
+            </a>
+
+
+        </div>
+
+
+
+
+
+        <!-- STOK -->
+
+
+        <a class="menu-toggle"
+           data-bs-toggle="collapse"
+           href="#stokMenu">
+
+
+            📦 Stok
+
+            <span class="arrow">
+                ▼
+            </span>
+
+
+        </a>
+
+
+
+        <div class="collapse submenu"
+             id="stokMenu"
+             data-bs-parent="#mainMenu">
+
+
+            <a href="/urunler">
+                Ürünler
+            </a>
+
+
+            <a href="/stok">
+                Stok Hareketleri
+            </a>
+
+
+            <a href="/recete">
+                Reçeteler
+            </a>
+
+
+        </div>
+
+
+
+
+
+        <!-- SABİT MENÜLER -->
+
+
+        <a href="/musteriler">
+
+            👥 Müşteriler
+
+        </a>
+
+
+
+        {% if kullanici_rol == "Admin" %}
+
+
+        <a href="/kullanicilar">
+
+            👤 Kullanıcılar
+
+        </a>
+
+
+        {% endif %}
+
+
+
+    </div>
+
+
+
+
+
+    <!-- ALT MENÜ -->
+
+
+    <div class="bottom">
+
+
+        <a href="/ayarlar"
+           class="text-white text-decoration-none d-block mb-3">
+
+            ⚙️ Ayarlar
+
+        </a>
+
+
+
+
+        <div class="d-flex">
+
+
+            <a href="/logout"
+               class="btn btn-danger btn-sm">
+
+                🚪 Çıkış
+
+            </a>
+
+
+
+            <a href="/excel_import"
+               class="btn btn-success btn-sm ms-2">
+
+                Excel Aktar
+
+            </a>
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+
+
+
+<!-- İÇERİK -->
+
+
 <div class="content">
+
 
     <div class="topbar">
 
-        <h5 class="m-0">
+
+        <h5>
 
             MÜYS - Üretim Yönetim Sistemi
 
         </h5>
 
+
+
         <div>
 
-            👤 Admin
+            👤 {{ kullanici_adi }}
 
         </div>
 
+
     </div>
+
+
+
+
 
     <div class="page">
 
+
         {% block content %}
+
 
         {% endblock %}
 
+
     </div>
+
+
 
 </div>
 
+
+
+
+
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+
+
+<script src="{{ url_for('static', path='js/main.js') }}"></script>
+
+
 
 </body>
 
