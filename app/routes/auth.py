@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
+from app.password import sifre_kontrol
 
 
 router = APIRouter()
@@ -16,7 +17,9 @@ templates = Jinja2Templates(
 
 
 
+# =====================================================
 # LOGIN SAYFASI
+# =====================================================
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -30,7 +33,9 @@ async def login_page(request: Request):
 
 
 
+# =====================================================
 # LOGIN KONTROL
+# =====================================================
 
 @router.post("/login")
 async def login(
@@ -45,15 +50,37 @@ async def login(
     sifre = form.get("sifre")
 
 
+
+    # sadece kullanıcı adına göre buluyoruz
     user = db.query(User).filter(
-        User.kullanici_adi == kullanici_adi,
-        User.sifre == sifre
+        User.kullanici_adi == kullanici_adi
     ).first()
 
 
 
-    if user:
+    # kullanıcı var mı ve şifre doğru mu?
+    if user and sifre_kontrol(
+        sifre,
+        user.sifre
+    ):
 
+
+
+        # pasif kullanıcı kontrolü
+
+        if not user.aktif:
+
+            return templates.TemplateResponse(
+                "login.html",
+                {
+                    "request": request,
+                    "hata": "Bu kullanıcı pasif durumda. Sistem yöneticisi ile görüşün."
+                }
+            )
+
+
+
+        # oturum bilgileri
 
         request.session["user_id"] = user.id
 
@@ -70,6 +97,8 @@ async def login(
 
 
 
+    # kullanıcı yok veya şifre yanlış
+
     return templates.TemplateResponse(
         "login.html",
         {
@@ -80,12 +109,12 @@ async def login(
 
 
 
-
+# =====================================================
 # LOGOUT
+# =====================================================
 
 @router.get("/logout")
 async def logout(request: Request):
-
 
     request.session.clear()
 
