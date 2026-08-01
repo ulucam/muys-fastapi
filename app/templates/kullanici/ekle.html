@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="row">
+
+        <div class="col-lg-8 col-xl-7">
+
+            <div class="card shadow">
+
+                <div class="card-header bg-primary text-white">
+
+                    <h4 class="mb-0">
+                        👤 Yeni Kullanıcı
+                    </h4>
+
+                </div>
+
+                <div class="card-body">
+
+                    <form method="post" action="/kullanicilar/ekle">
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+
+                                    Kullanıcı Adı
+
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="kullanici_adi"
+                                    class="form-control"
+                                    required>
+
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+
+                                    Şifre
+
+                                </label>
+
+                                <input
+                                    type="password"
+                                    name="sifre"
+                                    class="form-control"
+                                    required>
+
+                            </div>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+
+                                Ad Soyad
+
+                            </label>
+
+                            <input
+                                type="text"
+                                name="ad_soyad"
+                                class="form-control"
+                                required>
+
+                        </div>
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+
+                                    Telefon
+
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="telefon"
+                                    class="form-control">
+
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+
+                                    E-Posta
+
+                                </label>
+
+                                <input
+                                    type="email"
+                                    name="email"
+                                    class="form-control">
+
+                            </div>
+
+                        </div>
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+
+                                    Rol
+
+                                </label>
+
+                                <select
+                                    name="rol"
+                                    class="form-select">
+
+                                    <option value="Admin">
+                                        Admin
+                                    </option>
+
+                                    <option value="Yönetici">
+                                        Yönetici
+                                    </option>
+
+                                    <option value="Üretim">
+                                        Üretim
+                                    </option>
+
+                                    <option value="Depo">
+                                        Depo
+                                    </option>
+
+                                    <option value="Satış">
+                                        Satış
+                                    </option>
+
+                                    <option value="Operatör">
+                                        Operatör
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+
+                                    Durum
+
+                                </label>
+
+                                <select
+                                    name="aktif"
+                                    class="form-select">
+
+                                    <option value="1">
+
+                                        Aktif
+
+                                    </option>
+
+                                    <option value="0">
+
+                                        Pasif
+
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex justify-content-end">
+
+                            <a
+                                href="/kullanicilar"
+                                class="btn btn-secondary me-2">
+
+                                Vazgeç
+
+                            </a>
+
+                            <button
+                                type="submit"
+                                class="btn btn-success">
+
+                                💾 Kaydet
+
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
