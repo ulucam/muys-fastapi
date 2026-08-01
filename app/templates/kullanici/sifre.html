@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-6">
+
+            <div class="card shadow">
+
+                <div class="card-header bg-info text-white">
+
+                    <h4 class="mb-0">
+                        🔑 Şifre Değiştir
+                    </h4>
+
+                </div>
+
+                <div class="card-body">
+
+                    <form method="post" action="/kullanicilar/sifre/{{ kullanici.id }}">
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Kullanıcı Adı
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                value="{{ kullanici.kullanici_adi }}"
+                                readonly>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Ad Soyad
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                value="{{ kullanici.ad_soyad }}"
+                                readonly>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Yeni Şifre
+                            </label>
+
+                            <input
+                                type="password"
+                                class="form-control"
+                                name="sifre"
+                                required>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Yeni Şifre (Tekrar)
+                            </label>
+
+                            <input
+                                type="password"
+                                class="form-control"
+                                name="sifre_tekrar"
+                                required>
+
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex justify-content-between">
+
+                            <a href="/kullanicilar"
+                               class="btn btn-secondary">
+
+                                ← Geri
+
+                            </a>
+
+                            <button
+                                type="submit"
+                                class="btn btn-success">
+
+                                💾 Şifreyi Güncelle
+
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
