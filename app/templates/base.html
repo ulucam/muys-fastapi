@@ -189,11 +189,11 @@
                 Stok Hareketleri
             </a>
 
-
+            {% if kullanici_rol != "Operatör" %}
             <a href="/recete">
                 Reçeteler
             </a>
-
+            {% endif %}
 
         </div>
 
@@ -204,11 +204,15 @@
         <!-- SABİT MENÜLER -->
 
 
-        <a href="/musteriler">
+        {% if kullanici_rol != "Operatör" %}
 
-            👥 Müşteriler
+         <a href="/musteriler">
 
-        </a>
+         👥 Müşteriler
+
+         </a>
+
+        {% endif %}
 
 
 
@@ -287,25 +291,87 @@
 <div class="content">
 
 
-    <div class="topbar">
+<div class="topbar d-flex justify-content-between align-items-center">
 
 
-        <h5>
+    <h5 class="mb-0">
 
-            MÜYS - Üretim Yönetim Sistemi
+        MÜYS - Üretim Yönetim Sistemi
 
-        </h5>
+    </h5>
 
 
 
-        <div>
+    <div class="dropdown">
 
-            👤 {{ kullanici_adi }}
 
-        </div>
+        <button
+        class="btn btn-light dropdown-toggle"
+        type="button"
+        data-bs-toggle="dropdown">
+
+
+            👤 {{ kullanici_adi or "Misafir" }}
+
+
+        </button>
+
+
+
+        <ul class="dropdown-menu dropdown-menu-end">
+
+
+            <li>
+
+                <a class="dropdown-item"
+                href="/profil">
+
+                    👤 Profil
+
+                </a>
+
+            </li>
+
+
+
+            <li>
+
+                <a class="dropdown-item"
+                href="/sifre-degistir">
+
+                    🔑 Şifre Değiştir
+
+                </a>
+
+            </li>
+
+
+
+            <li>
+                <hr class="dropdown-divider">
+            </li>
+
+
+
+            <li>
+
+                <a class="dropdown-item text-danger"
+                href="/logout">
+
+                    🚪 Oturumu Kapat
+
+                </a>
+
+            </li>
+
+
+        </ul>
 
 
     </div>
+
+
+</div>
 
 
 
