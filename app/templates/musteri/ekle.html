@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="row">
+
+        <div class="col-lg-10 mx-auto">
+
+            <div class="card shadow-sm">
+
+                <div class="card-header">
+
+                    <h4 class="mb-0">
+
+                        ➕ Yeni Müşteri
+
+                    </h4>
+
+                </div>
+
+                <div class="card-body">
+
+                    <form method="post" action="/musteriler/ekle">
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+                                    Firma Adı
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="firma_adi"
+                                    class="form-control"
+                                    required>
+
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+                                    Yetkili
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="yetkili"
+                                    class="form-control">
+
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+
+                                <label class="form-label">
+                                    Telefon
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="telefon"
+                                    class="form-control">
+
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+
+                                <label class="form-label">
+                                    E-Posta
+                                </label>
+
+                                <input
+                                    type="email"
+                                    name="email"
+                                    class="form-control">
+
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+
+                                <label class="form-label">
+                                    Vergi No
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="vergi_no"
+                                    class="form-control">
+
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+                                    Vergi Dairesi
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="vergi_dairesi"
+                                    class="form-control">
+
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+
+                                <label class="form-label">
+                                    İl
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="il"
+                                    class="form-control">
+
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+
+                                <label class="form-label">
+                                    İlçe
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="ilce"
+                                    class="form-control">
+
+                            </div>
+
+                            <div class="col-12 mb-3">
+
+                                <label class="form-label">
+                                    Adres
+                                </label>
+
+                                <textarea
+                                    name="adres"
+                                    rows="3"
+                                    class="form-control"></textarea>
+
+                            </div>
+
+                            <div class="col-12 mb-4">
+
+                                <label class="form-label">
+                                    Açıklama
+                                </label>
+
+                                <textarea
+                                    name="aciklama"
+                                    rows="3"
+                                    class="form-control"></textarea>
+
+                            </div>
+
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+
+                            <a
+                                href="/musteriler"
+                                class="btn btn-secondary me-2">
+
+                                Vazgeç
+
+                            </a>
+
+                            <button
+                                type="submit"
+                                class="btn btn-success">
+
+                                💾 Kaydet
+
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
