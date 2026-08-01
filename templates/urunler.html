@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Ürünler{% endblock %}
+{% block page_title %}📦 Ürün Yönetimi{% endblock %}
+
+{% block content %}
+
+<div class="kart">
+    <div class="kart-title">➕ Yeni Ürün Ekle</div>
+    <form id="urunForm" class="form-grup">
+        <select name="urun_tipi" required>
+            <option value="">Tip Seç</option>
+            <option value="Hammadde">🔶 Hammadde</option>
+            <option value="YariMamul">🟡 Yarı Mamül</option>
+            <option value="Mamul">🟢 Mamul</option>
+            <option value="TicariMamul">🛒 Ticari Mamül</option>
+        </select>
+        <input type="text" name="kodu" placeholder="Ürün Kodu" required>
+        <input type="text" name="adi" placeholder="Ürün Adı" required>
+        <input type="text" name="birim" placeholder="Birim" value="Adet">
+        <input type="number" name="mevcut_stok" placeholder="Stok" step="0.01">
+        <input type="number" name="min_stok" placeholder="Min. Stok" step="0.01">
+        <input type="number" name="birim_fiyat" placeholder="Fiyat" step="0.01">
+        <button type="submit" class="btn btn-primary">Ekle</button>
+    </form>
+</div>
+
+<div class="kart">
+    <div class="kart-title">📋 Ürün Listesi</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Tip</th>
+                <th>Kod</th>
+                <th>Adı</th>
+                <th>Birim</th>
+                <th>Stok</th>
+                <th>Min. Stok</th>
+                <th>Fiyat</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in urunler %}
+            <tr>
+                <td>{% if u.urun_tipi == 'Hammadde' %}🔶{% elif u.urun_tipi == 'YariMamul' %}🟡{% elif u.urun_tipi == 'TicariMamul' %}🛒{% else %}🟢{% endif %}</td>
+                <td><strong>{{ u.kodu }}</strong></td>
+                <td>{{ u.adi }}</td>
+                <td>{{ u.birim }}</td>
+                <td>{{ u.mevcut_stok }}</td>
+                <td>{{ u.min_stok }}</td>
+                <td>{{ u.birim_fiyat }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" style="text-align:center; color:#999; padding:20px;">Henüz ürün yok</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+$('#urunForm').submit(function(e) {
+    e.preventDefault();
+    $.post('/urun_ekle', $(this).serialize(), function(data) {
+        if (data.durum === 'başarılı') {
+            alert('✅ ' + data.mesaj);
+            location.reload();
+        } else {
+            alert('❌ Hata: ' + data.mesaj);
+        }
+    });
+});
+</script>
+{% endblock %}
