@@ -123,27 +123,32 @@ async def login_post(request: Request, db: Session = Depends(get_db)):
         })
 
 # ===== ANA SAYFA =====
+
+# ===== ANA SAYFA =====
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request, db: Session = Depends(get_db)):
     toplam_siparis = db.query(Siparis).count()
     toplam_musteri = db.query(Musteri).count()
     toplam_urun = db.query(Urun).count()
-    
-    return templates.TemplateResponse("index.html", {
+
+    return templates.TemplateResponse("dashboard/index.html", {
         "request": request,
         "toplam_siparis": toplam_siparis,
         "toplam_musteri": toplam_musteri,
         "toplam_urun": toplam_urun
     })
 
+
 # ===== MÜŞTERİLER =====
 @app.get("/musteriler", response_class=HTMLResponse)
 async def musteriler_page(request: Request, db: Session = Depends(get_db)):
     musteriler = db.query(Musteri).all()
-    return templates.TemplateResponse("musteriler.html", {
+
+    return templates.TemplateResponse("musteriler/index.html", {
         "request": request,
         "musteriler": musteriler
     })
+
 
 @app.post("/musteri_ekle")
 async def musteri_ekle(
@@ -151,6 +156,7 @@ async def musteri_ekle(
     db: Session = Depends(get_db)
 ):
     form = await request.form()
+
     musteri = Musteri(
         kodu=form.get("kodu"),
         adi=form.get("adi"),
@@ -158,18 +164,24 @@ async def musteri_ekle(
         email=form.get("email"),
         adres=form.get("adres")
     )
+
     db.add(musteri)
     db.commit()
-    return {"durum": "başarılı", "mesaj": "Müşteri eklendi"}
 
-# ===== ÜRÜNLER =====
+    return RedirectResponse("/musteriler", status_code=303)
+
+
+
+# ===== STOK / ÜRÜNLER =====
 @app.get("/urunler", response_class=HTMLResponse)
 async def urunler_page(request: Request, db: Session = Depends(get_db)):
     urunler = db.query(Urun).all()
-    return templates.TemplateResponse("urunler.html", {
+
+    return templates.TemplateResponse("stok/index.html", {
         "request": request,
         "urunler": urunler
     })
+
 
 @app.post("/urun_ekle")
 async def urun_ekle(
@@ -177,6 +189,7 @@ async def urun_ekle(
     db: Session = Depends(get_db)
 ):
     form = await request.form()
+
     urun = Urun(
         kodu=form.get("kodu"),
         adi=form.get("adi"),
@@ -186,9 +199,22 @@ async def urun_ekle(
         min_stok=float(form.get("min_stok", 0)),
         birim_fiyat=float(form.get("birim_fiyat", 0))
     )
+
     db.add(urun)
     db.commit()
-    return {"durum": "başarılı", "mesaj": "Ürün eklendi"}
+
+    return RedirectResponse("/urunler", status_code=303)
+
+
+
+
+
+
+
+
+
+
+          
 
 # ===== DİĞER SAYFALAR =====
 @app.get("/siparisler", response_class=HTMLResponse)
