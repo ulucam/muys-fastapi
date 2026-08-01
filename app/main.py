@@ -76,7 +76,7 @@ with SessionLocal() as db:
 
 # ===== UYGULAMA =====
 app = FastAPI(title="MÜYS")
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory="templates")
 
 def get_db():
     db = SessionLocal()
