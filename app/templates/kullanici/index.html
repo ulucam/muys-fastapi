@@ -1,175 +1,74 @@
-{% extends "base.html" %}
-
-{% block content %}
-
-<div class="d-flex justify-content-between align-items-center mb-4">
-
+<div class="page-header">
     <div>
+        <h2>Kullanıcılar</h2>
+        <small>Sistem kullanıcılarını yönetin</small>
+    </div>
 
-        <h3 class="mb-0">👤 Kullanıcı Yönetimi</h3>
+    <div class="header-actions">
+        <input
+            type="text"
+            class="search-input"
+            placeholder="Kullanıcı ara...">
 
-        <small class="text-muted">
-            Toplam {{ kullanicilar|length }} kullanıcı
-        </small>
+        <button class="btn btn-primary">
+            <i class="fa fa-plus"></i>
+            Yeni Kullanıcı
+        </button>
+    </div>
+</div>
+
+<div class="user-list">
+
+{% for user in kullanicilar %}
+
+<div class="user-card">
+
+    <div class="user-left">
+
+        <div class="avatar">
+            {{ user.ad_soyad[0] }}
+        </div>
+
+        <div>
+
+            <h5>{{ user.ad_soyad }}</h5>
+
+            <div class="user-info">
+
+                <span>@{{ user.kullanici_adi }}</span>
+
+                <span>{{ user.rol }}</span>
+
+                {% if user.aktif %}
+                    <span class="badge bg-success">Aktif</span>
+                {% else %}
+                    <span class="badge bg-danger">Pasif</span>
+                {% endif %}
+
+            </div>
+
+        </div>
 
     </div>
 
+    <div class="user-right">
 
-    <a href="/kullanicilar/ekle"
-       class="btn btn-primary">
+        <a class="btn btn-outline-primary btn-sm">
 
-        ➕ Yeni Kullanıcı
+            <i class="fa fa-pen"></i>
 
-    </a>
+        </a>
 
+        <a class="btn btn-outline-danger btn-sm">
+
+            <i class="fa fa-trash"></i>
+
+        </a>
+
+    </div>
 
 </div>
-
-
-
-<div class="card shadow-sm">
-
-<div class="card-body">
-
-
-<div class="table-responsive">
-
-
-<table class="table table-hover align-middle">
-
-
-<thead class="table-dark">
-
-<tr>
-
-<th>ID</th>
-<th>Kullanıcı Adı</th>
-<th>Ad Soyad</th>
-<th>Rol</th>
-<th>Email</th>
-<th>Telefon</th>
-<th>Durum</th>
-<th>İşlem</th>
-
-</tr>
-
-</thead>
-
-
-<tbody>
-
-
-{% for k in kullanicilar %}
-
-
-<tr>
-
-
-<td>
-{{ k.id }}
-</td>
-
-
-<td>
-{{ k.kullanici_adi }}
-</td>
-
-
-<td>
-{{ k.ad_soyad }}
-</td>
-
-
-<td>
-
-<span class="badge bg-primary">
-{{ k.rol }}
-</span>
-
-</td>
-
-
-<td>
-{{ k.email or "-" }}
-</td>
-
-
-<td>
-{{ k.telefon or "-" }}
-</td>
-
-
-<td>
-
-{% if k.aktif %}
-
-<span class="badge bg-success">
-Aktif
-</span>
-
-{% else %}
-
-<span class="badge bg-danger">
-Pasif
-</span>
-
-{% endif %}
-
-</td>
-
-
-<td>
-
-
-<a href="/kullanicilar/duzenle/{{k.id}}"
-class="btn btn-warning btn-sm">
-
-✏️
-
-</a>
-
-
-
-<a href="/kullanicilar/sifre/{{k.id}}"
-class="btn btn-info btn-sm">
-
-🔑
-
-</a>
-
-
-
-<a href="/kullanicilar/sil/{{k.id}}"
-class="btn btn-danger btn-sm"
-onclick="return confirm('Silinsin mi?')">
-
-🗑️
-
-</a>
-
-
-
-</td>
-
-
-</tr>
-
 
 {% endfor %}
 
-
-</tbody>
-
-
-</table>
-
-
 </div>
-
-
-</div>
-
-</div>
-
-
-{% endblock %}
