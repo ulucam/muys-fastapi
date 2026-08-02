@@ -1,0 +1,156 @@
+/* =========================
+   MÜYS SIDEBAR
+========================= */
+
+.sidebar {
+
+    width: 260px;
+
+    min-height: 100vh;
+
+    background: #1e293b;
+
+    position: fixed;
+
+    left: 0;
+
+    top: 0;
+
+    bottom: 0;
+
+    z-index: 1000;
+
+    transition: all .3s ease;
+
+    overflow-y: auto;
+
+}
+
+
+
+.sidebar-header {
+
+    padding: 25px 15px;
+
+    text-align: center;
+
+    border-bottom: 1px solid rgba(255,255,255,.1);
+
+}
+
+
+
+.sidebar-header h4 {
+
+    color:white;
+
+    margin:0;
+
+    font-weight:700;
+
+}
+
+
+
+.sidebar-header small {
+
+    color:#94a3b8;
+
+}
+
+
+
+.sidebar-menu {
+
+    list-style:none;
+
+    padding:15px 10px;
+
+    margin:0;
+
+}
+
+
+
+.sidebar-menu li {
+
+    margin-bottom:5px;
+
+}
+
+
+
+.sidebar-menu a {
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    padding:12px 15px;
+
+    color:#e2e8f0;
+
+    text-decoration:none;
+
+    border-radius:8px;
+
+    transition:.2s;
+
+}
+
+
+
+.sidebar-menu a:hover {
+
+    background:rgba(255,255,255,.1);
+
+    color:white;
+
+}
+
+
+
+.sidebar-menu i {
+
+    font-size:18px;
+
+}
+
+
+
+.sidebar-menu .active {
+
+    background:#2563eb;
+
+    color:white;
+
+}
+
+
+
+.submenu {
+
+    margin-left:20px;
+
+    font-size:14px;
+
+}
+
+
+
+.menu-toggle .bi-chevron-down {
+
+    transition:.3s;
+
+}
+
+
+
+.menu-toggle[aria-expanded="true"] 
+.bi-chevron-down {
+
+    transform:rotate(180deg);
+
+}
