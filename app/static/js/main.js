@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // ==================================
-    // MOBİL SIDEBAR
+    // MOBİL SIDEBAR AÇ / KAPA
     // ==================================
 
     const sidebar = document.getElementById("sidebar");
@@ -57,14 +57,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const menuToggle = document.getElementById("menuToggle");
 
 
+
     if (sidebar && menuToggle) {
+
 
 
         menuToggle.addEventListener("click", (e) => {
 
 
             e.stopPropagation();
-
 
             sidebar.classList.toggle("show");
 
@@ -76,13 +77,20 @@ document.addEventListener("DOMContentLoaded", () => {
         document.addEventListener("click", (e) => {
 
 
-            if (window.innerWidth < 992) {
+            if(window.innerWidth < 992 &&
+               sidebar.classList.contains("show")){
 
 
-                if (
-                    !sidebar.contains(e.target) &&
-                    !menuToggle.contains(e.target)
-                ) {
+                const sidebarClick =
+                    sidebar.contains(e.target);
+
+
+                const buttonClick =
+                    menuToggle.contains(e.target);
+
+
+
+                if(!sidebarClick && !buttonClick){
 
 
                     sidebar.classList.remove("show");
@@ -98,29 +106,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+        // Menü linkine basınca mobilde kapat
+
+        sidebar.querySelectorAll("a").forEach(link => {
+
+
+            link.addEventListener("click", () => {
+
+
+                if(window.innerWidth < 992){
+
+
+                    sidebar.classList.remove("show");
+
+
+                }
+
+
+            });
+
+
+        });
+
+
     }
 
 
 
 
-
     // ==================================
-    // STOK ALT MENÜ OTOMATİK AÇILMA
+    // STOK MENÜSÜ OTOMATİK AÇ
     // ==================================
 
     const stokMenu = document.getElementById("stokMenu");
 
 
-    if (stokMenu) {
+    if(stokMenu){
 
 
-        if (
+        if(
             current.startsWith("/urunler") ||
             current.startsWith("/receteler")
-        ) {
+        ){
 
 
-            const collapse = new bootstrap.Collapse(
+            new bootstrap.Collapse(
                 stokMenu,
                 {
                     toggle:true
