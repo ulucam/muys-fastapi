@@ -1,0 +1,62 @@
+/* =========================
+   MÜYS MAIN
+========================= */
+
+
+body {
+
+    margin:0;
+
+    background:#f8fafc;
+
+    font-family:
+
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+}
+
+
+
+.main-wrapper {
+
+    margin-left:260px;
+
+    min-height:100vh;
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+
+
+.content {
+
+    padding:25px;
+
+    flex:1;
+
+}
+
+
+
+.main-footer {
+
+    background:white;
+
+    border-top:1px solid #e5e7eb;
+
+    padding:15px 25px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    color:#64748b;
+
+    font-size:14px;
+
+}
