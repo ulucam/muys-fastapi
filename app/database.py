@@ -10,14 +10,21 @@ from app.config import Config
 
 DATABASE_URL = Config.DATABASE_URL
 
-
-# Render bazen postgres:// verir
+# Render postgres URL düzeltme
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace(
         "postgres://",
-        "postgresql://",
+        "postgresql+psycopg://",
         1
     )
+
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgresql://",
+        "postgresql+psycopg://",
+        1
+    )
+
 
 
 if "sqlite" in DATABASE_URL:
