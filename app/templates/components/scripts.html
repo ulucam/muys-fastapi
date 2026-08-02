@@ -1,0 +1,61 @@
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="/static/js/main.js"></script>
+
+<script>
+
+document.addEventListener("DOMContentLoaded",function(){
+
+    const current=window.location.pathname;
+
+    document.querySelectorAll(".sidebar .nav-link").forEach(function(link){
+
+        const href=link.getAttribute("href");
+
+        if(!href)return;
+
+        link.classList.remove("active");
+
+        if(href==="/"){
+
+            if(current==="/"){
+
+                link.classList.add("active");
+
+            }
+
+        }else{
+
+            if(current===href||current.startsWith(href+"/")){
+
+                link.classList.add("active");
+
+            }
+
+        }
+
+    });
+
+
+
+    const stok=document.getElementById("stokMenu");
+
+    if(stok){
+
+        if(current.startsWith("/urunler")||
+
+           current.startsWith("/receteler")){
+
+            new bootstrap.Collapse(stok,{
+
+                toggle:true
+
+            });
+
+        }
+
+    }
+
+});
+
+</script>
