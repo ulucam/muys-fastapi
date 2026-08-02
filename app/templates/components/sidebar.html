@@ -1,11 +1,132 @@
 <nav id="sidebar" class="sidebar">
 
-    <!-- Logo -->
+    <div class="sidebar-header">
 
-    ...
+        <h4>
+            MÜYS
+        </h4>
 
-    <!-- Menü -->
+        <small>
+            v0.1.1
+        </small>
 
-    ...
+    </div>
+
+
+    <ul class="sidebar-menu">
+
+
+        <li>
+            <a href="/">
+                <i class="bi bi-speedometer2"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+
+
+        <li>
+            <a href="/musteriler">
+                <i class="bi bi-people"></i>
+                <span>Müşteriler</span>
+            </a>
+        </li>
+
+
+        <li>
+            <a href="/siparisler">
+                <i class="bi bi-receipt"></i>
+                <span>Siparişler</span>
+            </a>
+        </li>
+
+
+
+        <li>
+
+            <a class="menu-toggle"
+               data-bs-toggle="collapse"
+               href="#stokMenu">
+
+                <i class="bi bi-box-seam"></i>
+
+                <span>Stok</span>
+
+                <i class="bi bi-chevron-down ms-auto"></i>
+
+            </a>
+
+
+            <div class="collapse"
+                 id="stokMenu">
+
+
+                <a href="/urunler"
+                   class="submenu">
+
+                    <i class="bi bi-box"></i>
+
+                    Ürünler
+
+                </a>
+
+
+                <a href="/receteler"
+                   class="submenu">
+
+                    <i class="bi bi-diagram-3"></i>
+
+                    Reçeteler
+
+                </a>
+
+
+            </div>
+
+        </li>
+
+
+
+        {% if kullanici_rol in ["Admin","Yönetici"] %}
+
+
+        <li>
+
+            <a href="/kullanicilar">
+
+                <i class="bi bi-person-gear"></i>
+
+                <span>Kullanıcılar</span>
+
+            </a>
+
+        </li>
+
+
+        {% endif %}
+
+
+
+        {% if kullanici_rol != "Operatör" %}
+
+
+        <li>
+
+            <a href="/ayarlar">
+
+                <i class="bi bi-gear"></i>
+
+                <span>Ayarlar</span>
+
+            </a>
+
+        </li>
+
+
+        {% endif %}
+
+
+
+    </ul>
+
 
 </nav>
