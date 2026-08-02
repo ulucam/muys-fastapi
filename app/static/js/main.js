@@ -1,8 +1,13 @@
+const menu=document.getElementById("menuToggle");
 
-function menuAc(){
+const sidebar=document.getElementById("sidebar");
 
-    let menu = document.getElementById("sidebar");
+if(menu){
 
-    menu.classList.toggle("active");
+menu.onclick=function(){
+
+sidebar.classList.toggle("show");
+
+};
 
 }
