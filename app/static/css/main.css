@@ -1,22 +1,36 @@
 /* =========================
-   MÜYS MAIN
+   MÜYS MAIN LAYOUT
 ========================= */
 
 
+* {
+
+    box-sizing:border-box;
+
+}
+
+
+
+html,
 body {
 
     margin:0;
 
+    padding:0;
+
+    min-height:100%;
+
     background:#f8fafc;
 
-    font-family:
-
-    "Segoe UI",
-    Arial,
-    sans-serif;
+    font-family:"Segoe UI", Arial, sans-serif;
 
 }
 
+
+
+/* =========================
+   ANA WRAPPER
+========================= */
 
 
 .main-wrapper {
@@ -29,18 +43,32 @@ body {
 
     flex-direction:column;
 
+    transition:margin-left .3s ease;
+
 }
 
+
+
+/* =========================
+   İÇERİK
+========================= */
 
 
 .content {
 
+    flex:1;
+
     padding:25px;
 
-    flex:1;
+    overflow-x:auto;
 
 }
 
+
+
+/* =========================
+   FOOTER
+========================= */
 
 
 .main-footer {
@@ -51,12 +79,48 @@ body {
 
     padding:15px 25px;
 
-    display:flex;
-
-    justify-content:space-between;
-
     color:#64748b;
 
-    font-size:14px;
+}
+
+
+
+/* =========================
+   SIDEBAR KAPALI DURUM
+========================= */
+
+
+body.sidebar-collapsed .main-wrapper {
+
+    margin-left:0;
+
+}
+
+
+
+
+
+/* =========================
+   MOBİL
+========================= */
+
+
+@media(max-width:991px){
+
+
+    .main-wrapper {
+
+        margin-left:0;
+
+    }
+
+
+
+    .content {
+
+        padding:15px;
+
+    }
+
 
 }
