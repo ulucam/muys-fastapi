@@ -2,26 +2,24 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.database import Base, engine
-
-from app.database import SessionLocal
+from app.database import Base, engine, SessionLocal
 from app.setup import setup_database
+
 from app.routes import auth
 from app.routes import dashboard
 from app.routes import kullanicilar
 from app.routes import musteriler
 
 
-
-
+# Veritabanı tablolarını oluştur
 Base.metadata.create_all(bind=engine)
 
-from app.seed import admin_olustur
-from app.database import SessionLocal
 
+# İlk kurulum
 db = SessionLocal()
 setup_database(db)
 db.close()
+
 
 app = FastAPI(
     title="MÜYS - Üretim Yönetim Sistemi"
