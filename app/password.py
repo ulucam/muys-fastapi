@@ -1,24 +1,11 @@
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
 
-
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto"
-)
+password_hash = PasswordHash.recommended()
 
 
 def sifre_olustur(sifre: str):
-
-    return pwd_context.hash(sifre)
-
+    return password_hash.hash(sifre)
 
 
-def sifre_kontrol(
-    girilen_sifre: str,
-    kayitli_sifre: str
-):
-
-    return pwd_context.verify(
-        girilen_sifre,
-        kayitli_sifre
-    )
+def sifre_kontrol(girilen_sifre: str, kayitli_sifre: str):
+    return password_hash.verify(girilen_sifre, kayitli_sifre)
