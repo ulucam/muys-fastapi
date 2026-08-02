@@ -5,404 +5,230 @@
 
     <meta charset="UTF-8">
 
-    <title>MÜYS - Üretim Yönetim Sistemi</title>
-
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <title>MÜYS</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-
-    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
-
+    <link href="/static/css/style.css" rel="stylesheet">
 
 </head>
 
+<body class="bg-light">
 
-<body>
+<div class="d-flex">
 
+    <!-- Sidebar -->
 
-<!-- MOBİL ÜST MENÜ -->
+    <nav id="sidebar" class="sidebar">
 
-<div class="mobile-topbar">
+        <div class="sidebar-header">
 
-    <button class="btn btn-primary"
-            onclick="menuAc()">
-
-        ☰
-
-    </button>
-
-
-    <span>
-        MÜYS
-    </span>
-
-
-</div>
-
-
-
-<!-- SOL MENÜ -->
-
-<div class="sidebar" id="sidebar">
-
-
-    <div class="logo">
-
-        <img src="{{ url_for('static', path='img/logo_menu.png') }}"
-             alt="MÜYS Logo">
-
-    </div>
-
-
-
-    <div class="menu accordion" id="mainMenu">
-
-
-        <a href="/">
-            🏠 Dashboard
-        </a>
-
-
-
-        <!-- ÜRETİM -->
-
-        <a class="menu-toggle"
-           data-bs-toggle="collapse"
-           href="#uretimMenu">
-
-            🏭 Üretim
-
-            <span class="arrow">
-                ▼
-            </span>
-
-        </a>
-
-
-        <div class="collapse submenu"
-             id="uretimMenu"
-             data-bs-parent="#mainMenu">
-
-
-            <a href="/uretim">
-                Üretim Planı
-            </a>
-
-
-            <a href="#">
-                Günlük Üretim
-            </a>
-
-
-            <a href="#">
-                İş Emirleri
-            </a>
-
+            <h4 class="text-white text-center mt-3 mb-4">
+                MÜYS
+            </h4>
 
         </div>
 
+        <ul class="nav flex-column">
 
+            <li class="nav-item">
 
+                <a class="nav-link text-white" href="/">
 
+                    🏠 Dashboard
 
-        <!-- SİPARİŞ -->
+                </a>
 
-        <a class="menu-toggle"
-           data-bs-toggle="collapse"
-           href="#siparisMenu">
+            </li>
 
+            <li class="nav-item">
 
-            📦 Siparişler
+                <a class="nav-link text-white" href="/musteriler">
 
-            <span class="arrow">
-                ▼
-            </span>
+                    👥 Müşteriler
 
+                </a>
 
-        </a>
+            </li>
 
+            <li class="nav-item">
 
+                <a class="nav-link text-white" href="/siparisler">
 
-        <div class="collapse submenu"
-             id="siparisMenu"
-             data-bs-parent="#mainMenu">
+                    🧾 Siparişler
 
+                </a>
 
-            <a href="/siparisler">
-                Sipariş Listesi
-            </a>
+            </li>
 
+            <li class="nav-item">
 
-            <a href="#">
-                Yeni Sipariş
-            </a>
+                <a class="nav-link text-white" data-bs-toggle="collapse" href="#stokMenu">
 
+                    📦 Stok
 
-            <a href="#">
-                Bekleyen Siparişler
-            </a>
+                </a>
 
+                <div class="collapse" id="stokMenu">
 
-            <a href="#">
-                Tamamlanan Siparişler
-            </a>
+                    <a class="nav-link text-white ms-3" href="/urunler">
 
+                        Ürünler
 
-        </div>
+                    </a>
 
+                    <a class="nav-link text-white ms-3" href="/receteler">
 
+                        Reçeteler
 
+                    </a>
 
+                </div>
 
-        <!-- STOK -->
+            </li>
 
+            {% if kullanici_rol in ["Admin","Yönetici"] %}
 
-        <a class="menu-toggle"
-           data-bs-toggle="collapse"
-           href="#stokMenu">
+            <li class="nav-item">
 
+                <a class="nav-link text-white" href="/kullanicilar">
 
-            📦 Stok
+                    👤 Kullanıcılar
 
-            <span class="arrow">
-                ▼
-            </span>
+                </a>
 
+            </li>
 
-        </a>
-
-
-
-        <div class="collapse submenu"
-             id="stokMenu"
-             data-bs-parent="#mainMenu">
-
-
-            <a href="/urunler">
-                Ürünler
-            </a>
-
-
-            <a href="/stok">
-                Stok Hareketleri
-            </a>
-
-            {% if kullanici_rol != "Operatör" %}
-            <a href="/recete">
-                Reçeteler
-            </a>
             {% endif %}
 
-        </div>
+            {% if kullanici_rol != "Operatör" %}
 
+            <li class="nav-item">
 
+                <a class="nav-link text-white" href="/ayarlar">
 
-
-
-        <!-- SABİT MENÜLER -->
-
-
-        {% if kullanici_rol != "Operatör" %}
-
-         <a href="/musteriler">
-
-         👥 Müşteriler
-
-         </a>
-
-        {% endif %}
-
-
-
-        {% if kullanici_rol == "Admin" %}
-
-
-        <a href="/kullanicilar">
-
-            👤 Kullanıcılar
-
-        </a>
-
-
-        {% endif %}
-
-
-
-    </div>
-
-
-
-
-
-    <!-- ALT MENÜ -->
-
-
-    <div class="bottom">
-
-
-        <a href="/ayarlar"
-           class="text-white text-decoration-none d-block mb-3">
-
-            ⚙️ Ayarlar
-
-        </a>
-
-
-
-
-        <div class="d-flex">
-
-
-            <a href="/logout"
-               class="btn btn-danger btn-sm">
-
-                🚪 Çıkış
-
-            </a>
-
-
-
-            <a href="/excel_import"
-               class="btn btn-success btn-sm ms-2">
-
-                Excel Aktar
-
-            </a>
-
-
-        </div>
-
-
-    </div>
-
-
-</div>
-
-
-
-
-
-
-<!-- İÇERİK -->
-
-
-<div class="content">
-
-
-<div class="topbar d-flex justify-content-between align-items-center">
-
-
-    <h5 class="mb-0">
-
-        MÜYS - Üretim Yönetim Sistemi
-
-    </h5>
-
-
-
-    <div class="dropdown">
-
-
-        <button
-        class="btn btn-light dropdown-toggle"
-        type="button"
-        data-bs-toggle="dropdown">
-
-
-            👤 {{ kullanici_adi or "Misafir" }}
-
-
-        </button>
-
-
-
-        <ul class="dropdown-menu dropdown-menu-end">
-
-
-            <li>
-
-                <a class="dropdown-item"
-                href="/profil">
-
-                    👤 Profil
+                    ⚙ Ayarlar
 
                 </a>
 
             </li>
 
-
-
-            <li>
-
-                <a class="dropdown-item"
-                href="/sifre-degistir">
-
-                    🔑 Şifre Değiştir
-
-                </a>
-
-            </li>
-
-
-
-            <li>
-                <hr class="dropdown-divider">
-            </li>
-
-
-
-            <li>
-
-                <a class="dropdown-item text-danger"
-                href="/logout">
-
-                    🚪 Oturumu Kapat
-
-                </a>
-
-            </li>
-
+            {% endif %}
 
         </ul>
 
+    </nav>
+
+
+
+    <!-- İçerik -->
+
+    <div class="flex-grow-1">
+
+        <!-- Navbar -->
+
+        <nav class="navbar navbar-light bg-white shadow-sm">
+
+            <div class="container-fluid">
+
+                <button class="btn btn-outline-secondary d-lg-none"
+                        id="menuToggle">
+
+                    ☰
+
+                </button>
+
+                <div class="dropdown ms-auto">
+
+                    <button class="btn btn-light dropdown-toggle"
+                            data-bs-toggle="dropdown">
+
+                        👤 {{ kullanici_adi }}
+
+                    </button>
+
+                    <ul class="dropdown-menu dropdown-menu-end">
+
+                        <li>
+
+                            <a class="dropdown-item"
+                               href="#">
+
+                                Profil
+
+                            </a>
+
+                        </li>
+
+                        {% if kullanici_rol=="Admin" %}
+
+                        <li>
+
+                            <a class="dropdown-item"
+                               href="/loglar">
+
+                                Log Geçmişi
+
+                            </a>
+
+                        </li>
+
+                        {% endif %}
+
+                        <li>
+
+                            <hr class="dropdown-divider">
+
+                        </li>
+
+                        <li>
+
+                            <a class="dropdown-item text-danger"
+                               href="/logout">
+
+                                Çıkış Yap
+
+                            </a>
+
+                        </li>
+
+                    </ul>
+
+                </div>
+
+            </div>
+
+        </nav>
+
+
+
+        <div class="container-fluid mt-4">
+
+            {% block content %}
+
+            {% endblock %}
+
+        </div>
+
+
+
+        <footer class="text-center text-muted mt-5 mb-3">
+
+            MÜYS v0.1.1
+
+        </footer>
 
     </div>
-
 
 </div>
 
 
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-
-    <div class="page">
-
-
-        {% block content %}
-
-
-        {% endblock %}
-
-
-    </div>
-
-
-
-</div>
-
-
-
-
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
-
-
-<script src="{{ url_for('static', path='js/main.js') }}"></script>
-
-
+<script src="/static/js/main.js"></script>
 
 </body>
 
