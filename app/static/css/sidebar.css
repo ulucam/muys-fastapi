@@ -154,3 +154,36 @@
     transform:rotate(180deg);
 
 }
+/* =========================
+   MOBILE SIDEBAR
+========================= */
+
+@media(max-width:991px){
+
+
+    .sidebar{
+
+        transform:translateX(-100%);
+
+        transition:.3s ease;
+
+    }
+
+
+
+    .sidebar.show{
+
+        transform:translateX(0);
+
+    }
+
+
+
+    .main-wrapper{
+
+        margin-left:0;
+
+    }
+
+
+}
