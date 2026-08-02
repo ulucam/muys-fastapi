@@ -1,5 +1,108 @@
-<nav class="navbar navbar-expand-lg bg-white shadow-sm">
+<nav class="top-navbar">
 
-    ...
+
+    <button id="menuToggle"
+            class="mobile-menu-btn">
+
+        <i class="bi bi-list"></i>
+
+    </button>
+
+
+
+    <div class="user-area">
+
+
+        <div class="dropdown">
+
+
+            <button class="user-button"
+                    data-bs-toggle="dropdown">
+
+
+                <i class="bi bi-person-circle"></i>
+
+
+                {{ kullanici_adi }}
+
+
+                <i class="bi bi-chevron-down"></i>
+
+
+            </button>
+
+
+
+            <ul class="dropdown-menu dropdown-menu-end">
+
+
+
+                <li>
+
+                    <a class="dropdown-item"
+                       href="#">
+
+                        <i class="bi bi-person"></i>
+
+                        Profil
+
+                    </a>
+
+                </li>
+
+
+
+
+                {% if kullanici_rol == "Admin" %}
+
+
+                <li>
+
+                    <a class="dropdown-item"
+                       href="/loglar">
+
+                        <i class="bi bi-clock-history"></i>
+
+                        Log Geçmişi
+
+                    </a>
+
+                </li>
+
+
+                {% endif %}
+
+
+
+
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+
+
+
+                <li>
+
+                    <a class="dropdown-item text-danger"
+                       href="/logout">
+
+                        <i class="bi bi-box-arrow-right"></i>
+
+                        Çıkış
+
+                    </a>
+
+                </li>
+
+
+
+            </ul>
+
+
+        </div>
+
+
+    </div>
+
 
 </nav>
