@@ -14,6 +14,12 @@ from app.routes import musteriler
 
 Base.metadata.create_all(bind=engine)
 
+from app.seed import admin_olustur
+from app.database import SessionLocal
+
+db = SessionLocal()
+admin_olustur(db)
+db.close()
 
 app = FastAPI(
     title="MÜYS - Üretim Yönetim Sistemi"
