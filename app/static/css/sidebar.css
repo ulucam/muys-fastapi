@@ -1,28 +1,22 @@
-/* =========================
-   MÜYS SIDEBAR
-========================= */
-
 .sidebar {
 
-    width: 260px;
+    width:260px;
 
-    min-height: 100vh;
+    height:100vh;
 
-    background: #1e293b;
+    position:fixed;
 
-    position: fixed;
+    left:0;
 
-    left: 0;
+    top:0;
 
-    top: 0;
+    background:#1e293b;
 
-    bottom: 0;
+    z-index:1050;
 
-    z-index: 1000;
+    overflow-y:auto;
 
-    transition: all .3s ease;
-
-    overflow-y: auto;
+    transition:.3s ease;
 
 }
 
@@ -30,29 +24,24 @@
 
 .sidebar-header {
 
-    padding: 25px 15px;
+    padding:25px;
 
-    text-align: center;
+    text-align:center;
 
-    border-bottom: 1px solid rgba(255,255,255,.1);
+    border-bottom:1px solid rgba(255,255,255,.1);
 
 }
 
 
-
-.sidebar-header h4 {
+.sidebar-header h4{
 
     color:white;
 
-    margin:0;
-
-    font-weight:700;
-
 }
 
 
 
-.sidebar-header small {
+.sidebar-header small{
 
     color:#94a3b8;
 
@@ -60,11 +49,11 @@
 
 
 
-.sidebar-menu {
+.sidebar-menu{
 
     list-style:none;
 
-    padding:15px 10px;
+    padding:15px;
 
     margin:0;
 
@@ -72,7 +61,7 @@
 
 
 
-.sidebar-menu li {
+.sidebar-menu li{
 
     margin-bottom:5px;
 
@@ -80,7 +69,8 @@
 
 
 
-.sidebar-menu a {
+.sidebar-menu a{
+
 
     display:flex;
 
@@ -96,41 +86,25 @@
 
     border-radius:8px;
 
-    transition:.2s;
-
 }
 
 
 
-.sidebar-menu a:hover {
+.sidebar-menu a:hover,
 
-    background:rgba(255,255,255,.1);
+.sidebar-menu a.active{
 
-    color:white;
-
-}
-
-
-
-.sidebar-menu i {
-
-    font-size:18px;
-
-}
-
-
-
-.sidebar-menu .active {
 
     background:#2563eb;
 
     color:white;
 
+
 }
 
 
 
-.submenu {
+.submenu{
 
     margin-left:20px;
 
@@ -140,32 +114,15 @@
 
 
 
-.menu-toggle .bi-chevron-down {
-
-    transition:.3s;
-
-}
-
-
-
-.menu-toggle[aria-expanded="true"] 
-.bi-chevron-down {
-
-    transform:rotate(180deg);
-
-}
-/* =========================
-   MOBILE SIDEBAR
-========================= */
 
 @media(max-width:991px){
 
 
     .sidebar{
 
+
         transform:translateX(-100%);
 
-        transition:.3s ease;
 
     }
 
@@ -173,15 +130,9 @@
 
     .sidebar.show{
 
+
         transform:translateX(0);
 
-    }
-
-
-
-    .main-wrapper{
-
-        margin-left:0;
 
     }
 
