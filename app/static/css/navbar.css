@@ -1,0 +1,78 @@
+/* =========================
+   TOP NAVBAR
+========================= */
+
+
+.top-navbar {
+
+    height:65px;
+
+    background:white;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:flex-end;
+
+    padding:0 25px;
+
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+
+    position:sticky;
+
+    top:0;
+
+    z-index:900;
+
+}
+
+
+
+.user-area {
+
+    margin-left:auto;
+
+}
+
+
+
+.user-button {
+
+    border:none;
+
+    background:#f8fafc;
+
+    padding:10px 15px;
+
+    border-radius:10px;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:8px;
+
+}
+
+
+
+.user-button:hover {
+
+    background:#e2e8f0;
+
+}
+
+
+
+.mobile-menu-btn {
+
+    display:none;
+
+    border:none;
+
+    background:none;
+
+    font-size:25px;
+
+}
