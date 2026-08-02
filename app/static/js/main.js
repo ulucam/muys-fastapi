@@ -11,3 +11,15 @@ sidebar.classList.toggle("show");
 };
 
 }
+document.addEventListener("click",function(e){
+
+    if(window.innerWidth>991)return;
+
+    if(!sidebar.contains(e.target)
+        && !menu.contains(e.target)){
+
+        sidebar.classList.remove("show");
+
+    }
+
+});
