@@ -1,47 +1,136 @@
 {% extends "base.html" %}
 
+{% block title %}Dashboard{% endblock %}
+
 {% block content %}
 
-<div class="container-fluid">
+<div class="dashboard">
 
-    <h2 class="mb-4">Dashboard</h2>
+    <div class="page-header">
 
-    <div class="row">
+        <div>
 
-        <div class="col-md-4">
-            <div class="card p-3">
-                <h5>Toplam Sipariş</h5>
-                <h2>{{ toplam_siparis }}</h2>
-            </div>
-        </div>
+            <h2>Hoş Geldiniz, {{ request.session.get("kullanici_adi") }}</h2>
 
+            <p class="text-muted mb-0">
+                MÜYS Üretim Yönetim Sistemi
+            </p>
 
-        <div class="col-md-4">
-            <div class="card p-3">
-                <h5>Toplam Müşteri</h5>
-                <h2>{{ toplam_musteri }}</h2>
-            </div>
-        </div>
-
-
-        <div class="col-md-4">
-            <div class="card p-3">
-                <h5>Toplam Ürün</h5>
-                <h2>{{ toplam_urun }}</h2>
-            </div>
         </div>
 
     </div>
 
+    <div class="stats-grid">
 
-    <div class="mt-5">
-        <h4>Sistem Durumu</h4>
+        <div class="stat-card">
 
-        <p>
-            MÜYS üretim takip sistemi aktif.
-        </p>
+            <div class="stat-icon bg-primary">
+                📦
+            </div>
+
+            <div class="stat-body">
+
+                <h3>0</h3>
+
+                <span>Aktif Sipariş</span>
+
+            </div>
+
+        </div>
+
+        <div class="stat-card">
+
+            <div class="stat-icon bg-success">
+                ⚙️
+            </div>
+
+            <div class="stat-body">
+
+                <h3>0</h3>
+
+                <span>Üretimde</span>
+
+            </div>
+
+        </div>
+
+        <div class="stat-card">
+
+            <div class="stat-icon bg-warning">
+                🚚
+            </div>
+
+            <div class="stat-body">
+
+                <h3>0</h3>
+
+                <span>Teslim Bekleyen</span>
+
+            </div>
+
+        </div>
+
+        <div class="stat-card">
+
+            <div class="stat-icon bg-danger">
+                ⚠️
+            </div>
+
+            <div class="stat-body">
+
+                <h3>0</h3>
+
+                <span>Kritik Stok</span>
+
+            </div>
+
+        </div>
+
     </div>
 
+    <div class="dashboard-row">
+
+        <div class="dashboard-box">
+
+            <div class="box-header">
+
+                Son Hareketler
+
+            </div>
+
+            <div class="box-body">
+
+                Henüz kayıt bulunmuyor.
+
+            </div>
+
+        </div>
+
+        {% if request.session.get("rol")=="Admin" %}
+
+        <div class="dashboard-box">
+
+            <div class="box-header">
+
+                Sistem Durumu
+
+            </div>
+
+            <div class="box-body">
+
+                🟢 Sistem çalışıyor
+
+                <br><br>
+
+                Veritabanı Bağlı
+
+            </div>
+
+        </div>
+
+        {% endif %}
+
+    </div>
 
 </div>
 
