@@ -138,3 +138,16 @@
 
 
 }
+@media(min-width:992px){
+
+
+.sidebar.show-desktop{
+
+
+    transform:translateX(0);
+
+
+}
+
+
+}
