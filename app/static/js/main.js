@@ -159,7 +159,145 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         }
+document.addEventListener("DOMContentLoaded", function () {
 
+
+    // ==========================
+    // AKTİF MENÜ
+    // ==========================
+
+    const current = window.location.pathname;
+
+
+    document.querySelectorAll(".sidebar a").forEach(function(link){
+
+
+        const href = link.getAttribute("href");
+
+
+        if(!href || href.startsWith("#")){
+            return;
+        }
+
+
+        link.classList.remove("active");
+
+
+        if(href === "/"){
+
+
+            if(current === "/"){
+                link.classList.add("active");
+            }
+
+
+        }else{
+
+
+            if(
+                current === href ||
+                current.startsWith(href + "/")
+            ){
+
+                link.classList.add("active");
+
+            }
+
+
+        }
+
+
+    });
+
+
+
+
+
+    // ==========================
+    // MOBİL MENÜ
+    // ==========================
+
+
+    const sidebar = document.getElementById("sidebar");
+
+    const menuToggle = document.getElementById("menuToggle");
+
+
+
+    if(sidebar && menuToggle){
+
+
+
+        menuToggle.addEventListener("click",function(e){
+
+
+            e.stopPropagation();
+
+
+            sidebar.classList.toggle("show");
+
+
+        });
+
+
+
+
+        document.addEventListener("click",function(e){
+
+
+
+            if(window.innerWidth <= 991){
+
+
+
+                if(
+                    sidebar.classList.contains("show") &&
+                    !sidebar.contains(e.target) &&
+                    !menuToggle.contains(e.target)
+                ){
+
+
+                    sidebar.classList.remove("show");
+
+
+                }
+
+
+            }
+
+
+
+        });
+
+
+
+
+        sidebar.querySelectorAll("a").forEach(function(link){
+
+
+            link.addEventListener("click",function(){
+
+
+                if(window.innerWidth <= 991){
+
+                    sidebar.classList.remove("show");
+
+                }
+
+
+            });
+
+
+        });
+
+
+
+    }
+
+
+
+
+});
 
     }
 
