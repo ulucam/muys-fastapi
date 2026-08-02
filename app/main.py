@@ -4,6 +4,8 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.database import Base, engine
 
+from app.database import SessionLocal
+from app.setup import setup_database
 from app.routes import auth
 from app.routes import dashboard
 from app.routes import kullanicilar
@@ -18,7 +20,7 @@ from app.seed import admin_olustur
 from app.database import SessionLocal
 
 db = SessionLocal()
-admin_olustur(db)
+setup_database(db)
 db.close()
 
 app = FastAPI(
