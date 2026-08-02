@@ -55,3 +55,21 @@ body{
 }
 
 }
+
+.content{
+
+    margin-left:260px;
+
+    padding:25px;
+
+}
+
+@media(max-width:991px){
+
+.content{
+
+    margin-left:0;
+
+}
+
+}
