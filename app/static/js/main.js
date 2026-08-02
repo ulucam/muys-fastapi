@@ -1,25 +1,33 @@
-const menu=document.getElementById("menuToggle");
+document.addEventListener("DOMContentLoaded", () => {
 
-const sidebar=document.getElementById("sidebar");
+    const current = window.location.pathname;
 
-if(menu){
+    document.querySelectorAll(".sidebar .nav-link").forEach(link => {
 
-menu.onclick=function(){
+        const href = link.getAttribute("href");
 
-sidebar.classList.toggle("show");
+        if (!href) return;
 
-};
+        link.classList.remove("active");
 
-}
-document.addEventListener("click",function(e){
+        if (href === "/") {
 
-    if(window.innerWidth>991)return;
+            if (current === "/") {
 
-    if(!sidebar.contains(e.target)
-        && !menu.contains(e.target)){
+                link.classList.add("active");
 
-        sidebar.classList.remove("show");
+            }
 
-    }
+        } else {
+
+            if (current === href || current.startsWith(href + "/")) {
+
+                link.classList.add("active");
+
+            }
+
+        }
+
+    });
 
 });
