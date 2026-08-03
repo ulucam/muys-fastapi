@@ -111,10 +111,12 @@
                                     İl
                                 </label>
 
-                                <input
-                                    type="text"
-                                    name="il"
-                                    class="form-control">
+                                <select name="il" id="il" class="form-select">
+                                    <option value="">İl seçin</option>
+                                    {% for il_adi in ilceler %}
+                                    <option value="{{ il_adi }}">{{ il_adi }}</option>
+                                    {% endfor %}
+                                </select>
 
                             </div>
 
@@ -124,10 +126,9 @@
                                     İlçe
                                 </label>
 
-                                <input
-                                    type="text"
-                                    name="ilce"
-                                    class="form-control">
+                                <select name="ilce" id="ilce" class="form-select" disabled>
+                                    <option value="">Önce il seçin</option>
+                                </select>
 
                             </div>
 
@@ -191,4 +192,18 @@
 
 </div>
 
+<script>
+const ilceler = {{ ilceler | tojson }};
+const ilSecimi = document.getElementById("il");
+const ilceSecimi = document.getElementById("ilce");
+
+ilSecimi.addEventListener("change", () => {
+    const seciliIlceler = ilceler[ilSecimi.value] || [];
+    ilceSecimi.innerHTML = '<option value="">İlçe seçin</option>';
+    seciliIlceler.forEach(ilce => {
+        ilceSecimi.add(new Option(ilce, ilce));
+    });
+    ilceSecimi.disabled = !ilSecimi.value;
+});
+</script>
 {% endblock %}
