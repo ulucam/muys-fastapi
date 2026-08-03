@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+
+            <h2 class="fw-bold">
+                <i class="bi bi-sliders text-danger"></i>
+                Sistem Ayarları
+            </h2>
+
+            <p class="text-muted mb-0">
+                Genel sistem yapılandırmaları.
+            </p>
+
+        </div>
+
+        <a href="/ayarlar" class="btn btn-outline-secondary">
+
+            <i class="bi bi-arrow-left"></i>
+
+            Geri
+
+        </a>
+
+    </div>
+
+
+
+    <div class="row g-4">
+
+        <!-- Genel -->
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-header bg-white">
+
+                    <strong>
+
+                        <i class="bi bi-gear-fill"></i>
+
+                        Genel Ayarlar
+
+                    </strong>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="form-check form-switch mb-3">
+
+                        <input class="form-check-input"
+                               type="checkbox"
+                               checked>
+
+                        <label class="form-check-label">
+
+                            İşlem Loglarını Tut
+
+                        </label>
+
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+
+                        <input class="form-check-input"
+                               type="checkbox"
+                               checked>
+
+                        <label class="form-check-label">
+
+                            Otomatik Yedekleme
+
+                        </label>
+
+                    </div>
+
+                    <div class="form-check form-switch">
+
+                        <input class="form-check-input"
+                               type="checkbox">
+
+                        <label class="form-check-label">
+
+                            Bakım Modu
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Bilgi -->
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-header bg-white">
+
+                    <strong>
+
+                        <i class="bi bi-info-circle-fill"></i>
+
+                        Sistem Bilgileri
+
+                    </strong>
+
+                </div>
+
+                <div class="card-body">
+
+                    <table class="table table-borderless">
+
+                        <tr>
+
+                            <td>Program</td>
+
+                            <td>MÜYS</td>
+
+                        </tr>
+
+                        <tr>
+
+                            <td>Sürüm</td>
+
+                            <td>v0.1.1</td>
+
+                        </tr>
+
+                        <tr>
+
+                            <td>Veritabanı</td>
+
+                            <td>SQLite</td>
+
+                        </tr>
+
+                        <tr>
+
+                            <td>Framework</td>
+
+                            <td>Flask</td>
+
+                        </tr>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Bilgilendirme -->
+
+        <div class="col-12">
+
+            <div class="alert alert-info shadow-sm">
+
+                <i class="bi bi-lightbulb"></i>
+
+                Sistem ayarlarının büyük bölümü ilerleyen sürümlerde aktif olacaktır.
+                Bu sayfa MÜYS yapılandırma merkezi olarak kullanılacaktır.
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
