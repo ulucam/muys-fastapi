@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
+from sqlalchemy import inspect, text
 
 from app.database import Base, engine, SessionLocal
 from app.setup import setup_database
@@ -16,6 +17,14 @@ from app.routes import siparis_sayfasi
 
 # Veritabanı tablolarını oluştur
 Base.metadata.create_all(bind=engine)
+
+# Eski kurulumlara müşteri türü alanını ekle.
+with engine.begin() as connection:
+    sutunlar = {sutun["name"] for sutun in inspect(connection).get_columns("musteriler")}
+    if "musteri_turu" not in sutunlar:
+        connection.execute(
+            text("ALTER TABLE musteriler ADD COLUMN musteri_turu VARCHAR(30) NOT NULL DEFAULT 'Alıcı'")
+        )
 
 
 # İlk kurulum
