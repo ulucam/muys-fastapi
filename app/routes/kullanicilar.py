@@ -6,48 +6,35 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.context import template_data
-from app.security import yetki_kontrol
-from app.password import sifre_olustur
-from app.roles import KULLANICI
-
+from app.security import yetki_kontrol, get_password_hash
+from app.roles import ADMIN
 
 router = APIRouter(
     prefix="/kullanicilar",
     tags=["Kullanıcılar"]
 )
 
-
-templates = Jinja2Templates(
-    directory="app/templates"
-)
-
+templates = Jinja2Templates(directory="app/templates")
 
 
 # =====================================================
-# KULLANICI LİSTE
+# KULLANICI LİSTESİ
 # =====================================================
 
 @router.get("/", response_class=HTMLResponse)
 def liste(
     request: Request,
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(KULLANICI))
+    yetki=Depends(yetki_kontrol(ADMIN))  # Sadece ADMIN
 ):
-
     kullanicilar = (
         db.query(User)
-        .filter(User.rol != "Admin")
         .order_by(User.id.desc())
         .all()
     )
 
-
     data = template_data(request)
-
-    data.update({
-        "kullanicilar": kullanicilar
-    })
-
+    data["kullanicilar"] = kullanicilar
 
     return templates.TemplateResponse(
         "kullanici/index.html",
@@ -55,89 +42,46 @@ def liste(
     )
 
 
-
 # =====================================================
-# YENİ KULLANICI FORM
+# KULLANICI EKLE FORM (GET)
 # =====================================================
 
 @router.get("/ekle", response_class=HTMLResponse)
 def ekle_form(
     request: Request,
-    yetki=Depends(yetki_kontrol(KULLANICI))
+    yetki=Depends(yetki_kontrol(ADMIN))  # Sadece ADMIN
 ):
-
-    data = template_data(request)
-
-
     return templates.TemplateResponse(
         "kullanici/ekle.html",
-        data
+        template_data(request)
     )
 
 
-
 # =====================================================
-# YENİ KULLANICI KAYDET
+# KULLANICI EKLE (POST)
 # =====================================================
 
 @router.post("/ekle")
 def ekle(
-
-    kullanici_adi: str = Form(...),
-    sifre: str = Form(...),
-    ad_soyad: str = Form(...),
+    username: str = Form(...),
+    full_name: str = Form(""),
     email: str = Form(""),
-    telefon: str = Form(""),
-    rol: str = Form(...),
-
+    role: str = Form(...),
+    sifre: str = Form(...),
+    is_active: bool = Form(True),
     db: Session = Depends(get_db),
-
-    yetki=Depends(yetki_kontrol(KULLANICI))
-
+    yetki=Depends(yetki_kontrol(ADMIN))  # Sadece ADMIN
 ):
-
-
-    mevcut = (
-        db.query(User)
-        .filter(
-            User.kullanici_adi == kullanici_adi
-        )
-        .first()
+    yeni_kullanici = User(
+        username=username,
+        full_name=full_name,
+        email=email,
+        role=role,
+        is_active=is_active,
+        hashed_password=get_password_hash(sifre)
     )
-
-
-    if mevcut:
-
-        return RedirectResponse(
-            "/kullanicilar/ekle",
-            status_code=303
-        )
-
-
-
-    yeni = User(
-
-        kullanici_adi=kullanici_adi,
-
-        sifre=sifre_olustur(sifre),
-
-        ad_soyad=ad_soyad,
-
-        email=email if email else None,
-
-        telefon=telefon if telefon else None,
-
-        rol=rol,
-
-        aktif=True
-
-    )
-
-
-    db.add(yeni)
-
+    db.add(yeni_kullanici)
     db.commit()
-
 
     return RedirectResponse(
         "/kullanicilar",
@@ -145,44 +89,31 @@ def ekle(
     )
 
 
-
 # =====================================================
-# DÜZENLE FORM
+# KULLANICI DÜZENLE FORM (GET)
 # =====================================================
 
 @router.get("/duzenle/{id}", response_class=HTMLResponse)
 def duzenle_form(
-
     id: int,
-
     request: Request,
-
     db: Session = Depends(get_db),
-
-    yetki=Depends(yetki_kontrol(KULLANICI))
-
+    yetki=Depends(yetki_kontrol(ADMIN))  # Sadece ADMIN
 ):
-
-
     kullanici = (
         db.query(User)
         .filter(User.id == id)
         .first()
     )
 
-
-    if not kullanici or kullanici.rol == "Admin":
-
+    if not kullanici:
         return RedirectResponse(
             "/kullanicilar",
             status_code=303
         )
 
-
     data = template_data(request)
-
     data["kullanici"] = kullanici
-
 
     return templates.TemplateResponse(
         "kullanici/duzenle.html",
@@ -190,154 +121,46 @@ def duzenle_form(
     )
 
 
-
 # =====================================================
-# DÜZENLE KAYDET
+# KULLANICI DÜZENLE (POST)
 # =====================================================
 
 @router.post("/duzenle/{id}")
 def duzenle(
-
     id: int,
-
-    kullanici_adi: str = Form(...),
-    ad_soyad: str = Form(...),
+    username: str = Form(...),
+    full_name: str = Form(""),
     email: str = Form(""),
-    telefon: str = Form(""),
-    rol: str = Form(...),
-    aktif: bool = Form(True),
-
+    role: str = Form(...),
+    is_active: bool = Form(True),
+    sifre: str = Form(""),  # Şifre boş bırakılırsa güncellenmez
     db: Session = Depends(get_db),
-
-    yetki=Depends(yetki_kontrol(KULLANICI))
-
+    yetki=Depends(yetki_kontrol(ADMIN))  # Sadece ADMIN
 ):
-
-
     kullanici = (
         db.query(User)
         .filter(User.id == id)
         .first()
     )
 
-
-    if kullanici and kullanici.rol != "Admin":
-
-
-        kullanici.kullanici_adi = kullanici_adi
-
-        kullanici.ad_soyad = ad_soyad
-
-        kullanici.email = email if email else None
-
-        kullanici.telefon = telefon if telefon else None
-
-        kullanici.rol = rol
-
-        kullanici.aktif = aktif
-
-
-        db.commit()
-
-
-
-    return RedirectResponse(
-        "/kullanicilar",
-        status_code=303
-    )
-
-
-
-# =====================================================
-# ŞİFRE FORM
-# =====================================================
-
-@router.get("/sifre/{id}", response_class=HTMLResponse)
-def sifre_form(
-
-    id: int,
-
-    request: Request,
-
-    db: Session = Depends(get_db),
-
-    yetki=Depends(yetki_kontrol(KULLANICI))
-
-):
-
-
-    kullanici = (
-        db.query(User)
-        .filter(User.id == id)
-        .first()
-    )
-
-
-    if not kullanici or kullanici.rol == "Admin":
-
+    if not kullanici:
         return RedirectResponse(
             "/kullanicilar",
             status_code=303
         )
 
+    # Temel bilgileri güncelle
+    kullanici.username = username
+    kullanici.full_name = full_name
+    kullanici.email = email
+    kullanici.role = role
+    kullanici.is_active = is_active
 
-    data = template_data(request)
+    # Eğer formdan yeni bir şifre geldiyse hash'le ve güncelle
+    if sifre and sifre.strip():
+        kullanici.hashed_password = get_password_hash(sifre)
 
-    data["kullanici"] = kullanici
-
-
-    return templates.TemplateResponse(
-        "kullanici/sifre.html",
-        data
-    )
-
-
-
-# =====================================================
-# ŞİFRE DEĞİŞTİR
-# =====================================================
-
-@router.post("/sifre/{id}")
-def sifre_degistir(
-
-    id: int,
-
-    sifre: str = Form(...),
-
-    sifre_tekrar: str = Form(...),
-
-
-    db: Session = Depends(get_db),
-
-    yetki=Depends(yetki_kontrol(KULLANICI))
-
-):
-
-
-    if sifre != sifre_tekrar:
-
-        return RedirectResponse(
-            f"/kullanicilar/sifre/{id}",
-            status_code=303
-        )
-
-
-
-    kullanici = (
-        db.query(User)
-        .filter(User.id == id)
-        .first()
-    )
-
-
-    if kullanici and kullanici.rol != "Admin":
-
-
-        kullanici.sifre = sifre_olustur(sifre)
-
-        db.commit()
-
-
+    db.commit()
 
     return RedirectResponse(
         "/kullanicilar",
@@ -345,39 +168,25 @@ def sifre_degistir(
     )
 
 
-
 # =====================================================
-# SİL
+# KULLANICI SİL
 # =====================================================
 
 @router.get("/sil/{id}")
 def sil(
-
     id: int,
-
     db: Session = Depends(get_db),
-
-    yetki=Depends(yetki_kontrol(KULLANICI))
-
+    yetki=Depends(yetki_kontrol(ADMIN))  # Sadece ADMIN
 ):
-
-
     kullanici = (
         db.query(User)
         .filter(User.id == id)
         .first()
     )
 
-
-    # Admin kesinlikle silinemez
-
-    if kullanici and kullanici.rol != "Admin":
-
+    if kullanici:
         db.delete(kullanici)
-
         db.commit()
-
-
 
     return RedirectResponse(
         "/kullanicilar",
