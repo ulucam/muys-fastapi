@@ -1,5 +1,7 @@
 import io
+import json
 import openpyxl
+from pathlib import Path
 from fastapi import APIRouter, Request, Depends, Form, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -7,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.musteri import Musteri
+from app.models.siparis import Siparis
 from app.context import template_data
 from app.security import yetki_kontrol
 from app.roles import MUSTERI
@@ -22,6 +25,13 @@ router = APIRouter(
 templates = Jinja2Templates(
     directory="app/templates"
 )
+
+ILLER_DOSYASI = Path(__file__).resolve().parent.parent / "data" / "iller.js"
+
+
+def il_ilce_listesi():
+    with ILLER_DOSYASI.open(encoding="utf-8") as dosya:
+        return json.load(dosya)
 
 
 # =====================================================
@@ -130,10 +140,10 @@ def ekle_form(
     request: Request,
     yetki=Depends(yetki_kontrol(MUSTERI))
 ):
-    return templates.TemplateResponse(
-        "musteri/ekle.html",
-        template_data(request)
-    )
+    data = template_data(request)
+    data["ilceler"] = il_ilce_listesi()
+
+    return templates.TemplateResponse("musteri/ekle.html", data)
 
 
 # =====================================================
@@ -221,6 +231,7 @@ def duzenle_form(
 
     data = template_data(request)
     data["musteri"] = musteri
+    data["ilceler"] = il_ilce_listesi()
 
     return templates.TemplateResponse(
         "musteri/duzenle.html",
@@ -312,17 +323,19 @@ def detay(
             status_code=303
         )
 
-    data = template_data(request)
+    siparisler = (
+        db.query(Siparis)
+        .filter(Siparis.musteri_id == musteri.id)
+        .all()
+    )
 
+    data = template_data(request)
     data.update({
         "musteri": musteri,
-
-        # Sipariş modülü bağlanınca gerçek veriler gelecek
-        "siparislar": [],
-        "bekleyen_siparis": 0,
-        "uretimdeki_siparis": 0,
-        "tamamlanan_siparis": 0,
-        "toplam_siparis": 0
+        "bekleyen_siparis": sum(s.durum == "Beklemede" for s in siparisler),
+        "uretimdeki_siparis": sum(s.durum == "Üretimde" for s in siparisler),
+        "tamamlanan_siparis": sum(s.durum == "Tamamlandı" for s in siparisler),
+        "toplam_siparis": len(siparisler),
     })
 
     return templates.TemplateResponse(
