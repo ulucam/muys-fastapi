@@ -1,6 +1,5 @@
 <nav class="top-navbar">
 
-
     <button id="menuToggle"
             class="mobile-menu-btn">
 
@@ -8,45 +7,27 @@
 
     </button>
 
-
-
     <div class="user-area">
 
-
         <div class="dropdown">
-
 
             <button class="user-button"
                     data-bs-toggle="dropdown">
 
-
                 <i class="bi bi-person-circle"></i>
-
 
                 {{ kullanici_adi }}
 
-
                 <i class="bi bi-chevron-down"></i>
-
 
             </button>
 
-
-
             <ul class="dropdown-menu dropdown-menu-end">
-
-
 
                 <li>
 
-                  <a class="dropdown-item"
-   href="/profil">
-
-    <i class="bi bi-person"></i>
-
-    Profil
-
-</a>
+                    <a class="dropdown-item"
+                       href="/profil">
 
                         <i class="bi bi-person"></i>
 
@@ -56,17 +37,12 @@
 
                 </li>
 
-
-
-
                 {% if kullanici_rol == "Admin" %}
-
 
                 <li>
 
-                                   <a class="dropdown-item"
-   href="/profil">
-
+                    <a class="dropdown-item"
+                       href="/ayarlar/loglar">
 
                         <i class="bi bi-clock-history"></i>
 
@@ -76,17 +52,11 @@
 
                 </li>
 
-
                 {% endif %}
-
-
-
 
                 <li>
                     <hr class="dropdown-divider">
                 </li>
-
-
 
                 <li>
 
@@ -101,15 +71,10 @@
 
                 </li>
 
-
-
             </ul>
-
 
         </div>
 
-
     </div>
-
 
 </nav>
