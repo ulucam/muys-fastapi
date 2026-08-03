@@ -30,51 +30,64 @@
 
         <div class="card-body">
 
-            <form>
+            <form method="post" action="/ayarlar/firma">
 
                 <div class="row g-3">
 
                     <div class="col-md-6">
                         <label class="form-label">Firma Adı</label>
                         <input type="text"
+                               name="firma_adi"
                                class="form-control"
+                               value="{{ firma.firma_adi if firma else '' }}"
                                placeholder="Firma adı">
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">Vergi No</label>
                         <input type="text"
+                               name="vergi_no"
+                               value="{{ firma.vergi_no if firma else '' }}"
                                class="form-control">
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">Vergi Dairesi</label>
                         <input type="text"
+                               name="vergi_dairesi"
+                               value="{{ firma.vergi_dairesi if firma else '' }}"
                                class="form-control">
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">Telefon</label>
                         <input type="text"
+                               name="telefon"
+                               value="{{ firma.telefon if firma else '' }}"
                                class="form-control">
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">E-posta</label>
                         <input type="email"
+                               name="email"
+                               value="{{ firma.email if firma else '' }}"
                                class="form-control">
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">Web Sitesi</label>
                         <input type="text"
+                               name="web_sitesi"
+                               value="{{ firma.web_sitesi if firma else '' }}"
                                class="form-control">
                     </div>
 
                     <div class="col-12">
                         <label class="form-label">Adres</label>
                         <textarea class="form-control"
-                                  rows="3"></textarea>
+                                  name="adres"
+                                  rows="3">{{ firma.adres if firma else '' }}</textarea>
                     </div>
 
                     <div class="col-md-6">
@@ -90,7 +103,7 @@
 
                 <div class="text-end">
 
-                    <button class="btn btn-primary">
+                    <button class="btn btn-primary" type="submit">
 
                         <i class="bi bi-check-circle"></i>
 
