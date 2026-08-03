@@ -11,6 +11,7 @@ from app.routes import kullanicilar
 from app.routes import musteriler
 from app.routes import ayarlar
 from app.routes import profil
+from app.routes import siparis_sayfasi
 
 
 # Veritabanı tablolarını oluştur
@@ -48,3 +49,4 @@ app.include_router(kullanicilar.router)
 app.include_router(musteriler.router)
 app.include_router(ayarlar.router)
 app.include_router(profil.router)
+app.include_router(siparis_sayfasi.router)
