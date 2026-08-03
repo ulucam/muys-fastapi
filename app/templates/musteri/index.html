@@ -4,164 +4,53 @@
 
 {% block content %}
 <div class="container-fluid mt-3 px-2 px-md-4">
-    <!-- Sayfa Başlığı -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="fw-bold m-0 h4-md">Müşteri Listesi</h3>
+        <div>
+            <h3 class="fw-bold m-0 h4-md">Müşteriler</h3>
+            <small class="text-muted">Bir müşteriyi seçerek sipariş özetini görüntüleyin.</small>
+        </div>
         <a href="/musteriler/ekle" class="btn btn-primary btn-sm btn-md-normal">
-            <i class="bi bi-plus-lg"></i> <span class="d-none d-sm-inline">Yeni Müşteri Ekle</span><span class="d-inline d-sm-none">Ekle</span>
+            <i class="bi bi-plus-lg"></i>
+            <span class="d-none d-sm-inline">Yeni Müşteri Ekle</span>
+            <span class="d-inline d-sm-none">Ekle</span>
         </a>
     </div>
 
-    <!-- Müşteri Tablosu Kartı -->
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-0">
-            <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                <table class="table table-hover align-middle mb-0" id="musteriTablosu" style="min-width: 600px;">
-                    <thead class="table-light">
-                        <!-- Tablo Başlıkları -->
-                        <tr>
-                            <th style="width: 40px;" class="text-center">#</th>
-                            <th style="width: 120px;">Müşteri Kodu</th>
-                            <th>Firma Adı</th>
-                            <th style="width: 140px;">Yetkili</th>
-                            <th style="width: 90px;">Durum</th>
-                            <th style="width: 110px;" class="text-end">İşlemler</th>
-                        </tr>
-                        <!-- Başlık Altı Filtre Satırı -->
-                        <tr class="table-filter-row bg-light">
-                            <th></th>
-                            <th><input type="text" class="form-control form-control-sm table-filter px-1" data-col="1" placeholder="Kod..."></th>
-                            <th><input type="text" class="form-control form-control-sm table-filter px-1" data-col="2" placeholder="Firma ara..."></th>
-                            <th><input type="text" class="form-control form-control-sm table-filter px-1" data-col="3" placeholder="Yetkili..."></th>
-                            <th>
-                                <select class="form-select form-select-sm table-filter px-1" data-col="4">
-                                    <option value="">Tümü</option>
-                                    <option value="Aktif">Aktif</option>
-                                    <option value="Pasif">Pasif</option>
-                                </select>
-                            </th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for musteri in musteriler %}
-                        <!-- Ana Satır -->
-                        <tr class="musteri-row cursor-pointer" data-bs-toggle="collapse" data-bs-target="#detail-{{ musteri.id }}" aria-expanded="false" style="cursor: pointer;">
-                            <td class="text-center text-muted p-2">
-                                <i class="bi bi-chevron-right toggle-icon"></i>
-                            </td>
-                            <td class="p-2"><span class="badge bg-light text-dark border font-monospace">{{ musteri.musteri_kodu or '-' }}</span></td>
-                            <td class="fw-semibold p-2 text-break">{{ musteri.firma_adi }}</td>
-                            <td class="p-2 text-truncate" style="max-width: 130px;">{{ musteri.yetkili or '-' }}</td>
-                            <td class="p-2">
-                                {% if musteri.aktif %}
-                                    <span class="badge bg-success-subtle text-success border border-success">Aktif</span>
-                                {% else %}
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary">Pasif</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-end p-2" onclick="event.stopPropagation();">
-                                <a href="/musteriler/detay/{{ musteri.id }}" class="btn btn-sm btn-outline-info p-1 px-2" title="Detay"><i class="bi bi-eye"></i></a>
-                                <a href="/musteriler/duzenle/{{ musteri.id }}" class="btn btn-sm btn-outline-warning p-1 px-2" title="Düzenle"><i class="bi bi-pencil"></i></a>
-                                <a href="/musteriler/sil/{{ musteri.id }}" class="btn btn-sm btn-outline-danger p-1 px-2" onclick="return confirm('Müşteriyi silmek istediğinize emin misiniz?')" title="Sil"><i class="bi bi-trash"></i></a>
-                            </td>
-                        </tr>
-
-                        <!-- Tıklanınca Açılan Detay Satırı -->
-                        <tr class="p-0 border-0">
-                            <td colspan="6" class="p-0 border-0">
-                                <div class="collapse bg-light p-3 border-bottom" id="detail-{{ musteri.id }}">
-                                    <div class="row g-2 small">
-                                        <div class="col-12 col-sm-6 col-md-3">
-                                            <strong class="text-muted d-block"><i class="bi bi-telephone"></i> Telefon:</strong>
-                                            <span>{{ musteri.telefon or '-' }}</span>
-                                        </div>
-                                        <div class="col-12 col-sm-6 col-md-3">
-                                            <strong class="text-muted d-block"><i class="bi bi-envelope"></i> E-Posta:</strong>
-                                            <span class="text-break">{{ musteri.email or '-' }}</span>
-                                        </div>
-                                        <div class="col-12 col-sm-6 col-md-3">
-                                            <strong class="text-muted d-block"><i class="bi bi-file-text"></i> Vergi Dairesi / No:</strong>
-                                            <span>{{ musteri.vergi_dairesi or '-' }} / {{ musteri.vergi_no or '-' }}</span>
-                                        </div>
-                                        <div class="col-12 col-sm-6 col-md-3">
-                                            <strong class="text-muted d-block"><i class="bi bi-geo-alt"></i> Konum:</strong>
-                                            <span>{{ musteri.il or '' }} {{ '/' if musteri.ilce else '' }} {{ musteri.ilce or '' }}</span>
-                                        </div>
-                                        {% if musteri.adres %}
-                                        <div class="col-12">
-                                            <strong class="text-muted d-block"><i class="bi bi-house-door"></i> Açık Adres:</strong>
-                                            <span>{{ musteri.adres }}</span>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
+    <div class="row g-3">
+        {% for musteri in musteriler %}
+        <div class="col-12 col-md-6 col-xl-4">
+            <a href="/musteriler/detay/{{ musteri.id }}"
+               class="card h-100 shadow-sm border-0 text-decoration-none text-body">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between gap-2 mb-2">
+                        <span class="badge bg-light text-dark border font-monospace">
+                            {{ musteri.musteri_kodu or '-' }}
+                        </span>
+                        {% if musteri.aktif %}
+                        <span class="badge bg-success-subtle text-success border border-success">Aktif</span>
                         {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">Kayıtlı müşteri bulunamadı.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary">Pasif</span>
+                        {% endif %}
+                    </div>
+                    <h5 class="card-title mb-1">{{ musteri.firma_adi }}</h5>
+                    <p class="text-muted mb-3">{{ musteri.yetkili or 'Yetkili bilgisi yok' }}</p>
+                    <div class="small text-muted">
+                        <div><i class="bi bi-telephone me-1"></i>{{ musteri.telefon or '-' }}</div>
+                        <div><i class="bi bi-geo-alt me-1"></i>{{ musteri.il or '-' }}{% if musteri.ilce %} / {{ musteri.ilce }}{% endif %}</div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0 pt-0 text-primary small">
+                    Sipariş özetini görüntüle <i class="bi bi-arrow-right"></i>
+                </div>
+            </a>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center py-5 text-muted">Kayıtlı müşteri bulunamadı.</div>
             </div>
         </div>
+        {% endfor %}
     </div>
 </div>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const filters = document.querySelectorAll(".table-filter");
-    const table = document.getElementById("musteriTablosu");
-    const tbody = table.querySelector("tbody");
-    const rows = tbody.querySelectorAll("tr.musteri-row");
-
-    filters.forEach(filter => {
-        filter.addEventListener("keyup", filterTable);
-        filter.addEventListener("change", filterTable);
-    });
-
-    function filterTable() {
-        rows.forEach(row => {
-            let isVisible = true;
-            const nextDetailRow = row.nextElementSibling;
-
-            filters.forEach(filter => {
-                const colIdx = parseInt(filter.getAttribute("data-col"));
-                const filterVal = filter.value.toLowerCase().trim();
-                const cell = row.cells[colIdx];
-
-                if (cell && filterVal !== "") {
-                    const cellText = cell.textContent.toLowerCase();
-                    if (!cellText.includes(filterVal)) {
-                        isVisible = false;
-                    }
-                }
-            });
-
-            if (isVisible) {
-                row.style.display = "";
-            } else {
-                row.style.display = "none";
-                if (nextDetailRow) nextDetailRow.style.display = "none";
-            }
-        });
-    }
-
-    document.querySelectorAll('.collapse').forEach(collapseEl => {
-        collapseEl.addEventListener('show.bs.collapse', function () {
-            const parentRow = this.closest('tr').previousElementSibling;
-            const icon = parentRow.querySelector('.toggle-icon');
-            if (icon) icon.className = 'bi bi-chevron-down text-primary toggle-icon';
-        });
-
-        collapseEl.addEventListener('hide.bs.collapse', function () {
-            const parentRow = this.closest('tr').previousElementSibling;
-            const icon = parentRow.querySelector('.toggle-icon');
-            if (icon) icon.className = 'bi bi-chevron-right toggle-icon';
-        });
-    });
-});
-</script>
 {% endblock %}
