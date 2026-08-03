@@ -64,6 +64,7 @@ def ekle_form(
 
 @router.post("/ekle")
 def ekle(
+    request: Request,
     username: str = Form(...),
     full_name: str = Form(""),
     email: str = Form(""),
@@ -73,6 +74,22 @@ def ekle(
     db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(ADMIN))
 ):
+    # Aynı kullanıcı adı var mı?
+    var_mi = (
+        db.query(User)
+        .filter(User.username == username)
+        .first()
+    )
+
+    if var_mi:
+        data = template_data(request)
+        data["hata"] = "Bu kullanıcı adı zaten kayıtlı."
+
+        return templates.TemplateResponse(
+            "kullanici/ekle.html",
+            data
+        )
+
     yeni_kullanici = User(
         username=username,
         full_name=full_name,
@@ -81,6 +98,7 @@ def ekle(
         is_active=is_active,
         hashed_password=sifre_olustur(sifre)
     )
+
     db.add(yeni_kullanici)
     db.commit()
 
@@ -88,7 +106,6 @@ def ekle(
         "/kullanicilar",
         status_code=303
     )
-
 
 # =====================================================
 # KULLANICI DÜZENLE FORM (GET)
