@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -30,6 +31,7 @@ def liste(
 ):
     kullanicilar = (
         db.query(User)
+        .filter(func.lower(User.kullanici_adi) != "admin")
         .order_by(User.id.desc())
         .all()
     )
