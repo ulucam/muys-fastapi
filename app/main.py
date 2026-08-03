@@ -9,6 +9,7 @@ from app.routes import auth
 from app.routes import dashboard
 from app.routes import kullanicilar
 from app.routes import musteriler
+from app.routes import ayarlar
 
 
 # Veritabanı tablolarını oluştur
@@ -44,3 +45,4 @@ app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(kullanicilar.router)
 app.include_router(musteriler.router)
+app.include_router(ayarlar.router)
