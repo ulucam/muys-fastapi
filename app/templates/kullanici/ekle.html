@@ -16,7 +16,7 @@
 
 <div class="card-body">
 
-<form action="/kullanicilar/ekle" method="POST">
+<form action="/kullanicilar/ekle" method="POST" autocomplete="off">
 
 <div class="row">
 
@@ -28,6 +28,8 @@
 type="text"
 name="kullanici_adi"
 class="form-control"
+autocomplete="off"
+value=""
 required>
 
 </div>
@@ -40,6 +42,8 @@ required>
 type="password"
 name="sifre"
 class="form-control"
+autocomplete="new-password"
+value=""
 required>
 
 </div>
