@@ -1,5 +1,5 @@
 import io
-import pandas as pd
+import openpyxl
 from fastapi import APIRouter, Request, Depends, Form, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -50,7 +50,7 @@ def liste(
 
 
 # =====================================================
-# EXCEL İÇE AKTAR (EXCEL IMPORT)
+# EXCEL İÇE AKTAR (EXCEL IMPORT - PANDAS'SIZ / OPENPYXL)
 # =====================================================
 
 @router.post("/excel-import")
@@ -61,43 +61,57 @@ async def excel_import(
     yetki=Depends(yetki_kontrol(MUSTERI_YONET))
 ):
     if not file.filename.endswith((".xlsx", ".xls")):
-        # Excel formatı dışında bir dosya yüklendiyse geri yönlendir
         return RedirectResponse("/musteriler?error=invalid_format", status_code=303)
 
     try:
         contents = await file.read()
-        df = pd.read_excel(io.BytesIO(contents))
+        workbook = openpyxl.load_workbook(filename=io.BytesIO(contents), data_only=True)
+        sheet = workbook.active
 
-        # Kolon isimlerini standartlaştır (küçük harf, boşluksuz)
-        df.columns = [str(col).strip().lower() for col in df.columns]
+        # İlk satırdaki başlıkları oku ve normalize et
+        headers = []
+        for cell in sheet[1]:
+            val = str(cell.value or "").strip().lower().replace(" ", "_")
+            headers.append(val)
 
-        for _, row in df.iterrows():
-            firma_adi = str(row.get("firma_adi", "") or row.get("firma adı", "")).strip()
-            
-            # Firma adı boşsa bu satırı atla
-            if not firma_adi or firma_adi.lower() == "nan":
+        # Satırları dön (2. satırdan itibaren)
+        for row in sheet.iter_rows(min_row=2, values_only=True):
+            if not any(row):  # Tamamen boş satırsa atla
+                continue
+
+            row_data = dict(zip(headers, row))
+
+            # Firma adı kontrolü
+            firma_adi = str(row_data.get("firma_adi") or row_data.get("firma_adı") or "").strip()
+            if not firma_adi or firma_adi.lower() == "none":
                 continue
 
             # Kod üretimi
             son = db.query(Musteri).order_by(Musteri.id.desc()).first()
             kod = f"M{son.id + 1:06}" if son else "M000001"
 
+            def clean_val(key):
+                val = row_data.get(key)
+                if val is None or str(val).lower() == "none":
+                    return ""
+                return str(val).strip()
+
             musteri = Musteri(
                 musteri_kodu=kod,
                 firma_adi=firma_adi,
-                yetkili="" if pd.isna(row.get("yetkili")) else str(row.get("yetkili")).strip(),
-                telefon="" if pd.isna(row.get("telefon")) else str(row.get("telefon")).strip(),
-                email="" if pd.isna(row.get("email")) else str(row.get("email")).strip(),
-                vergi_dairesi="" if pd.isna(row.get("vergi_dairesi")) else str(row.get("vergi_dairesi")).strip(),
-                vergi_no="" if pd.isna(row.get("vergi_no")) else str(row.get("vergi_no")).strip(),
-                il="" if pd.isna(row.get("il")) else str(row.get("il")).strip(),
-                ilce="" if pd.isna(row.get("ilce")) else str(row.get("ilce")).strip(),
-                adres="" if pd.isna(row.get("adres")) else str(row.get("adres")).strip(),
-                aciklama="" if pd.isna(row.get("aciklama")) else str(row.get("aciklama")).strip(),
+                yetkili=clean_val("yetkili"),
+                telefon=clean_val("telefon"),
+                email=clean_val("email"),
+                vergi_dairesi=clean_val("vergi_dairesi"),
+                vergi_no=clean_val("vergi_no"),
+                il=clean_val("il"),
+                ilce=clean_val("ilce"),
+                adres=clean_val("adres"),
+                aciklama=clean_val("aciklama"),
                 aktif=True
             )
             db.add(musteri)
-            db.flush()  # id'nin sıradaki satır için otomatik güncellenmesini sağlar
+            db.flush()
 
         db.commit()
         return RedirectResponse("/musteriler?success=imported", status_code=303)
