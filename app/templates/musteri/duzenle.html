@@ -41,6 +41,20 @@
                             <div class="col-md-6 mb-3">
 
                                 <label class="form-label">
+                                    Müşteri Türü
+                                </label>
+
+                                <select name="musteri_turu" class="form-select">
+                                    {% for tur in ["Alıcı", "Tedarikçi", "Satıcı"] %}
+                                    <option value="{{ tur }}" {% if (musteri.musteri_turu or "Alıcı") == tur %}selected{% endif %}>{{ tur }}</option>
+                                    {% endfor %}
+                                </select>
+
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
                                     Firma Adı
                                 </label>
 
