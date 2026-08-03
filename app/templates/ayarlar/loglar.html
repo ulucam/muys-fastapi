@@ -90,10 +90,17 @@
 
                     </thead>
 
-                    <tbody>
-
+                <tbody>
+                    {% for log in loglar %}
                         <tr>
-
+                            <td>{{ log.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
+                            <td>{{ log.kullanici_adi }}</td>
+                            <td>{{ log.modul }}</td>
+                            <td>{{ log.islem }}{% if log.detay %}<small class="d-block text-muted">{{ log.detay }}</small>{% endif %}</td>
+                            <td>{{ log.ip_adresi or '-' }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
                             <td colspan="5" class="text-center text-muted py-5">
 
                                 <i class="bi bi-clock-history fs-1 d-block mb-3"></i>
@@ -103,6 +110,7 @@
                             </td>
 
                         </tr>
+                    {% endfor %}
 
                     </tbody>
 
