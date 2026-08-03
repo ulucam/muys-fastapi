@@ -3,38 +3,38 @@
 {% block title %}Müşteriler - MUYS{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <!-- Sayfa Başlığı (Excel Butonu Kaldırıldı) -->
+<div class="container-fluid mt-3 px-2 px-md-4">
+    <!-- Sayfa Başlığı -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="fw-bold m-0">Müşteri Listesi</h3>
-        <a href="/musteriler/ekle" class="btn btn-primary">
-            <i class="bi bi-plus-lg"></i> Yeni Müşteri Ekle
+        <h3 class="fw-bold m-0 h4-md">Müşteri Listesi</h3>
+        <a href="/musteriler/ekle" class="btn btn-primary btn-sm btn-md-normal">
+            <i class="bi bi-plus-lg"></i> <span class="d-none d-sm-inline">Yeni Müşteri Ekle</span><span class="d-inline d-sm-none">Ekle</span>
         </a>
     </div>
 
-    <!-- Müşteri Tablosu -->
+    <!-- Müşteri Tablosu Kartı -->
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" id="musteriTablosu">
+            <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                <table class="table table-hover align-middle mb-0" id="musteriTablosu" style="min-width: 600px;">
                     <thead class="table-light">
                         <!-- Tablo Başlıkları -->
                         <tr>
-                            <th style="width: 5%;"></th>
-                            <th style="width: 15%;">Müşteri Kodu</th>
-                            <th style="width: 35%;">Firma Adı</th>
-                            <th style="width: 20%;">Yetkili</th>
-                            <th style="width: 10%;">Durum</th>
-                            <th style="width: 15%;" class="text-end">İşlemler</th>
+                            <th style="width: 40px;" class="text-center">#</th>
+                            <th style="width: 120px;">Müşteri Kodu</th>
+                            <th>Firma Adı</th>
+                            <th style="width: 140px;">Yetkili</th>
+                            <th style="width: 90px;">Durum</th>
+                            <th style="width: 110px;" class="text-end">İşlemler</th>
                         </tr>
                         <!-- Başlık Altı Filtre Satırı -->
                         <tr class="table-filter-row bg-light">
                             <th></th>
-                            <th><input type="text" class="form-control form-control-sm table-filter" data-col="1" placeholder="Kod filtrele..."></th>
-                            <th><input type="text" class="form-control form-control-sm table-filter" data-col="2" placeholder="Firma filtrele..."></th>
-                            <th><input type="text" class="form-control form-control-sm table-filter" data-col="3" placeholder="Yetkili filtrele..."></th>
+                            <th><input type="text" class="form-control form-control-sm table-filter px-1" data-col="1" placeholder="Kod..."></th>
+                            <th><input type="text" class="form-control form-control-sm table-filter px-1" data-col="2" placeholder="Firma ara..."></th>
+                            <th><input type="text" class="form-control form-control-sm table-filter px-1" data-col="3" placeholder="Yetkili..."></th>
                             <th>
-                                <select class="form-select form-select-sm table-filter" data-col="4">
+                                <select class="form-select form-select-sm table-filter px-1" data-col="4">
                                     <option value="">Tümü</option>
                                     <option value="Aktif">Aktif</option>
                                     <option value="Pasif">Pasif</option>
@@ -45,25 +45,25 @@
                     </thead>
                     <tbody>
                         {% for musteri in musteriler %}
-                        <!-- Ana Satır (Tıklanabilir) -->
+                        <!-- Ana Satır -->
                         <tr class="musteri-row cursor-pointer" data-bs-toggle="collapse" data-bs-target="#detail-{{ musteri.id }}" aria-expanded="false" style="cursor: pointer;">
-                            <td class="text-center text-muted">
+                            <td class="text-center text-muted p-2">
                                 <i class="bi bi-chevron-right toggle-icon"></i>
                             </td>
-                            <td><span class="badge bg-light text-dark border">{{ musteri.musteri_kodu or '-' }}</span></td>
-                            <td class="fw-semibold">{{ musteri.firma_adi }}</td>
-                            <td>{{ musteri.yetkili or '-' }}</td>
-                            <td>
+                            <td class="p-2"><span class="badge bg-light text-dark border font-monospace">{{ musteri.musteri_kodu or '-' }}</span></td>
+                            <td class="fw-semibold p-2 text-break">{{ musteri.firma_adi }}</td>
+                            <td class="p-2 text-truncate" style="max-width: 130px;">{{ musteri.yetkili or '-' }}</td>
+                            <td class="p-2">
                                 {% if musteri.aktif %}
                                     <span class="badge bg-success-subtle text-success border border-success">Aktif</span>
                                 {% else %}
                                     <span class="badge bg-secondary-subtle text-secondary border border-secondary">Pasif</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end" onclick="event.stopPropagation();">
-                                <a href="/musteriler/detay/{{ musteri.id }}" class="btn btn-sm btn-outline-info" title="Tam Detay Sayfası"><i class="bi bi-eye"></i></a>
-                                <a href="/musteriler/duzenle/{{ musteri.id }}" class="btn btn-sm btn-outline-warning" title="Düzenle"><i class="bi bi-pencil"></i></a>
-                                <a href="/musteriler/sil/{{ musteri.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Müşteriyi silmek istediğinize emin misiniz?')" title="Sil"><i class="bi bi-trash"></i></a>
+                            <td class="text-end p-2" onclick="event.stopPropagation();">
+                                <a href="/musteriler/detay/{{ musteri.id }}" class="btn btn-sm btn-outline-info p-1 px-2" title="Detay"><i class="bi bi-eye"></i></a>
+                                <a href="/musteriler/duzenle/{{ musteri.id }}" class="btn btn-sm btn-outline-warning p-1 px-2" title="Düzenle"><i class="bi bi-pencil"></i></a>
+                                <a href="/musteriler/sil/{{ musteri.id }}" class="btn btn-sm btn-outline-danger p-1 px-2" onclick="return confirm('Müşteriyi silmek istediğinize emin misiniz?')" title="Sil"><i class="bi bi-trash"></i></a>
                             </td>
                         </tr>
 
@@ -71,20 +71,20 @@
                         <tr class="p-0 border-0">
                             <td colspan="6" class="p-0 border-0">
                                 <div class="collapse bg-light p-3 border-bottom" id="detail-{{ musteri.id }}">
-                                    <div class="row g-3 small">
-                                        <div class="col-md-3">
+                                    <div class="row g-2 small">
+                                        <div class="col-12 col-sm-6 col-md-3">
                                             <strong class="text-muted d-block"><i class="bi bi-telephone"></i> Telefon:</strong>
                                             <span>{{ musteri.telefon or '-' }}</span>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-12 col-sm-6 col-md-3">
                                             <strong class="text-muted d-block"><i class="bi bi-envelope"></i> E-Posta:</strong>
-                                            <span>{{ musteri.email or '-' }}</span>
+                                            <span class="text-break">{{ musteri.email or '-' }}</span>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-12 col-sm-6 col-md-3">
                                             <strong class="text-muted d-block"><i class="bi bi-file-text"></i> Vergi Dairesi / No:</strong>
                                             <span>{{ musteri.vergi_dairesi or '-' }} / {{ musteri.vergi_no or '-' }}</span>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-12 col-sm-6 col-md-3">
                                             <strong class="text-muted d-block"><i class="bi bi-geo-alt"></i> Konum:</strong>
                                             <span>{{ musteri.il or '' }} {{ '/' if musteri.ilce else '' }} {{ musteri.ilce or '' }}</span>
                                         </div>
@@ -110,7 +110,6 @@
     </div>
 </div>
 
-<!-- Dinamik Filtreleme ve İkon Scripti -->
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const filters = document.querySelectorAll(".table-filter");
@@ -118,7 +117,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const tbody = table.querySelector("tbody");
     const rows = tbody.querySelectorAll("tr.musteri-row");
 
-    // Canlı Filtreleme Fonksiyonu
     filters.forEach(filter => {
         filter.addEventListener("keyup", filterTable);
         filter.addEventListener("change", filterTable);
@@ -127,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function filterTable() {
         rows.forEach(row => {
             let isVisible = true;
-            const nextDetailRow = row.nextElementSibling; // Detay satırını da gizle/göster
+            const nextDetailRow = row.nextElementSibling;
 
             filters.forEach(filter => {
                 const colIdx = parseInt(filter.getAttribute("data-col"));
@@ -151,7 +149,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Açılır detay oku ikonunu döndürme efekti
     document.querySelectorAll('.collapse').forEach(collapseEl => {
         collapseEl.addEventListener('show.bs.collapse', function () {
             const parentRow = this.closest('tr').previousElementSibling;
