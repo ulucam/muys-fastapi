@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+
+            <h2 class="fw-bold">
+                <i class="bi bi-file-earmark-excel text-success"></i>
+                Excel Yönetimi
+            </h2>
+
+            <p class="text-muted mb-0">
+                Veri aktarma ve örnek şablon işlemleri.
+            </p>
+
+        </div>
+
+        <a href="/ayarlar" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i>
+            Geri
+        </a>
+
+    </div>
+
+
+    <div class="row g-4">
+
+        <!-- Örnek Excel -->
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm border-0 h-100">
+
+                <div class="card-body">
+
+                    <h5 class="card-title mb-3">
+
+                        <i class="bi bi-download text-primary"></i>
+
+                        Örnek Excel
+
+                    </h5>
+
+                    <p class="text-muted">
+
+                        Sisteme uygun örnek Excel dosyasını indirebilirsiniz.
+
+                    </p>
+
+                    <button class="btn btn-success">
+
+                        <i class="bi bi-file-earmark-arrow-down"></i>
+
+                        Örnek İndir
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Excel Yükle -->
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm border-0 h-100">
+
+                <div class="card-body">
+
+                    <h5 class="card-title mb-3">
+
+                        <i class="bi bi-upload text-success"></i>
+
+                        Excel Yükle
+
+                    </h5>
+
+                    <p class="text-muted">
+
+                        Hazırladığınız Excel dosyasını seçin.
+
+                    </p>
+
+                    <input
+                        class="form-control mb-3"
+                        type="file"
+                        accept=".xlsx,.xls">
+
+                    <button class="btn btn-primary">
+
+                        <i class="bi bi-upload"></i>
+
+                        Yükle
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Son Aktarım -->
+
+        <div class="col-12">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-body">
+
+                    <h5>
+
+                        <i class="bi bi-clock-history"></i>
+
+                        Son Aktarım
+
+                    </h5>
+
+                    <table class="table table-hover align-middle">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>Tarih</th>
+
+                                <th>Dosya</th>
+
+                                <th>Durum</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            <tr>
+
+                                <td>-</td>
+
+                                <td>-</td>
+
+                                <td>
+
+                                    <span class="badge bg-secondary">
+
+                                        Henüz Aktarım Yok
+
+                                    </span>
+
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
