@@ -65,19 +65,23 @@ def ekle_form(
 @router.post("/ekle")
 def ekle(
     request: Request,
-    username: str = Form(...),
-    full_name: str = Form(""),
+    kullanici_adi: str = Form(...),
+    ad_soyad: str = Form(...),
+    telefon: str = Form(""),
     email: str = Form(""),
-    role: str = Form(...),
+    rol: str = Form(...),
+    aktif: bool = Form(True),
     sifre: str = Form(...),
-    is_active: bool = Form(True),
+
+
+    
     db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(ADMIN))
 ):
     # Aynı kullanıcı adı var mı?
     var_mi = (
         db.query(User)
-        .filter(User.username == username)
+        .filter(User.kullanici_adi == kullanici_adi)
         .first()
     )
 
@@ -91,12 +95,13 @@ def ekle(
         )
 
     yeni_kullanici = User(
-        username=username,
-        full_name=full_name,
-        email=email,
-        role=role,
-        is_active=is_active,
-        hashed_password=sifre_olustur(sifre)
+    kullanici_adi=kullanici_adi,
+    ad_soyad=ad_soyad,
+    telefon=telefon,
+    email=email,
+    rol=rol,
+    aktif=aktif,
+    sifre=sifre_olustur(sifre)
     )
 
     db.add(yeni_kullanici)
@@ -146,11 +151,12 @@ def duzenle_form(
 @router.post("/duzenle/{id}")
 def duzenle(
     id: int,
-    username: str = Form(...),
-    full_name: str = Form(""),
+    kullanici_adi: str = Form(...),
+    ad_soyad: str = Form(""),
+    telefon: str = Form(""),
     email: str = Form(""),
-    role: str = Form(...),
-    is_active: bool = Form(True),
+    rol: str = Form(...),
+    aktif: bool = Form(True),
     sifre: str = Form(""),  
     db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(ADMIN))
@@ -167,14 +173,15 @@ def duzenle(
             status_code=303
         )
 
-    kullanici.username = username
-    kullanici.full_name = full_name
+    kullanici.kullanici_adi = kullanici_adi
+    kullanici.ad_soyad = ad_soyad
+    kullanici.telefon = telefon
     kullanici.email = email
-    kullanici.role = role
-    kullanici.is_active = is_active
+    kullanici.rol = rol
+    kullanici.aktif = aktif
 
-    if sifre and sifre.strip():
-        kullanici.hashed_password = sifre_olustur(sifre)
+    if sifre.strip():
+     kullanici.sifre = sifre_olustur(sifre)
 
     db.commit()
 
