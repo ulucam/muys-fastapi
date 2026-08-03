@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 import openpyxl
-from fastapi import APIRouter, Depends, File, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from openpyxl.worksheet.datavalidation import DataValidation
@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.context import template_data
 from app.database import get_db
 from app.models.musteri import Musteri
+from app.models.firma_ayarlari import FirmaAyarlari
 
 router = APIRouter()
 
@@ -83,14 +84,20 @@ async def excel(request: Request):
 
 
 @router.get("/ayarlar/excel/sablon")
-def excel_sablon():
+def excel_sablon(db: Session = Depends(get_db)):
     iller = il_ilce_verisi()
+    firma = db.query(FirmaAyarlari).first()
+    mevcut_musteriler = db.query(Musteri).order_by(Musteri.id).all()
     kitap = openpyxl.Workbook()
     sistem = kitap.active
     sistem.title = "Sistem Bilgileri"
-    sistem.append(["MÜYS Müşteri Aktarım Taslağı"])
-    sistem.append(["Açıklama", "Bu sayfadaki bilgiler bilgilendirme içindir; müşteri kayıtları ikinci sayfada yer alır."])
+    sistem.append(["MÜYS Müşteri Aktarım ve Dışa Aktarma"])
+    sistem.append(["Açıklama", "Firma bilgileri ve mevcut müşteri kayıtları dışa aktarıldı; müşteri kayıtları ikinci sayfada yer alır."])
     sistem.append(["Kurallar", "Firma adı zorunludur. İl, ilçe ve müşteri türü açılır listelerden seçilmelidir."])
+    sistem.append([])
+    sistem.append(["Firma Bilgileri"])
+    for etiket, alan in [("Firma Adı", "firma_adi"), ("Vergi No", "vergi_no"), ("Vergi Dairesi", "vergi_dairesi"), ("Telefon", "telefon"), ("E-Posta", "email"), ("Web Sitesi", "web_sitesi"), ("Adres", "adres")]:
+        sistem.append([etiket, getattr(firma, alan, "") if firma else ""])
     sistem.column_dimensions["A"].width = 28
     sistem.column_dimensions["B"].width = 100
     for hucre in sistem[1]:
@@ -99,8 +106,15 @@ def excel_sablon():
 
     musteriler = kitap.create_sheet("Müşteriler")
     musteriler.append(MUSTERI_SUTUNLARI)
+    for musteri in mevcut_musteriler:
+        musteriler.append([
+            musteri.firma_adi, musteri.yetkili, musteri.telefon, musteri.email,
+            musteri.vergi_dairesi, musteri.vergi_no, musteri.il, musteri.ilce,
+            musteri.musteri_turu or "Alıcı", musteri.adres, musteri.aciklama,
+        ])
     musteriler.freeze_panes = "A2"
-    musteriler.auto_filter.ref = "A1:K501"
+    son_satir = max(501, len(mevcut_musteriler) + 1)
+    musteriler.auto_filter.ref = f"A1:K{son_satir}"
     for hucre in musteriler[1]:
         hucre.font = openpyxl.styles.Font(bold=True, color="FFFFFF")
         hucre.fill = openpyxl.styles.PatternFill("solid", fgColor="1F4E78")
@@ -117,7 +131,7 @@ def excel_sablon():
             TURLER[sira] if sira < len(TURLER) else None,
         ])
     listeler.sheet_state = "hidden"
-    for formül, alan in [("'Listeler'!$A$2:$A$82", "G2:G501"), (f"'Listeler'!$B$2:$B${len(tum_ilceler) + 1}", "H2:H501"), ("'Listeler'!$C$2:$C$4", "I2:I501")]:
+    for formül, alan in [("'Listeler'!$A$2:$A$82", f"G2:G{son_satir}"), (f"'Listeler'!$B$2:$B${len(tum_ilceler) + 1}", f"H2:H{son_satir}"), ("'Listeler'!$C$2:$C$4", f"I2:I{son_satir}")]:
         dogrulama = DataValidation(type="list", formula1=formül, allow_blank=True)
         musteriler.add_data_validation(dogrulama)
         dogrulama.add(alan)
@@ -192,12 +206,30 @@ async def loglar(request: Request):
 
 
 @router.get("/ayarlar/firma", response_class=HTMLResponse)
-async def firma(request: Request):
+async def firma(request: Request, db: Session = Depends(get_db)):
+    data = template_data(request)
+    data["firma"] = db.query(FirmaAyarlari).first()
 
-    return templates.TemplateResponse(
-        "ayarlar/firma.html",
-        template_data(request)
-    )
+    return templates.TemplateResponse("ayarlar/firma.html", data)
+
+
+@router.post("/ayarlar/firma")
+async def firma_kaydet(
+    firma_adi: str = Form(""), vergi_no: str = Form(""),
+    vergi_dairesi: str = Form(""), telefon: str = Form(""),
+    email: str = Form(""), web_sitesi: str = Form(""), adres: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    firma = db.query(FirmaAyarlari).first()
+    if not firma:
+        firma = FirmaAyarlari()
+        db.add(firma)
+    firma.firma_adi, firma.vergi_no = firma_adi, vergi_no
+    firma.vergi_dairesi, firma.telefon = vergi_dairesi, telefon
+    firma.email, firma.web_sitesi, firma.adres = email, web_sitesi, adres
+    db.commit()
+
+    return RedirectResponse("/ayarlar/firma", status_code=303)
 
 
 @router.get("/ayarlar/sistem", response_class=HTMLResponse)
