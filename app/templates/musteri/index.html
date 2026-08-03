@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Müşteri Listesi</h2>
         <div>
-            <!-- Excel İçe Aktar Butonu -->
+            <!-- Excel'den Aktar Butonu -->
             <button type="button" class="btn btn-outline-success me-2" data-bs-toggle="modal" data-bs-target="#excelImportModal">
                 <i class="bi bi-file-earmark-excel"></i> Excel'den Aktar
             </button>
@@ -26,20 +26,20 @@
                         <!-- Başlıklar -->
                         <tr>
                             <th>Müşteri Kodu</th>
-                            <th>Unvan / Adı</th>
-                            <th>Vergi Dairesi / No</th>
-                            <th>Telefon</th>
+                            <th>Firma Adı</th>
+                            <th>Yetkili</th>
+                            <th>Telefon / E-posta</th>
                             <th>İl / İlçe</th>
                             <th>Durum</th>
                             <th class="text-end">İşlemler</th>
                         </tr>
-                        <!-- Filtreleme Satırı -->
+                        <!-- Başlık Altı Filtreleme Satırı -->
                         <tr class="table-filter-row">
-                            <th><input type="text" class="form-control form-control-sm table-filter" data-col="0" placeholder="Kod filtrele..."></th>
-                            <th><input type="text" class="form-control form-control-sm table-filter" data-col="1" placeholder="Unvan filtrele..."></th>
-                            <th><input type="text" class="form-control form-control-sm table-filter" data-col="2" placeholder="Vergi no filtrele..."></th>
-                            <th><input type="text" class="form-control form-control-sm table-filter" data-col="3" placeholder="Tel filtrele..."></th>
-                            <th><input type="text" class="form-control form-control-sm table-filter" data-col="4" placeholder="Şehir filtrele..."></th>
+                            <th><input type="text" class="form-control form-control-sm table-filter" data-col="0" placeholder="Kod ara..."></th>
+                            <th><input type="text" class="form-control form-control-sm table-filter" data-col="1" placeholder="Firma ara..."></th>
+                            <th><input type="text" class="form-control form-control-sm table-filter" data-col="2" placeholder="Yetkili ara..."></th>
+                            <th><input type="text" class="form-control form-control-sm table-filter" data-col="3" placeholder="İletişim ara..."></th>
+                            <th><input type="text" class="form-control form-control-sm table-filter" data-col="4" placeholder="Şehir ara..."></th>
                             <th>
                                 <select class="form-select form-select-sm table-filter" data-col="5">
                                     <option value="">Tümü</option>
@@ -53,10 +53,15 @@
                     <tbody>
                         {% for musteri in musteriler %}
                         <tr>
-                            <td><strong>{{ musteri.kod or '-' }}</strong></td>
-                            <td>{{ musteri.unvan }}</td>
-                            <td>{{ musteri.vergi_dairesi or '' }} / {{ musteri.vergi_no or '-' }}</td>
-                            <td>{{ musteri.telefon or '-' }}</td>
+                            <td><strong>{{ musteri.musteri_kodu or '-' }}</strong></td>
+                            <td>{{ musteri.firma_adi }}</td>
+                            <td>{{ musteri.yetkili or '-' }}</td>
+                            <td>
+                                {{ musteri.telefon or '' }}
+                                {% if musteri.email %}
+                                    <br><small class="text-muted">{{ musteri.email }}</small>
+                                {% endif %}
+                            </td>
                             <td>{{ musteri.il or '' }} {{ '/' if musteri.ilce else '' }} {{ musteri.ilce or '' }}</td>
                             <td>
                                 {% if musteri.aktif %}
@@ -66,8 +71,9 @@
                                 {% endif %}
                             </td>
                             <td class="text-end">
-                                <a href="/musteriler/{{ musteri.id }}" class="btn btn-sm btn-outline-info"><i class="bi bi-eye"></i></a>
-                                <a href="/musteriler/{{ musteri.id }}/duzenle" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil"></i></a>
+                                <a href="/musteriler/detay/{{ musteri.id }}" class="btn btn-sm btn-outline-info" title="Detay"><i class="bi bi-eye"></i></a>
+                                <a href="/musteriler/duzenle/{{ musteri.id }}" class="btn btn-sm btn-outline-warning" title="Düzenle"><i class="bi bi-pencil"></i></a>
+                                <a href="/musteriler/sil/{{ musteri.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Müşteriyi silmek istediğinize emin misiniz?')" title="Sil"><i class="bi bi-trash"></i></a>
                             </td>
                         </tr>
                         {% else %}
@@ -82,17 +88,21 @@
     </div>
 </div>
 
-<!-- Excel İçe Aktarma Modal -->
-<div class="modal fade" id="excelImportModal" tabindex="-1" aria-labelledby="excelImportModalLabel" aria-hidden="true">
+<!-- Excel İçe Aktarma Modalı -->
+<div class="modal fade" id="excelImportModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <form action="/musteriler/excel-import" method="POST" enctype="multipart/form-data">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="excelImportModalLabel">Excel'den Müşteri Aktar</h5>
+                    <h5 class="modal-title">Excel'den Müşteri Aktar</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted small">Lütfen <code>.xlsx</code> veya <code>.xls</code> formatındaki dosyayı yükleyin. Kolonlar: <strong>Kod, Unvan, Vergi Dairesi, Vergi No, Telefon, E-posta, İl, İlçe, Adres</strong> başlıklarını içermelidir.</p>
+                    <p class="text-muted small">
+                        Lütfen <code>.xlsx</code> veya <code>.xls</code> uzantılı dosya yükleyin.<br>
+                        Sistem aşağıdaki başlıkları otomatik tanır:<br>
+                        <strong>firma_adi, yetkili, telefon, email, vergi_dairesi, vergi_no, il, ilce, adres, aciklama</strong>
+                    </p>
                     <div class="mb-3">
                         <label for="file" class="form-label">Excel Dosyası Seçin</label>
                         <input class="form-control" type="file" id="file" name="file" accept=".xlsx, .xls" required>
@@ -107,7 +117,7 @@
     </div>
 </div>
 
-<!-- Dynamic Table Filtering Script -->
+<!-- Dinamik Filtreleme JS -->
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const filters = document.querySelectorAll(".table-filter");
