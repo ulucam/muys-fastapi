@@ -13,6 +13,10 @@ from app.context import template_data
 from app.database import get_db
 from app.models.musteri import Musteri
 from app.models.firma_ayarlari import FirmaAyarlari
+from app.models.islem_logu import IslemLogu
+from app.roles import ADMIN
+from app.security import yetki_kontrol
+from app.services.islem_log_service import islem_logla
 
 router = APIRouter()
 
@@ -183,6 +187,7 @@ def excel_onayla(request: Request, db: Session = Depends(get_db)):
         musteri.il, musteri.ilce = satir["İl"], satir["İlçe"]
         musteri.musteri_turu = satir["Müşteri Türü"]
         musteri.adres, musteri.aciklama = satir["Adres"], satir["Açıklama"]
+    islem_logla(db, request, "Excel", "Müşteri aktarımı", f"{len(satirlar)} müşteri satırı aktarıldı")
     db.commit()
     return RedirectResponse("/ayarlar/excel", status_code=303)
 
@@ -197,12 +202,15 @@ async def yedek(request: Request):
 
 
 @router.get("/ayarlar/loglar", response_class=HTMLResponse)
-async def loglar(request: Request):
+async def loglar(
+    request: Request,
+    db: Session = Depends(get_db),
+    yetki=Depends(yetki_kontrol(ADMIN)),
+):
+    data = template_data(request)
+    data["loglar"] = db.query(IslemLogu).order_by(IslemLogu.created_at.desc()).limit(500).all()
 
-    return templates.TemplateResponse(
-        "ayarlar/loglar.html",
-        template_data(request)
-    )
+    return templates.TemplateResponse("ayarlar/loglar.html", data)
 
 
 @router.get("/ayarlar/firma", response_class=HTMLResponse)
@@ -215,6 +223,7 @@ async def firma(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/ayarlar/firma")
 async def firma_kaydet(
+    request: Request,
     firma_adi: str = Form(""), vergi_no: str = Form(""),
     vergi_dairesi: str = Form(""), telefon: str = Form(""),
     email: str = Form(""), web_sitesi: str = Form(""), adres: str = Form(""),
@@ -227,6 +236,7 @@ async def firma_kaydet(
     firma.firma_adi, firma.vergi_no = firma_adi, vergi_no
     firma.vergi_dairesi, firma.telefon = vergi_dairesi, telefon
     firma.email, firma.web_sitesi, firma.adres = email, web_sitesi, adres
+    islem_logla(db, request, "Ayarlar", "Firma bilgileri güncellendi", firma_adi)
     db.commit()
 
     return RedirectResponse("/ayarlar/firma", status_code=303)
