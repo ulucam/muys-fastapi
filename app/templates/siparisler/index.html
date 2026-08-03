@@ -7,6 +7,11 @@
 
 <div class="kart">
     <div class="kart-title">📋 Sipariş Listesi</div>
+    {% if musteri_id %}
+    <div class="text-muted text-center mt-3">
+        Müşteri #{{ musteri_id }}{% if durum %} · {{ durum }} siparişleri{% endif %}
+    </div>
+    {% endif %}
     <div style="color:#999; text-align:center; padding:30px;">
         <i class="fas fa-inbox" style="font-size:40px; display:block; margin-bottom:10px;"></i>
         Sipariş özelliği geliştirme aşamasında
