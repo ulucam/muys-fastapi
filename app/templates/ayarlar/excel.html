@@ -51,13 +51,13 @@
 
                     </p>
 
-                    <button class="btn btn-success">
+                    <a href="/ayarlar/excel/sablon" class="btn btn-success">
 
                         <i class="bi bi-file-earmark-arrow-down"></i>
 
                         Örnek İndir
 
-                    </button>
+                    </a>
 
                 </div>
 
@@ -89,18 +89,22 @@
 
                     </p>
 
+                    <form action="/ayarlar/excel/onizleme" method="post" enctype="multipart/form-data">
                     <input
                         class="form-control mb-3"
+                        name="file"
                         type="file"
-                        accept=".xlsx,.xls">
+                        accept=".xlsx"
+                        required>
 
-                    <button class="btn btn-primary">
+                    <button class="btn btn-primary" type="submit">
 
                         <i class="bi bi-upload"></i>
 
                         Yükle
 
                     </button>
+                    </form>
 
                 </div>
 
@@ -173,6 +177,31 @@
         </div>
 
     </div>
+
+    {% if hatalar is defined or gecerli_satir is defined %}
+    <div class="card shadow-sm border-0 mt-4">
+        <div class="card-body">
+            <h5>Aktarım Önizlemesi</h5>
+            {% if hatalar %}
+            <div class="alert alert-danger mb-0">
+                <strong>Aktarım yapılmadı.</strong>
+                <ul class="mb-0 mt-2">{% for hata in hatalar %}<li>{{ hata }}</li>{% endfor %}</ul>
+            </div>
+            {% else %}
+            <p class="mb-2"><strong>{{ gecerli_satir }}</strong> geçerli satır bulundu.</p>
+            <ul>
+                <li><strong>{{ eklenecek|length }}</strong> yeni müşteri eklenecek.</li>
+                <li><strong>{{ guncellenecek|length }}</strong> mevcut müşteri güncellenecek.</li>
+            </ul>
+            {% if guncellenecek %}<p class="text-muted small">Güncellenecekler: {{ guncellenecek|join(', ') }}</p>{% endif %}
+            <form action="/ayarlar/excel/onayla" method="post">
+                <button class="btn btn-success" type="submit"><i class="bi bi-check2-circle"></i> Değişiklikleri Onayla ve Aktar</button>
+                <a href="/ayarlar/excel" class="btn btn-outline-secondary">Vazgeç</a>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 
 </div>
 
