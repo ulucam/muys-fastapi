@@ -51,18 +51,24 @@ def liste(
     )
 
     siparis_ozetleri = {}
+    durum_adlari = {
+        "Beklemede": "Bekleyen",
+        "Üretimde": "Üretimde",
+        "Sevke Hazır": "Sevke Hazır",
+        "Tamamlandı": "Geçmiş",
+        "Geçmiş": "Geçmiş",
+    }
     for musteri_id, durum in db.query(Siparis.musteri_id, Siparis.durum).all():
-        ozet = siparis_ozetleri.setdefault(
-            musteri_id, {"bekleyen": 0, "uretimde": 0}
-        )
-        if durum == "Beklemede":
-            ozet["bekleyen"] += 1
-        elif durum == "Üretimde":
-            ozet["uretimde"] += 1
+        ozet = siparis_ozetleri.setdefault(musteri_id, [])
+        durum_adi = durum_adlari.get(durum, durum)
+        if durum_adi and durum_adi not in ozet:
+            ozet.append(durum_adi)
 
     data = template_data(request)
     data["musteriler"] = musteriler
     data["siparis_ozetleri"] = siparis_ozetleri
+    data["firma_adlari"] = sorted({musteri.firma_adi for musteri in musteriler})
+    data["iller"] = sorted({musteri.il for musteri in musteriler if musteri.il})
 
     return templates.TemplateResponse(
         "musteri/index.html",
