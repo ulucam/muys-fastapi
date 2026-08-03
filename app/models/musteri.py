@@ -34,6 +34,12 @@ class Musteri(Base):
         index=True
     )
 
+    musteri_turu = Column(
+        String(30),
+        nullable=False,
+        default="Alıcı"
+    )
+
 
     yetkili = Column(
         String(100),
