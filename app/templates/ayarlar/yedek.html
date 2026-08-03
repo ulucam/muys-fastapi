@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+
+            <h2 class="fw-bold">
+                <i class="bi bi-database-fill text-primary"></i>
+                Sistem Yedeği
+            </h2>
+
+            <p class="text-muted mb-0">
+                Veritabanı yedekleme ve geri yükleme işlemleri.
+            </p>
+
+        </div>
+
+        <a href="/ayarlar" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i>
+            Geri
+        </a>
+
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Yeni Yedek -->
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm border-0 h-100">
+
+                <div class="card-body text-center">
+
+                    <i class="bi bi-cloud-arrow-down fs-1 text-primary"></i>
+
+                    <h5 class="mt-3">
+                        Yeni Yedek Oluştur
+                    </h5>
+
+                    <p class="text-muted">
+                        Sistemin tamamının yedeğini bilgisayarınıza indirebilirsiniz.
+                    </p>
+
+                    <button class="btn btn-primary">
+                        <i class="bi bi-download"></i>
+                        Yedek Oluştur
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Geri Yükle -->
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm border-0 h-100">
+
+                <div class="card-body text-center">
+
+                    <i class="bi bi-cloud-arrow-up fs-1 text-success"></i>
+
+                    <h5 class="mt-3">
+                        Yedekten Geri Yükle
+                    </h5>
+
+                    <p class="text-muted">
+                        Daha önce alınmış bir yedeği sisteme geri yükleyebilirsiniz.
+                    </p>
+
+                    <input class="form-control mb-3"
+                           type="file"
+                           accept=".zip,.bak">
+
+                    <button class="btn btn-success">
+                        <i class="bi bi-upload"></i>
+                        Geri Yükle
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Geçmiş -->
+
+        <div class="col-12">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-body">
+
+                    <h5 class="mb-3">
+                        <i class="bi bi-clock-history"></i>
+                        Yedek Geçmişi
+                    </h5>
+
+                    <table class="table table-hover align-middle">
+
+                        <thead>
+
+                        <tr>
+
+                            <th>Tarih</th>
+                            <th>Boyut</th>
+                            <th>Oluşturan</th>
+                            <th>Durum</th>
+
+                        </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                        <tr>
+
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+
+                            <td>
+
+                                <span class="badge bg-secondary">
+
+                                    Henüz Yedek Yok
+
+                                </span>
+
+                            </td>
+
+                        </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
