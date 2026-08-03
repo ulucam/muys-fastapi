@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.context import template_data
-from app.security import yetki_kontrol, get_password_hash
+from app.security import yetki_kontrol
+from app.password import sifre_olustur
 from app.roles import ADMIN
 
 router = APIRouter(
@@ -25,7 +26,7 @@ templates = Jinja2Templates(directory="app/templates")
 def liste(
     request: Request,
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(ADMIN))  # Sadece ADMIN
+    yetki=Depends(yetki_kontrol(ADMIN))
 ):
     kullanicilar = (
         db.query(User)
@@ -49,7 +50,7 @@ def liste(
 @router.get("/ekle", response_class=HTMLResponse)
 def ekle_form(
     request: Request,
-    yetki=Depends(yetki_kontrol(ADMIN))  # Sadece ADMIN
+    yetki=Depends(yetki_kontrol(ADMIN))
 ):
     return templates.TemplateResponse(
         "kullanici/ekle.html",
@@ -70,7 +71,7 @@ def ekle(
     sifre: str = Form(...),
     is_active: bool = Form(True),
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(ADMIN))  # Sadece ADMIN
+    yetki=Depends(yetki_kontrol(ADMIN))
 ):
     yeni_kullanici = User(
         username=username,
@@ -78,7 +79,7 @@ def ekle(
         email=email,
         role=role,
         is_active=is_active,
-        hashed_password=get_password_hash(sifre)
+        hashed_password=sifre_olustur(sifre)
     )
     db.add(yeni_kullanici)
     db.commit()
@@ -98,7 +99,7 @@ def duzenle_form(
     id: int,
     request: Request,
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(ADMIN))  # Sadece ADMIN
+    yetki=Depends(yetki_kontrol(ADMIN))
 ):
     kullanici = (
         db.query(User)
@@ -133,9 +134,9 @@ def duzenle(
     email: str = Form(""),
     role: str = Form(...),
     is_active: bool = Form(True),
-    sifre: str = Form(""),  # Şifre boş bırakılırsa güncellenmez
+    sifre: str = Form(""),  
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(ADMIN))  # Sadece ADMIN
+    yetki=Depends(yetki_kontrol(ADMIN))
 ):
     kullanici = (
         db.query(User)
@@ -149,16 +150,14 @@ def duzenle(
             status_code=303
         )
 
-    # Temel bilgileri güncelle
     kullanici.username = username
     kullanici.full_name = full_name
     kullanici.email = email
     kullanici.role = role
     kullanici.is_active = is_active
 
-    # Eğer formdan yeni bir şifre geldiyse hash'le ve güncelle
     if sifre and sifre.strip():
-        kullanici.hashed_password = get_password_hash(sifre)
+        kullanici.hashed_password = sifre_olustur(sifre)
 
     db.commit()
 
@@ -176,7 +175,7 @@ def duzenle(
 def sil(
     id: int,
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(ADMIN))  # Sadece ADMIN
+    yetki=Depends(yetki_kontrol(ADMIN))
 ):
     kullanici = (
         db.query(User)
