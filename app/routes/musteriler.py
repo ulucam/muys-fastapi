@@ -50,8 +50,19 @@ def liste(
         .all()
     )
 
+    siparis_ozetleri = {}
+    for musteri_id, durum in db.query(Siparis.musteri_id, Siparis.durum).all():
+        ozet = siparis_ozetleri.setdefault(
+            musteri_id, {"bekleyen": 0, "uretimde": 0}
+        )
+        if durum == "Beklemede":
+            ozet["bekleyen"] += 1
+        elif durum == "Üretimde":
+            ozet["uretimde"] += 1
+
     data = template_data(request)
     data["musteriler"] = musteriler
+    data["siparis_ozetleri"] = siparis_ozetleri
 
     return templates.TemplateResponse(
         "musteri/index.html",
@@ -154,6 +165,7 @@ def ekle_form(
 def ekle(
     firma_adi: str = Form(...),
     yetkili: str = Form(""),
+    musteri_turu: str = Form("Alıcı"),
     telefon: str = Form(""),
     email: str = Form(""),
     vergi_dairesi: str = Form(""),
@@ -182,6 +194,7 @@ def ekle(
     musteri = Musteri(
         musteri_kodu=kod,
         firma_adi=firma_adi,
+        musteri_turu=musteri_turu,
         yetkili=yetkili,
         telefon=telefon,
         email=email,
@@ -249,6 +262,7 @@ def duzenle(
 
     firma_adi: str = Form(...),
     yetkili: str = Form(""),
+    musteri_turu: str = Form("Alıcı"),
     telefon: str = Form(""),
     email: str = Form(""),
     vergi_dairesi: str = Form(""),
@@ -279,6 +293,7 @@ def duzenle(
         )
 
     musteri.firma_adi = firma_adi
+    musteri.musteri_turu = musteri_turu
     musteri.yetkili = yetkili
     musteri.telefon = telefon
     musteri.email = email
