@@ -20,7 +20,7 @@
 
                 <div class="card-body">
 
-                    <form method="post" action="/kullanicilar/sifre/{{ kullanici.id }}">
+                    <form method="POST" action="/kullanicilar/sifre/{{ kullanici.id }}">
 
                         <div class="mb-3">
 
@@ -31,7 +31,7 @@
                             <input
                                 type="text"
                                 class="form-control"
-                                value="{{ kullanici.kullanici_adi }}"
+                                value="{{ kullanici.username }}"
                                 readonly>
 
                         </div>
@@ -45,7 +45,7 @@
                             <input
                                 type="text"
                                 class="form-control"
-                                value="{{ kullanici.ad_soyad }}"
+                                value="{{ kullanici.full_name or '' }}"
                                 readonly>
 
                         </div>
@@ -82,8 +82,9 @@
 
                         <div class="d-flex justify-content-between">
 
-                            <a href="/kullanicilar"
-                               class="btn btn-secondary">
+                            <a
+                                href="/kullanicilar"
+                                class="btn btn-secondary">
 
                                 ← Geri
 
