@@ -1,35 +1,65 @@
-from flask import Blueprint, render_template
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
-ayarlar_bp = Blueprint(
-    "ayarlar",
-    __name__
+from app.context import template_data
+
+router = APIRouter()
+
+templates = Jinja2Templates(
+    directory="app/templates"
 )
 
-@ayarlar_bp.route("/ayarlar")
-def ayarlar():
-    return render_template("ayarlar/index.html")
+
+@router.get("/ayarlar", response_class=HTMLResponse)
+async def ayarlar(request: Request):
+
+    return templates.TemplateResponse(
+        "ayarlar/index.html",
+        template_data(request)
+    )
 
 
-@ayarlar_bp.route("/ayarlar/excel")
-def excel():
-    return render_template("ayarlar/excel.html")
+@router.get("/ayarlar/excel", response_class=HTMLResponse)
+async def excel(request: Request):
+
+    return templates.TemplateResponse(
+        "ayarlar/excel.html",
+        template_data(request)
+    )
 
 
-@ayarlar_bp.route("/ayarlar/yedek")
-def yedek():
-    return render_template("ayarlar/yedek.html")
+@router.get("/ayarlar/yedek", response_class=HTMLResponse)
+async def yedek(request: Request):
+
+    return templates.TemplateResponse(
+        "ayarlar/yedek.html",
+        template_data(request)
+    )
 
 
-@ayarlar_bp.route("/ayarlar/loglar")
-def loglar():
-    return render_template("ayarlar/loglar.html")
+@router.get("/ayarlar/loglar", response_class=HTMLResponse)
+async def loglar(request: Request):
+
+    return templates.TemplateResponse(
+        "ayarlar/loglar.html",
+        template_data(request)
+    )
 
 
-@ayarlar_bp.route("/ayarlar/firma")
-def firma():
-    return render_template("ayarlar/firma.html")
+@router.get("/ayarlar/firma", response_class=HTMLResponse)
+async def firma(request: Request):
+
+    return templates.TemplateResponse(
+        "ayarlar/firma.html",
+        template_data(request)
+    )
 
 
-@ayarlar_bp.route("/ayarlar/sistem")
-def sistem():
-    return render_template("ayarlar/sistem.html")
+@router.get("/ayarlar/sistem", response_class=HTMLResponse)
+async def sistem(request: Request):
+
+    return templates.TemplateResponse(
+        "ayarlar/sistem.html",
+        template_data(request)
+    )
