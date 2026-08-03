@@ -26,6 +26,7 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/", response_class=HTMLResponse)
 def liste(
     request: Request,
+    filtre: str = "",
     db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(ADMIN))
 ):
@@ -38,6 +39,16 @@ def liste(
 
     data = template_data(request)
     data["kullanicilar"] = kullanicilar
+    data["liste_basligi"] = None
+
+    if filtre == "toplam":
+        data["gosterilecek_kullanicilar"] = kullanicilar
+        data["liste_basligi"] = "Tüm Kullanıcılar"
+    elif filtre == "aktif":
+        data["gosterilecek_kullanicilar"] = [
+            kullanici for kullanici in kullanicilar if kullanici.aktif
+        ]
+        data["liste_basligi"] = "Aktif Kullanıcılar"
 
     return templates.TemplateResponse(
         "kullanici/index.html",
