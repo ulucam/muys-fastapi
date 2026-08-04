@@ -47,7 +47,7 @@
 
                     <p class="text-muted">
 
-                        Sisteme uygun örnek Excel dosyasını indirebilirsiniz.
+                        Firma ve sistem bilgileri, müşteriler ve stok ürünleriyle birlikte Excel şablonunu indirebilirsiniz.
 
                     </p>
 
@@ -85,7 +85,7 @@
 
                     <p class="text-muted">
 
-                        Hazırladığınız Excel dosyasını seçin.
+                        Şablondaki <strong>Müşteriler</strong> ve <strong>Stok Ürünleri</strong> sayfalarını düzenleyip yükleyin.
 
                     </p>
 
@@ -148,23 +148,25 @@
 
                         <tbody>
 
+                            {% if son_aktarim %}
                             <tr>
-
-                                <td>-</td>
-
-                                <td>-</td>
-
+                                <td>{{ son_aktarim.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
+                                <td>{{ son_aktarim.detay or '-' }}</td>
                                 <td>
-
-                                    <span class="badge bg-secondary">
-
-                                        Henüz Aktarım Yok
-
-                                    </span>
-
+                                    {% if 'başarısız' in son_aktarim.islem|lower or 'geçersiz' in son_aktarim.islem|lower %}
+                                    <span class="badge bg-danger">{{ son_aktarim.islem }}</span>
+                                    {% else %}
+                                    <span class="badge bg-success">{{ son_aktarim.islem }}</span>
+                                    {% endif %}
                                 </td>
-
                             </tr>
+                            {% else %}
+                            <tr>
+                                <td>-</td>
+                                <td>-</td>
+                                <td><span class="badge bg-secondary">Henüz Aktarım Yok</span></td>
+                            </tr>
+                            {% endif %}
 
                         </tbody>
 
@@ -192,6 +194,7 @@
             <ul>
                 <li><strong>{{ eklenecek|length }}</strong> yeni müşteri eklenecek.</li>
                 <li><strong>{{ guncellenecek|length }}</strong> mevcut müşteri güncellenecek.</li>
+                <li><strong>{{ gecerli_urun }}</strong> stok ürünü eklenecek veya güncellenecek.</li>
             </ul>
             {% if guncellenecek %}<p class="text-muted small">Güncellenecekler: {{ guncellenecek|join(', ') }}</p>{% endif %}
             <form action="/ayarlar/excel/onayla" method="post">
