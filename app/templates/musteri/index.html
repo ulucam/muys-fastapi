@@ -44,7 +44,7 @@
                     {% for musteri in musteriler %}
                     {% set bolge = il_bolgeleri.get(musteri.il, 'Diğer') %}
                     <tr class="musteri-satiri" data-firma="{{ musteri.firma_adi|lower }}" data-il="{{ (musteri.il or '')|lower }}" data-tur="{{ musteri.musteri_turu or 'Alıcı' }}" data-bolge="{{ bolge|lower }}">
-                        <td><a class="text-decoration-none fw-semibold" href="/musteriler/detay/{{ musteri.id }}">{{ musteri.firma_adi }}</a></td>
+                        <td><a class="text-decoration-none fw-semibold" href="/siparisler?musteri_id={{ musteri.id }}">{{ musteri.firma_adi }}</a></td>
                         <td>{{ musteri.il or '-' }}</td>
                         <td><span class="badge bg-info-subtle text-info-emphasis">{{ musteri.musteri_turu or 'Alıcı' }}</span></td>
                         <td>{{ bolge }}</td>
@@ -81,7 +81,7 @@
                     {% for musteri in pasif_musteriler %}
                     {% set bolge = il_bolgeleri.get(musteri.il, 'Diğer') %}
                     <tr class="musteri-satiri" data-firma="{{ musteri.firma_adi|lower }}" data-il="{{ (musteri.il or '')|lower }}" data-tur="{{ musteri.musteri_turu or 'Alıcı' }}" data-bolge="{{ bolge|lower }}">
-                        <td><a class="text-decoration-none fw-semibold" href="/musteriler/detay/{{ musteri.id }}">{{ musteri.firma_adi }}</a></td>
+                        <td><a class="text-decoration-none fw-semibold" href="/siparisler?musteri_id={{ musteri.id }}">{{ musteri.firma_adi }}</a></td>
                         <td>{{ musteri.il or '-' }}</td>
                         <td><span class="badge bg-secondary">{{ musteri.musteri_turu or 'Alıcı' }}</span></td>
                         <td>{{ bolge }}</td>
