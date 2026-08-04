@@ -3,12 +3,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const menuToggle = document.getElementById("menuToggle");
     const pageMenuToggle = document.getElementById("pageMenuToggle");
 
-    const menuAc = () => sidebar?.classList.add("show");
+    const sidebarDegistir = () => {
+        if (window.innerWidth <= 991) {
+            sidebar?.classList.toggle("show");
+        } else {
+            document.body.classList.toggle("sidebar-collapsed");
+        }
+    };
     menuToggle?.addEventListener("click", (event) => {
         event.stopPropagation();
         sidebar?.classList.toggle("show");
     });
-    pageMenuToggle?.addEventListener("click", menuAc);
+    pageMenuToggle?.addEventListener("click", sidebarDegistir);
 
     document.addEventListener("click", (event) => {
         if (window.innerWidth <= 991 && sidebar?.classList.contains("show")
