@@ -16,6 +16,9 @@ from app.context import template_data
 from app.database import get_db
 from app.models.musteri import Musteri
 from app.models.urun import Urun
+from app.models.personel import Personel
+from app.models.istasyon import Istasyon
+from app.models.makine import Makine
 from app.models.firma_ayarlari import FirmaAyarlari
 from app.models.islem_logu import IslemLogu
 from app.models.excel_aktarim_taslagi import ExcelAktarimTaslagi
@@ -186,15 +189,18 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
     firma = db.query(FirmaAyarlari).first()
     mevcut_musteriler = db.query(Musteri).order_by(Musteri.id).all()
     mevcut_urunler = db.query(Urun).order_by(Urun.kodu).all()
+    mevcut_personeller = db.query(Personel).order_by(Personel.kodu).all()
+    mevcut_istasyonlar = db.query(Istasyon).order_by(Istasyon.kodu).all()
+    mevcut_makineler = db.query(Makine).order_by(Makine.kodu).all()
     kitap = openpyxl.Workbook()
     sistem = kitap.active
     sistem.title = "Sistem Bilgileri"
     sistem.append(["MÜYS Excel Aktarım ve Dışa Aktarma"])
-    sistem.append(["Açıklama", "Firma ve sistem bilgileri ilk sayfadadır. Müşteriler ve stok ürünleri ayrı sayfalarda yer alır."])
+    sistem.append(["Açıklama", "Firma, müşteri, stok ve üretim ana verileri ayrı sayfalarda yer alır."])
     sistem.append(["Kurallar", "Zorunlu alanları doldurun; müşteri ve ürün türlerini açılır listelerden seçin."])
     sistem.append(["Dışa Aktarım Tarihi", datetime.now().strftime("%d.%m.%Y %H:%M")])
     sistem.append(["Sistem", "MÜYS v0.1.1 / FastAPI / SQLite"])
-    sistem.append(["Kayıt Özeti", f"{len(mevcut_musteriler)} müşteri, {len(mevcut_urunler)} stok ürünü"])
+    sistem.append(["Kayıt Özeti", f"{len(mevcut_musteriler)} müşteri, {len(mevcut_urunler)} stok ürünü, {len(mevcut_personeller)} personel, {len(mevcut_istasyonlar)} istasyon, {len(mevcut_makineler)} makine"])
     sistem.append([])
     sistem.append(["Firma Bilgileri"])
     for etiket, alan in [("Firma Adı", "firma_adi"), ("Vergi No", "vergi_no"), ("Vergi Dairesi", "vergi_dairesi"), ("Telefon", "telefon"), ("E-Posta", "email"), ("Web Sitesi", "web_sitesi"), ("Adres", "adres")]:
@@ -240,6 +246,24 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
     for sutun, genislik in zip("ABCDEFGHIJK", [18, 32, 18, 14, 16, 16, 16, 14, 16, 36, 12]):
         stok.column_dimensions[sutun].width = genislik
 
+    istasyon_kodlari = {istasyon.id: istasyon.kodu for istasyon in mevcut_istasyonlar}
+    for sayfa_adi, basliklar, satirlar, genislikler in [
+        ("Personel Listesi", ["Personel Kodu", "Ad Soyad", "Departman", "Görev", "Durum"], [[p.kodu, p.ad_soyad, p.departman, p.gorev, "Aktif" if p.aktif else "Pasif"] for p in mevcut_personeller], [18, 30, 22, 22, 14]),
+        ("İstasyon Listesi", ["İstasyon Kodu", "İstasyon Adı", "Bölüm", "Açıklama", "Durum"], [[i.kodu, i.adi, i.bolum, i.aciklama, "Aktif" if i.aktif else "Pasif"] for i in mevcut_istasyonlar], [18, 30, 22, 36, 14]),
+        ("Makine Listesi", ["Makine Kodu", "Makine Adı", "İstasyon Kodu", "Model", "Kapasite", "Durum"], [[m.kodu, m.adi, istasyon_kodlari.get(m.istasyon_id, ""), m.model, m.kapasite, "Aktif" if m.aktif else "Pasif"] for m in mevcut_makineler], [18, 30, 18, 22, 18, 14]),
+    ]:
+        sayfa = kitap.create_sheet(sayfa_adi)
+        sayfa.append(basliklar)
+        for satir in satirlar:
+            sayfa.append(satir)
+        sayfa.freeze_panes = "A2"
+        sayfa.auto_filter.ref = f"A1:{openpyxl.utils.get_column_letter(len(basliklar))}{max(2, len(satirlar) + 1)}"
+        for hucre in sayfa[1]:
+            hucre.font = openpyxl.styles.Font(bold=True, color="FFFFFF")
+            hucre.fill = openpyxl.styles.PatternFill("solid", fgColor="1F4E78")
+        for index, genislik in enumerate(genislikler, start=1):
+            sayfa.column_dimensions[openpyxl.utils.get_column_letter(index)].width = genislik
+
     listeler = kitap.create_sheet("Listeler")
     listeler.append(["İller", "İlçeler", "Müşteri Türleri", "Ürün Türleri", "Durumlar"])
     tum_ilceler = sorted({ilce for ilceler in iller.values() for ilce in ilceler})
@@ -268,7 +292,7 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
 
     akis = io.BytesIO()
     kitap.save(akis)
-    islem_logla(db, request, "Excel", "Excel şablonu indirildi", f"{len(mevcut_musteriler)} müşteri ve {len(mevcut_urunler)} stok ürünü dışa aktarıldı")
+    islem_logla(db, request, "Excel", "Excel şablonu indirildi", f"{len(mevcut_musteriler)} müşteri, {len(mevcut_urunler)} stok ürünü, {len(mevcut_personeller)} personel, {len(mevcut_istasyonlar)} istasyon ve {len(mevcut_makineler)} makine dışa aktarıldı")
     db.commit()
     return Response(
         akis.getvalue(),
