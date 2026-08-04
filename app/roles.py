@@ -19,7 +19,8 @@ MUSTERI = [
 MUSTERI_YONET = [
     "Admin",
     "Yönetici",
-    "Satış"
+    "Satış",
+    "Üretim"
 ]
 
 SIPARIS = [
