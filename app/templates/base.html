@@ -83,6 +83,14 @@
 
         <main class="content">
 
+            {% if request.url.path not in ["/", "/login"] %}
+            <div class="d-flex justify-content-end mb-3">
+                <a href="/" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Dashboard'a Dön
+                </a>
+            </div>
+            {% endif %}
+
 
             {% block content %}
 
