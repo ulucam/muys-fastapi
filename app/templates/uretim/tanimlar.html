@@ -22,6 +22,88 @@
         <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ürün Sınıfı</small><div class="fs-3 fw-bold">{{ urun_sinifi_sayisi }}</div></div></div></div>
     </div>
 
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white"><strong>Programdan Tanım Ekle / Güncelle</strong><small class="d-block text-muted">Aynı kod ile tekrar kaydedilen tanımlar güncellenir.</small></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <details class="border rounded p-3 h-100"><summary class="fw-semibold">Personel</summary>
+                        <form class="row g-2 mt-2" method="post" action="/uretim-tanimlari/kaydet/personel">
+                            <div class="col-md-4"><input class="form-control" name="kodu" placeholder="Personel kodu" required></div><div class="col-md-8"><input class="form-control" name="ad_soyad" placeholder="Ad soyad" required></div>
+                            <div class="col-md-6"><input class="form-control" name="departman" placeholder="Departman"></div><div class="col-md-6"><input class="form-control" name="gorev" placeholder="Görev"></div>
+                            <div class="col-6"><select class="form-select" name="aktif"><option value="true">Aktif</option><option value="false">Pasif</option></select></div><div class="col-6"><button class="btn btn-primary w-100">Kaydet</button></div>
+                        </form>
+                    </details>
+                </div>
+                <div class="col-lg-6">
+                    <details class="border rounded p-3 h-100"><summary class="fw-semibold">İstasyon</summary>
+                        <form class="row g-2 mt-2" method="post" action="/uretim-tanimlari/kaydet/istasyon">
+                            <div class="col-md-4"><input class="form-control" name="kodu" placeholder="İstasyon kodu" required></div><div class="col-md-8"><input class="form-control" name="adi" placeholder="İstasyon adı" required></div>
+                            <div class="col-md-6"><input class="form-control" name="bolum" placeholder="Bölüm"></div><div class="col-md-6"><input class="form-control" name="aciklama" placeholder="Açıklama"></div>
+                            <div class="col-6"><select class="form-select" name="aktif"><option value="true">Aktif</option><option value="false">Pasif</option></select></div><div class="col-6"><button class="btn btn-primary w-100">Kaydet</button></div>
+                        </form>
+                    </details>
+                </div>
+                <div class="col-lg-6">
+                    <details class="border rounded p-3 h-100"><summary class="fw-semibold">Makine</summary>
+                        <form class="row g-2 mt-2" method="post" action="/uretim-tanimlari/kaydet/makine">
+                            <div class="col-md-4"><input class="form-control" name="kodu" placeholder="Makine kodu" required></div><div class="col-md-8"><input class="form-control" name="adi" placeholder="Makine adı" required></div>
+                            <div class="col-md-4"><select class="form-select" name="istasyon_kodu" required><option value="">İstasyon seçin</option>{% for i in istasyonlar %}<option value="{{ i.kodu }}">{{ i.kodu }} · {{ i.adi }}</option>{% endfor %}</select></div><div class="col-md-4"><input class="form-control" name="model" placeholder="Model"></div><div class="col-md-4"><input class="form-control" name="kapasite" placeholder="Kapasite"></div>
+                            <div class="col-6"><select class="form-select" name="aktif"><option value="true">Aktif</option><option value="false">Pasif</option></select></div><div class="col-6"><button class="btn btn-primary w-100">Kaydet</button></div>
+                        </form>
+                    </details>
+                </div>
+                <div class="col-lg-6">
+                    <details class="border rounded p-3 h-100"><summary class="fw-semibold">Personel–Makine Ataması</summary>
+                        <form class="row g-2 mt-2" method="post" action="/uretim-tanimlari/kaydet/atama">
+                            <div class="col-md-6"><select class="form-select" name="personel_kodu" required><option value="">Personel seçin</option>{% for p in personeller %}<option value="{{ p.kodu }}">{{ p.kodu }} · {{ p.ad_soyad }}</option>{% endfor %}</select></div><div class="col-md-6"><select class="form-select" name="makine_kodu" required><option value="">Makine seçin</option>{% for m in makineler %}<option value="{{ m.kodu }}">{{ m.kodu }} · {{ m.adi }}</option>{% endfor %}</select></div>
+                            <div class="col-md-4"><input class="form-control" name="rol" value="Operatör" placeholder="Rol"></div><div class="col-md-4"><input class="form-control" name="hedef_performans" value="100" type="number" step="0.01" placeholder="Hedef %"></div><div class="col-md-4"><select class="form-select" name="aktif"><option value="true">Aktif</option><option value="false">Pasif</option></select></div>
+                            <div class="col-12"><button class="btn btn-primary w-100">Atamayı Kaydet</button></div>
+                        </form>
+                    </details>
+                </div>
+                <div class="col-lg-6">
+                    <details class="border rounded p-3 h-100"><summary class="fw-semibold">Ürün Sınıfı</summary>
+                        <form class="row g-2 mt-2" method="post" action="/uretim-tanimlari/kaydet/sinif">
+                            <div class="col-md-4"><input class="form-control" name="kodu" placeholder="Sınıf kodu" required></div><div class="col-md-8"><input class="form-control" name="adi" placeholder="Sınıf adı" required></div>
+                            <div class="col-md-8"><input class="form-control" name="aciklama" placeholder="Açıklama"></div><div class="col-md-4"><select class="form-select" name="aktif"><option value="true">Aktif</option><option value="false">Pasif</option></select></div>
+                            <div class="col-12"><button class="btn btn-primary w-100">Kaydet</button></div>
+                        </form>
+                    </details>
+                </div>
+                <div class="col-lg-6">
+                    <details class="border rounded p-3 h-100"><summary class="fw-semibold">Sınıf Reçetesi Operasyonu</summary>
+                        <form class="row g-2 mt-2" method="post" action="/uretim-tanimlari/kaydet/operasyon">
+                            <div class="col-md-4"><select class="form-select" name="sinif_kodu" required><option value="">Ürün sınıfı</option>{% for s in urun_siniflari %}<option value="{{ s.kodu }}">{{ s.kodu }} · {{ s.adi }}</option>{% endfor %}</select></div><div class="col-md-2"><input class="form-control" name="sira" type="number" min="1" placeholder="Sıra" required></div><div class="col-md-6"><input class="form-control" name="operasyon_adi" placeholder="Operasyon adı" required></div>
+                            <div class="col-md-6"><select class="form-select" name="istasyon_kodu" required><option value="">İstasyon</option>{% for i in istasyonlar %}<option value="{{ i.kodu }}">{{ i.kodu }} · {{ i.adi }}</option>{% endfor %}</select></div><div class="col-md-6"><select class="form-select" name="makine_kodu"><option value="">Makine seçilmedi</option>{% for m in makineler %}<option value="{{ m.kodu }}">{{ m.kodu }} · {{ m.adi }}</option>{% endfor %}</select></div>
+                            <div class="col-md-4"><input class="form-control" name="hedef_cevrim" type="number" step="0.01" placeholder="Çevrim süresi (dk)"></div><div class="col-md-5"><input class="form-control" name="kontrol_noktasi" placeholder="Kontrol noktası"></div><div class="col-md-3"><select class="form-select" name="aktif"><option value="true">Aktif</option><option value="false">Pasif</option></select></div>
+                            <div class="col-12"><button class="btn btn-primary w-100">Operasyonu Kaydet</button></div>
+                        </form>
+                    </details>
+                </div>
+                <div class="col-lg-6">
+                    <details class="border rounded p-3 h-100"><summary class="fw-semibold">Ürün Kartı</summary>
+                        <form class="row g-2 mt-2" method="post" action="/uretim-tanimlari/kaydet/urun">
+                            <div class="col-md-4"><input class="form-control" name="kodu" placeholder="Ürün kodu" required></div><div class="col-md-8"><input class="form-control" name="adi" placeholder="Ürün adı" required></div>
+                            <div class="col-md-4"><select class="form-select" name="urun_tipi" required><option value="">Ürün türü</option><option value="Hammadde">Hammadde</option><option value="YariMamul">Yarı Mamul</option><option value="Mamul">Mamul</option><option value="TicariMamul">Ticari Mamul</option></select></div><div class="col-md-4"><select class="form-select" name="sinif_kodu"><option value="">Ürün sınıfı yok</option>{% for s in urun_siniflari %}<option value="{{ s.kodu }}">{{ s.kodu }} · {{ s.adi }}</option>{% endfor %}</select></div><div class="col-md-4"><input class="form-control" name="birim" value="Adet" placeholder="Birim"></div>
+                            <div class="col-md-4"><input class="form-control" name="mevcut_stok" type="number" step="0.01" value="0" placeholder="Mevcut stok"></div><div class="col-md-4"><input class="form-control" name="min_stok" type="number" step="0.01" value="0" placeholder="Min. stok"></div><div class="col-md-4"><select class="form-select" name="aktif"><option value="true">Aktif</option><option value="false">Pasif</option></select></div>
+                            <div class="col-12"><button class="btn btn-primary w-100">Ürün Kartını Kaydet</button></div>
+                        </form>
+                    </details>
+                </div>
+                <div class="col-lg-6">
+                    <details class="border rounded p-3 h-100"><summary class="fw-semibold">Ürün Reçetesi Bileşeni</summary>
+                        <form class="row g-2 mt-2" method="post" action="/uretim-tanimlari/kaydet/recete">
+                            <div class="col-md-6"><select class="form-select" name="ust_urun_kodu" required><option value="">Üst ürün</option>{% for u in urunler %}<option value="{{ u.kodu }}">{{ u.kodu }} · {{ u.adi }}</option>{% endfor %}</select></div><div class="col-md-6"><select class="form-select" name="bilesen_urun_kodu" required><option value="">Bileşen ürün</option>{% for u in urunler %}<option value="{{ u.kodu }}">{{ u.kodu }} · {{ u.adi }}</option>{% endfor %}</select></div>
+                            <div class="col-md-3"><input class="form-control" name="miktar" type="number" step="0.01" placeholder="Miktar" required></div><div class="col-md-3"><input class="form-control" name="birim" placeholder="Birim"></div><div class="col-md-3"><input class="form-control" name="fire_orani" type="number" step="0.01" value="0" placeholder="Fire %"></div><div class="col-md-3"><input class="form-control" name="sira" type="number" min="1" value="1" placeholder="Sıra"></div>
+                            <div class="col-6"><select class="form-select" name="aktif"><option value="true">Aktif</option><option value="false">Pasif</option></select></div><div class="col-6"><button class="btn btn-primary w-100">Bileşeni Kaydet</button></div>
+                        </form>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-4">
         <div class="col-lg-6">
             <div class="card shadow-sm border-0 h-100">
