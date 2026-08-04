@@ -85,9 +85,9 @@
 
             {% if request.url.path not in ["/", "/login"] %}
             <div class="d-flex justify-content-end mb-3">
-                <a href="/" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Dashboard'a Dön
-                </a>
+                <button id="pageMenuToggle" class="btn btn-sm btn-outline-secondary" type="button">
+                    <i class="bi bi-list"></i> Menü
+                </button>
             </div>
             {% endif %}
 
@@ -123,6 +123,8 @@
 
 
     <!-- MÜYS JS -->
+
+    <script src="/static/js/sidebar.js"></script>
 
     <script src="/static/js/main.js"></script>
 
