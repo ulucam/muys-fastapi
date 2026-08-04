@@ -76,7 +76,11 @@ document.addEventListener("DOMContentLoaded", function () {
             e.stopPropagation();
 
 
-            sidebar.classList.toggle("show");
+            if (window.innerWidth <= 991) {
+                sidebar.classList.toggle("show");
+            } else {
+                document.body.classList.toggle("sidebar-collapsed");
+            }
 
 
         });
