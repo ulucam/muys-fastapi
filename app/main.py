@@ -25,6 +25,7 @@ from app.routes import ayarlar
 from app.routes import profil
 from app.routes import siparis_sayfasi
 from app.routes import uretim_tanimlari
+from app.routes import stok_sayfalari
 
 
 # Veritabanı tablolarını oluştur
@@ -75,3 +76,4 @@ app.include_router(ayarlar.router)
 app.include_router(profil.router)
 app.include_router(siparis_sayfasi.router)
 app.include_router(uretim_tanimlari.router)
+app.include_router(stok_sayfalari.router)
