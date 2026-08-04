@@ -5,6 +5,10 @@ from sqlalchemy import inspect, text
 
 from app.database import Base, engine, SessionLocal
 from app.setup import setup_database
+# Bu modeller doğrudan içe aktarılır; eski veritabanlarında tabloların da
+# uygulama başlarken oluşturulmasını garanti eder.
+from app.models.firma_ayarlari import FirmaAyarlari
+from app.models.islem_logu import IslemLogu
 
 from app.routes import auth
 from app.routes import dashboard
