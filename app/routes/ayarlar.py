@@ -1,6 +1,7 @@
 import io
 import json
 from pathlib import Path
+from datetime import datetime
 
 import openpyxl
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.context import template_data
 from app.database import get_db
 from app.models.musteri import Musteri
+from app.models.urun import Urun
 from app.models.firma_ayarlari import FirmaAyarlari
 from app.models.islem_logu import IslemLogu
 from app.roles import ADMIN
@@ -27,6 +29,8 @@ templates = Jinja2Templates(
 ILLER_DOSYASI = Path(__file__).resolve().parent.parent / "data" / "iller.js"
 MUSTERI_SUTUNLARI = ["Firma Adı", "Yetkili", "Telefon", "E-Posta", "Vergi Dairesi", "Vergi No", "İl", "İlçe", "Müşteri Türü", "Adres", "Açıklama"]
 TURLER = ["Alıcı", "Tedarikçi", "Satıcı"]
+URUN_SUTUNLARI = ["Ürün Kodu", "Ürün Adı", "Ürün Türü", "Birim", "Mevcut Stok", "Min. Stok", "Max. Stok", "Maliyet", "Satış Fiyatı", "Açıklama", "Durum"]
+URUN_TURLERI = ["Hammadde", "YariMamul", "Mamul", "TicariMamul"]
 
 
 def il_ilce_verisi():
@@ -38,14 +42,23 @@ def metin(deger):
     return str(deger or "").strip()
 
 
+def sayi(deger, alan):
+    if deger in (None, ""):
+        return 0.0
+    try:
+        return float(deger)
+    except (TypeError, ValueError):
+        raise ValueError(f"{alan} sayısal olmalı")
+
+
 def excel_satirlarini_oku(dosya_icerigi):
     kitap = openpyxl.load_workbook(io.BytesIO(dosya_icerigi), data_only=True)
     if "Müşteriler" not in kitap.sheetnames:
-        return [], ["'Müşteriler' sayfası bulunamadı."]
+        return [], [], ["'Müşteriler' sayfası bulunamadı."]
     sayfa = kitap["Müşteriler"]
     basliklar = [metin(hucre.value) for hucre in sayfa[1]]
     if basliklar[:len(MUSTERI_SUTUNLARI)] != MUSTERI_SUTUNLARI:
-        return [], ["Müşteriler sayfasındaki sütun başlıkları taslakla uyuşmuyor."]
+        return [], [], ["Müşteriler sayfasındaki sütun başlıkları taslakla uyuşmuyor."]
 
     iller = il_ilce_verisi()
     satirlar, hatalar = [], []
@@ -66,7 +79,47 @@ def excel_satirlarini_oku(dosya_icerigi):
             hatalar.append(f"Satır {sira}: {', '.join(satir_hatalari)}")
         else:
             satirlar.append(veri)
-    return satirlar, hatalar
+    urunler = []
+    if "Stok Ürünleri" in kitap.sheetnames:
+        stok_sayfasi = kitap["Stok Ürünleri"]
+        stok_basliklari = [metin(hucre.value) for hucre in stok_sayfasi[1]]
+        if stok_basliklari[:len(URUN_SUTUNLARI)] != URUN_SUTUNLARI:
+            hatalar.append("Stok Ürünleri sayfasındaki sütun başlıkları taslakla uyuşmuyor.")
+        else:
+            for sira, satir in enumerate(stok_sayfasi.iter_rows(min_row=2, values_only=True), start=2):
+                if not any(satir):
+                    continue
+                veri = dict(zip(URUN_SUTUNLARI, satir))
+                satir_hatalari = []
+                kod, ad = metin(veri["Ürün Kodu"]), metin(veri["Ürün Adı"])
+                urun_turu, birim = metin(veri["Ürün Türü"]), metin(veri["Birim"])
+                if not kod:
+                    satir_hatalari.append("Ürün kodu zorunlu")
+                if not ad:
+                    satir_hatalari.append("Ürün adı zorunlu")
+                if urun_turu not in URUN_TURLERI:
+                    satir_hatalari.append("Ürün türü Hammadde, Yarı Mamul, Mamul veya Ticari Mamul olmalı")
+                if metin(veri["Durum"]) not in ("Aktif", "Pasif"):
+                    satir_hatalari.append("Durum Aktif veya Pasif olmalı")
+                try:
+                    urun = {
+                        "kodu": kod, "adi": ad, "urun_tipi": urun_turu, "birim": birim or "Adet",
+                        "mevcut_stok": sayi(veri["Mevcut Stok"], "Mevcut stok"),
+                        "min_stok": sayi(veri["Min. Stok"], "Min. stok"),
+                        "max_stok": sayi(veri["Max. Stok"], "Max. stok"),
+                        "maliyet": sayi(veri["Maliyet"], "Maliyet"),
+                        "satis_fiyati": sayi(veri["Satış Fiyatı"], "Satış fiyatı"),
+                        "aciklama": metin(veri["Açıklama"]),
+                        "aktif": metin(veri["Durum"]) == "Aktif",
+                    }
+                except ValueError as hata:
+                    satir_hatalari.append(str(hata))
+                    urun = None
+                if satir_hatalari:
+                    hatalar.append(f"Stok Ürünleri satır {sira}: {', '.join(satir_hatalari)}")
+                elif urun:
+                    urunler.append(urun)
+    return satirlar, urunler, hatalar
 
 
 @router.get("/ayarlar", response_class=HTMLResponse)
@@ -79,25 +132,35 @@ async def ayarlar(request: Request):
 
 
 @router.get("/ayarlar/excel", response_class=HTMLResponse)
-async def excel(request: Request):
-
+async def excel(request: Request, db: Session = Depends(get_db)):
+    data = template_data(request)
+    data["son_aktarim"] = (
+        db.query(IslemLogu)
+        .filter(IslemLogu.modul == "Excel")
+        .order_by(IslemLogu.created_at.desc())
+        .first()
+    )
     return templates.TemplateResponse(
         "ayarlar/excel.html",
-        template_data(request)
+        data
     )
 
 
 @router.get("/ayarlar/excel/sablon")
-def excel_sablon(db: Session = Depends(get_db)):
+def excel_sablon(request: Request, db: Session = Depends(get_db)):
     iller = il_ilce_verisi()
     firma = db.query(FirmaAyarlari).first()
     mevcut_musteriler = db.query(Musteri).order_by(Musteri.id).all()
+    mevcut_urunler = db.query(Urun).order_by(Urun.kodu).all()
     kitap = openpyxl.Workbook()
     sistem = kitap.active
     sistem.title = "Sistem Bilgileri"
-    sistem.append(["MÜYS Müşteri Aktarım ve Dışa Aktarma"])
-    sistem.append(["Açıklama", "Firma bilgileri ve mevcut müşteri kayıtları dışa aktarıldı; müşteri kayıtları ikinci sayfada yer alır."])
-    sistem.append(["Kurallar", "Firma adı zorunludur. İl, ilçe ve müşteri türü açılır listelerden seçilmelidir."])
+    sistem.append(["MÜYS Excel Aktarım ve Dışa Aktarma"])
+    sistem.append(["Açıklama", "Firma ve sistem bilgileri ilk sayfadadır. Müşteriler ve stok ürünleri ayrı sayfalarda yer alır."])
+    sistem.append(["Kurallar", "Zorunlu alanları doldurun; müşteri ve ürün türlerini açılır listelerden seçin."])
+    sistem.append(["Dışa Aktarım Tarihi", datetime.now().strftime("%d.%m.%Y %H:%M")])
+    sistem.append(["Sistem", "MÜYS v0.1.1 / FastAPI / SQLite"])
+    sistem.append(["Kayıt Özeti", f"{len(mevcut_musteriler)} müşteri, {len(mevcut_urunler)} stok ürünü"])
     sistem.append([])
     sistem.append(["Firma Bilgileri"])
     for etiket, alan in [("Firma Adı", "firma_adi"), ("Vergi No", "vergi_no"), ("Vergi Dairesi", "vergi_dairesi"), ("Telefon", "telefon"), ("E-Posta", "email"), ("Web Sitesi", "web_sitesi"), ("Adres", "adres")]:
@@ -125,14 +188,35 @@ def excel_sablon(db: Session = Depends(get_db)):
     for sutun, genislik in zip("ABCDEFGHIJK", [28, 22, 18, 28, 20, 16, 18, 20, 18, 45, 35]):
         musteriler.column_dimensions[sutun].width = genislik
 
+    stok = kitap.create_sheet("Stok Ürünleri")
+    stok.append(URUN_SUTUNLARI)
+    for urun in mevcut_urunler:
+        stok.append([
+            urun.kodu, urun.adi, urun.urun_tipi or "Mamul", urun.birim or "Adet",
+            urun.mevcut_stok or 0, urun.min_stok or 0, urun.max_stok or 0,
+            urun.maliyet or 0, urun.satis_fiyati or 0, urun.aciklama or "",
+            "Aktif" if urun.aktif else "Pasif",
+        ])
+    stok.freeze_panes = "A2"
+    stok_son_satir = max(501, len(mevcut_urunler) + 1)
+    stok.auto_filter.ref = f"A1:K{stok_son_satir}"
+    for hucre in stok[1]:
+        hucre.font = openpyxl.styles.Font(bold=True, color="FFFFFF")
+        hucre.fill = openpyxl.styles.PatternFill("solid", fgColor="1F4E78")
+    for sutun, genislik in zip("ABCDEFGHIJK", [18, 32, 18, 14, 16, 16, 16, 14, 16, 36, 12]):
+        stok.column_dimensions[sutun].width = genislik
+
     listeler = kitap.create_sheet("Listeler")
-    listeler.append(["İller", "İlçeler", "Müşteri Türleri"])
+    listeler.append(["İller", "İlçeler", "Müşteri Türleri", "Ürün Türleri", "Durumlar"])
     tum_ilceler = sorted({ilce for ilceler in iller.values() for ilce in ilceler})
-    for sira in range(max(len(iller), len(tum_ilceler), len(TURLER))):
+    durumlar = ["Aktif", "Pasif"]
+    for sira in range(max(len(iller), len(tum_ilceler), len(TURLER), len(URUN_TURLERI), len(durumlar))):
         listeler.append([
             sorted(iller)[sira] if sira < len(iller) else None,
             tum_ilceler[sira] if sira < len(tum_ilceler) else None,
             TURLER[sira] if sira < len(TURLER) else None,
+            URUN_TURLERI[sira] if sira < len(URUN_TURLERI) else None,
+            durumlar[sira] if sira < len(durumlar) else None,
         ])
     listeler.sheet_state = "hidden"
     for formül, alan in [("'Listeler'!$A$2:$A$82", f"G2:G{son_satir}"), (f"'Listeler'!$B$2:$B${len(tum_ilceler) + 1}", f"H2:H{son_satir}"), ("'Listeler'!$C$2:$C$4", f"I2:I{son_satir}")]:
@@ -140,8 +224,18 @@ def excel_sablon(db: Session = Depends(get_db)):
         musteriler.add_data_validation(dogrulama)
         dogrulama.add(alan)
 
+    for formül, alan in [
+        ("'Listeler'!$D$2:$D$5", f"C2:C{stok_son_satir}"),
+        ("'Listeler'!$E$2:$E$3", f"K2:K{stok_son_satir}"),
+    ]:
+        dogrulama = DataValidation(type="list", formula1=formül, allow_blank=False)
+        stok.add_data_validation(dogrulama)
+        dogrulama.add(alan)
+
     akis = io.BytesIO()
     kitap.save(akis)
+    islem_logla(db, request, "Excel", "Excel şablonu indirildi", f"{len(mevcut_musteriler)} müşteri ve {len(mevcut_urunler)} stok ürünü dışa aktarıldı")
+    db.commit()
     return Response(
         akis.getvalue(),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
