@@ -9,12 +9,34 @@
     <div class="kart-title">📋 Sipariş Listesi</div>
     {% if musteri_id %}
     <div class="text-muted text-center mt-3">
-        Müşteri #{{ musteri_id }}{% if durum %} · {{ durum }} siparişleri{% endif %}
+        <strong>{{ musteri.firma_adi if musteri else 'Müşteri bulunamadı' }}</strong>{% if durum %} · {{ durum }} siparişleri{% endif %}
     </div>
     {% endif %}
-    <div style="color:#999; text-align:center; padding:30px;">
-        <i class="fas fa-inbox" style="font-size:40px; display:block; margin-bottom:10px;"></i>
-        Sipariş özelliği geliştirme aşamasında
+    <div class="row g-3 mt-2">
+        {% for durum_adi in durumlar %}
+        <div class="col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <strong>{{ durum_adi }}</strong>
+                    <span class="badge text-bg-secondary">{{ siparisler_duruma_gore[durum_adi]|length }}</span>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for siparis in siparisler_duruma_gore[durum_adi] %}
+                    <div class="list-group-item">
+                        <div class="fw-semibold">{{ siparis.siparis_no }}</div>
+                        <small class="text-muted">
+                            Sipariş: {{ siparis.siparis_tarihi.strftime('%d.%m.%Y') if siparis.siparis_tarihi else '-' }}
+                            · Teslim: {{ siparis.teslim_tarihi.strftime('%d.%m.%Y') if siparis.teslim_tarihi else '-' }}
+                        </small>
+                        {% if siparis.aciklama %}<small class="d-block text-muted mt-1">{{ siparis.aciklama }}</small>{% endif %}
+                    </div>
+                    {% else %}
+                    <div class="list-group-item text-muted text-center py-4">Kayıt yok</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 </div>
 
