@@ -1,5 +1,7 @@
 from fastapi import Request
 
+from app.version import guncel_surumu_al
+
 
 def template_data(request: Request):
 
@@ -15,6 +17,9 @@ def template_data(request: Request):
         "kullanici_rol": request.session.get(
             "rol",
             ""
-        )
+        ),
+
+        "firma_adi": getattr(request.state, "firma_adi", "MÜYS"),
+        "uygulama_surumu": guncel_surumu_al(),
 
     }
