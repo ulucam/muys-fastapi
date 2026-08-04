@@ -67,6 +67,17 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def firma_bilgisi_ekle(request, call_next):
+    db = SessionLocal()
+    try:
+        firma = db.query(FirmaAyarlari).first()
+        request.state.firma_adi = firma.firma_adi if firma and firma.firma_adi else "MÜYS"
+    finally:
+        db.close()
+    return await call_next(request)
+
+
 # ROUTES
 app.include_router(auth.router)
 app.include_router(dashboard.router)
