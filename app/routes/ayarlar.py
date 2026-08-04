@@ -297,7 +297,10 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
     return Response(
         akis.getvalue(),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=muys-musteri-aktarim-taslagi.xlsx"},
+        headers={
+            "Content-Disposition": "attachment; filename=muys-aktarim-ve-listeler.xlsx",
+            "Cache-Control": "no-store, no-cache, max-age=0",
+        },
     )
 
 
