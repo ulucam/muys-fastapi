@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request, Depends, Form, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
 from app.models.musteri import Musteri
@@ -66,19 +67,28 @@ def liste(
     db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(MUSTERI))
 ):
-    # Aktif müşteriler firma adına göre sıralanır; pasif kayıtlar listenin sonunda kalır.
+    # Pasif müşteriler ana listeden ayrılarak alt tablodan görüntülenir.
     musteriler = (
         db.query(Musteri)
-        .order_by(Musteri.aktif.desc(), Musteri.firma_adi.asc())
+        .filter(Musteri.aktif.is_(True))
+        .order_by(Musteri.firma_adi.asc())
+        .all()
+    )
+    pasif_musteriler = (
+        db.query(Musteri)
+        .filter(Musteri.aktif.is_(False))
+        .order_by(Musteri.firma_adi.asc())
         .all()
     )
 
     data = template_data(request)
     data["musteriler"] = musteriler
-    data["firma_adlari"] = sorted({musteri.firma_adi for musteri in musteriler})
-    data["iller"] = sorted({musteri.il for musteri in musteriler if musteri.il})
+    data["pasif_musteriler"] = pasif_musteriler
+    tum_musteriler = musteriler + pasif_musteriler
+    data["firma_adlari"] = sorted({musteri.firma_adi for musteri in tum_musteriler})
+    data["iller"] = sorted({musteri.il for musteri in tum_musteriler if musteri.il})
     data["il_bolgeleri"] = IL_BOLGELERI
-    data["bolgeler"] = sorted({IL_BOLGELERI.get(musteri.il, "Diğer") for musteri in musteriler})
+    data["bolgeler"] = sorted({IL_BOLGELERI.get(musteri.il, "Diğer") for musteri in tum_musteriler})
 
     return templates.TemplateResponse(
         "musteri/index.html",
@@ -286,7 +296,7 @@ def duzenle(
     il: str = Form(""),
     ilce: str = Form(""),
     adres: str = Form(""),
-    aktif: bool = Form(True),
+    aktif: str | None = Form(None),
     aciklama: str = Form(""),
 
     db: Session = Depends(get_db),
@@ -318,7 +328,9 @@ def duzenle(
     musteri.il = il
     musteri.ilce = ilce
     musteri.adres = adres
-    musteri.aktif = aktif
+    # İşaretlenmeyen checkbox form verisine hiç eklenmez; Form(True) kullanımı
+    # müşteriyi tekrar aktif yapıyordu. Böylece işaret kaldırıldığında pasif kalır.
+    musteri.aktif = aktif == "true"
     musteri.aciklama = aciklama
 
     db.commit()
@@ -379,7 +391,7 @@ def detay(
 # MÜŞTERİ SİL
 # =====================================================
 
-@router.get("/sil/{id}")
+@router.post("/sil/{id}")
 def sil(
     id: int,
 
@@ -395,8 +407,12 @@ def sil(
     )
 
     if musteri:
-        db.delete(musteri)
-        db.commit()
+        try:
+            db.delete(musteri)
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            return RedirectResponse("/musteriler?error=silinemedi", status_code=303)
 
     return RedirectResponse(
         "/musteriler",
