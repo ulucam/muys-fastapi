@@ -1,5 +1,6 @@
 import io
 import json
+import secrets
 import warnings
 from pathlib import Path
 from datetime import datetime
@@ -17,6 +18,7 @@ from app.models.musteri import Musteri
 from app.models.urun import Urun
 from app.models.firma_ayarlari import FirmaAyarlari
 from app.models.islem_logu import IslemLogu
+from app.models.excel_aktarim_taslagi import ExcelAktarimTaslagi
 from app.roles import ADMIN
 from app.security import yetki_kontrol
 from app.services.islem_log_service import islem_logla
@@ -287,7 +289,20 @@ async def excel_onizleme(request: Request, file: UploadFile = File(...), db: Ses
         islem_logla(db, request, "Excel", "Excel önizlemesi geçersiz", f"Dosya: {dosya_adi}. {len(hatalar)} doğrulama hatası bulundu.")
         db.commit()
     else:
-        request.session["excel_onay"] = {"musteriler": satirlar, "urunler": urunler, "dosya_adi": dosya_adi}
+        eski_token = request.session.pop("excel_onay_token", None)
+        if eski_token:
+            db.query(ExcelAktarimTaslagi).filter(ExcelAktarimTaslagi.token == eski_token).delete()
+        token = secrets.token_urlsafe(32)
+        db.add(ExcelAktarimTaslagi(
+            token=token,
+            veri=json.dumps(
+                {"musteriler": satirlar, "urunler": urunler, "dosya_adi": dosya_adi},
+                ensure_ascii=False,
+            ),
+        ))
+        # SessionMiddleware istemci tarafı çerez kullanır; buraya Excel satırlarını
+        # koymak çerez boyutu sınırını aşar. Sadece küçük taslak anahtarı tutulur.
+        request.session["excel_onay_token"] = token
         islem_logla(db, request, "Excel", "Excel önizlemesi hazır", f"Dosya: {dosya_adi}. {len(satirlar)} müşteri, {len(urunler)} stok ürünü onay bekliyor.")
         db.commit()
 
@@ -299,7 +314,9 @@ async def excel_onizleme(request: Request, file: UploadFile = File(...), db: Ses
 
 @router.post("/ayarlar/excel/onayla")
 def excel_onayla(request: Request, db: Session = Depends(get_db)):
-    aktarim = request.session.pop("excel_onay", {})
+    token = request.session.get("excel_onay_token")
+    taslak = db.query(ExcelAktarimTaslagi).filter(ExcelAktarimTaslagi.token == token).first() if token else None
+    aktarim = json.loads(taslak.veri) if taslak else {}
     satirlar = aktarim.get("musteriler", [])
     urunler = aktarim.get("urunler", [])
     dosya_adi = aktarim.get("dosya_adi", "adsız dosya")
@@ -330,6 +347,8 @@ def excel_onayla(request: Request, db: Session = Depends(get_db)):
                 db.add(urun)
             for alan, deger in satir.items():
                 setattr(urun, alan, deger)
+        db.delete(taslak)
+        request.session.pop("excel_onay_token", None)
         islem_logla(db, request, "Excel", "Excel aktarımı tamamlandı", f"Dosya: {dosya_adi}. {len(satirlar)} müşteri ve {len(urunler)} stok ürünü aktarıldı/güncellendi.")
         db.commit()
     except Exception as hata:
