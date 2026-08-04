@@ -2,14 +2,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const sidebar = document.getElementById("sidebar");
     const menuToggle = document.getElementById("menuToggle");
 
-    document.addEventListener("click", (event) => {
-        if (window.innerWidth <= 991 && sidebar?.classList.contains("show")
-            && !sidebar.contains(event.target) && !menuToggle?.contains(event.target)
-            ) {
-            sidebar.classList.remove("show");
-        }
-    });
-
     const current = window.location.pathname;
     document.querySelectorAll(".sidebar a").forEach((link) => {
         const href = link.getAttribute("href");
