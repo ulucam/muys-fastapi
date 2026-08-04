@@ -141,6 +141,13 @@
 @media(min-width:992px){
 
 
+body.sidebar-collapsed .sidebar{
+
+    transform:translateX(-100%);
+
+}
+
+
 .sidebar.show-desktop{
 
 
