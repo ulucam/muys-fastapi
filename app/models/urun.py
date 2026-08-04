@@ -1,5 +1,5 @@
 
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey
 from datetime import datetime
 
 from app.database import Base
@@ -106,4 +106,11 @@ class Urun(Base):
         DateTime,
         default=datetime.utcnow,
         onupdate=datetime.utcnow
+    )
+
+    urun_sinifi_id = Column(
+        Integer,
+        ForeignKey("urun_siniflari.id"),
+        nullable=True,
+        index=True,
     )
