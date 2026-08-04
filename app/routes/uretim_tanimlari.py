@@ -3,7 +3,7 @@ from datetime import datetime
 
 import openpyxl
 from fastapi import APIRouter, Depends, File, Request, UploadFile
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, Response, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from openpyxl.worksheet.datavalidation import DataValidation
 from sqlalchemy.orm import Session
@@ -92,14 +92,102 @@ def ekran_verisi(request, db, **ek):
         "makine_sayisi": db.query(Makine).filter(Makine.aktif.is_(True)).count(),
         "urun_sinifi_sayisi": db.query(UrunSinifi).filter(UrunSinifi.aktif.is_(True)).count(),
         "istasyonlar": db.query(Istasyon).order_by(Istasyon.kodu).all(),
+        "personeller": db.query(Personel).order_by(Personel.kodu).all(),
+        "makineler": db.query(Makine).order_by(Makine.kodu).all(),
+        "urun_siniflari": db.query(UrunSinifi).order_by(UrunSinifi.kodu).all(),
+        "urunler": db.query(Urun).order_by(Urun.kodu).all(),
     })
     data.update(ek)
     return data
 
 
 @router.get("/uretim-tanimlari", response_class=HTMLResponse)
-def uretim_tanimlari(request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
-    return templates.TemplateResponse("uretim/tanimlar.html", ekran_verisi(request, db))
+def uretim_tanimlari(request: Request, error: str | None = None, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
+    hata = "Kayıt kaydedilemedi. Zorunlu alanları ve seçilen ilişkileri kontrol edin." if error else None
+    return templates.TemplateResponse("uretim/tanimlar.html", ekran_verisi(request, db, hata=hata))
+
+
+@router.post("/uretim-tanimlari/kaydet/{tip}")
+async def manuel_kaydet(tip: str, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
+    form = await request.form()
+    aktif = form.get("aktif") == "true"
+    try:
+        if tip == "personel":
+            kod = metin(form.get("kodu"))
+            nesne = db.query(Personel).filter(Personel.kodu == kod).first() or Personel(kodu=kod)
+            if not kod or not metin(form.get("ad_soyad")):
+                raise ValueError("Personel kodu ve ad soyad zorunlu")
+            nesne.ad_soyad, nesne.departman, nesne.gorev, nesne.aktif = metin(form.get("ad_soyad")), metin(form.get("departman")), metin(form.get("gorev")), aktif
+        elif tip == "istasyon":
+            kod = metin(form.get("kodu"))
+            nesne = db.query(Istasyon).filter(Istasyon.kodu == kod).first() or Istasyon(kodu=kod)
+            if not kod or not metin(form.get("adi")):
+                raise ValueError("İstasyon kodu ve adı zorunlu")
+            nesne.adi, nesne.bolum, nesne.aciklama, nesne.aktif = metin(form.get("adi")), metin(form.get("bolum")), metin(form.get("aciklama")), aktif
+        elif tip == "makine":
+            kod, istasyon_kodu = metin(form.get("kodu")), metin(form.get("istasyon_kodu"))
+            istasyon = db.query(Istasyon).filter(Istasyon.kodu == istasyon_kodu).first()
+            if not kod or not metin(form.get("adi")) or not istasyon:
+                raise ValueError("Makine kodu, adı ve istasyon seçimi zorunlu")
+            nesne = db.query(Makine).filter(Makine.kodu == kod).first() or Makine(kodu=kod)
+            nesne.adi, nesne.istasyon_id, nesne.model, nesne.kapasite, nesne.aktif = metin(form.get("adi")), istasyon.id, metin(form.get("model")), metin(form.get("kapasite")), aktif
+        elif tip == "atama":
+            personel = db.query(Personel).filter(Personel.kodu == metin(form.get("personel_kodu"))).first()
+            makine = db.query(Makine).filter(Makine.kodu == metin(form.get("makine_kodu"))).first()
+            if not personel or not makine:
+                raise ValueError("Personel ve makine seçimi zorunlu")
+            nesne = db.query(PersonelMakine).filter(PersonelMakine.personel_id == personel.id, PersonelMakine.makine_id == makine.id).first() or PersonelMakine(personel_id=personel.id, makine_id=makine.id)
+            nesne.rol, nesne.hedef_performans, nesne.aktif = metin(form.get("rol")) or "Operatör", sayi(form.get("hedef_performans") or 100, "Hedef performans"), aktif
+        elif tip == "sinif":
+            kod = metin(form.get("kodu"))
+            nesne = db.query(UrunSinifi).filter(UrunSinifi.kodu == kod).first() or UrunSinifi(kodu=kod)
+            if not kod or not metin(form.get("adi")):
+                raise ValueError("Sınıf kodu ve adı zorunlu")
+            nesne.adi, nesne.aciklama, nesne.aktif = metin(form.get("adi")), metin(form.get("aciklama")), aktif
+        elif tip == "operasyon":
+            sinif = db.query(UrunSinifi).filter(UrunSinifi.kodu == metin(form.get("sinif_kodu"))).first()
+            istasyon = db.query(Istasyon).filter(Istasyon.kodu == metin(form.get("istasyon_kodu"))).first()
+            makine_kodu = metin(form.get("makine_kodu"))
+            makine = db.query(Makine).filter(Makine.kodu == makine_kodu).first() if makine_kodu else None
+            sira = sayi(form.get("sira"), "Sıra", tam_sayi=True)
+            if not sinif or not istasyon or not metin(form.get("operasyon_adi")):
+                raise ValueError("Ürün sınıfı, istasyon, sıra ve operasyon adı zorunlu")
+            if makine and makine.istasyon_id != istasyon.id:
+                raise ValueError("Makine seçilen istasyona bağlı olmalı")
+            nesne = db.query(UrunSinifOperasyon).filter(UrunSinifOperasyon.urun_sinifi_id == sinif.id, UrunSinifOperasyon.sira_no == sira).first() or UrunSinifOperasyon(urun_sinifi_id=sinif.id, sira_no=sira)
+            nesne.istasyon_id, nesne.makine_id, nesne.operasyon_adi = istasyon.id, makine.id if makine else None, metin(form.get("operasyon_adi"))
+            nesne.hedef_cevrim_suresi, nesne.kontrol_noktasi, nesne.aktif = sayi(form.get("hedef_cevrim") or 0, "Hedef çevrim"), metin(form.get("kontrol_noktasi")), aktif
+        elif tip == "urun":
+            kod, sinif_kodu, urun_tipi = metin(form.get("kodu")), metin(form.get("sinif_kodu")), metin(form.get("urun_tipi"))
+            sinif = db.query(UrunSinifi).filter(UrunSinifi.kodu == sinif_kodu).first() if sinif_kodu else None
+            if not kod or not metin(form.get("adi")) or urun_tipi not in URUN_TIPLERI or (sinif_kodu and not sinif):
+                raise ValueError("Ürün kodu, adı, türü ve varsa ürün sınıfı seçimi geçerli olmalı")
+            nesne = db.query(Urun).filter(Urun.kodu == kod).first() or Urun(kodu=kod)
+            nesne.adi, nesne.urun_tipi, nesne.urun_sinifi_id = metin(form.get("adi")), urun_tipi, sinif.id if sinif else None
+            nesne.birim, nesne.mevcut_stok, nesne.min_stok = metin(form.get("birim")) or "Adet", sayi(form.get("mevcut_stok") or 0, "Mevcut stok"), sayi(form.get("min_stok") or 0, "Min. stok")
+            nesne.aktif = aktif
+        elif tip == "recete":
+            ust = db.query(Urun).filter(Urun.kodu == metin(form.get("ust_urun_kodu"))).first()
+            bilesen = db.query(Urun).filter(Urun.kodu == metin(form.get("bilesen_urun_kodu"))).first()
+            if not ust or not bilesen or ust.id == bilesen.id:
+                raise ValueError("Geçerli ve birbirinden farklı üst ürün ile bileşen ürün seçin")
+            recete = db.query(Recete).filter(Recete.urun_id == ust.id).first()
+            if not recete:
+                recete = Recete(urun_id=ust.id, recete_no=f"R-{ust.kodu}", aciklama=f"{ust.adi} reçetesi")
+                db.add(recete)
+                db.flush()
+            nesne = db.query(ReceteKalem).filter(ReceteKalem.recete_id == recete.id, ReceteKalem.malzeme_id == bilesen.id).first() or ReceteKalem(recete_id=recete.id, malzeme_id=bilesen.id)
+            nesne.miktar, nesne.birim, nesne.fire_orani, nesne.sira_no, nesne.aktif = sayi(form.get("miktar"), "Miktar"), metin(form.get("birim")) or bilesen.birim, sayi(form.get("fire_orani") or 0, "Fire oranı"), sayi(form.get("sira") or 1, "Sıra", tam_sayi=True), aktif
+        else:
+            raise ValueError("Bilinmeyen kayıt türü")
+        if nesne not in db:
+            db.add(nesne)
+        islem_logla(db, request, "Üretim", "Üretim tanımı kaydedildi", tip)
+        db.commit()
+        return RedirectResponse("/uretim-tanimlari", status_code=303)
+    except Exception:
+        db.rollback()
+        return RedirectResponse("/uretim-tanimlari?error=kayit", status_code=303)
 
 
 @router.get("/uretim-tanimlari/excel-sablon")
