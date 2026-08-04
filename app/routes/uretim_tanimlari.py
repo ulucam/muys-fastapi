@@ -108,6 +108,7 @@ def uretim_tanimlari(request: Request, error: str | None = None, goster: str = "
         "personeller": ("Aktif Personeller", db.query(Personel).filter(Personel.aktif.is_(True)).order_by(Personel.kodu).all()),
         "istasyonlar": ("Aktif İstasyonlar", db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.kodu).all()),
         "makineler": ("Aktif Makineler", db.query(Makine).filter(Makine.aktif.is_(True)).order_by(Makine.kodu).all()),
+        "urun_siniflari": ("Aktif Ürün Sınıfları", db.query(UrunSinifi).filter(UrunSinifi.aktif.is_(True)).order_by(UrunSinifi.kodu).all()),
     }
     baslik, kayitlar = listeler.get(goster, (None, []))
     return templates.TemplateResponse("uretim/tanimlar.html", ekran_verisi(request, db, hata=hata, goster=goster, liste_basligi=baslik, secili_kayitlar=kayitlar))
@@ -115,7 +116,7 @@ def uretim_tanimlari(request: Request, error: str | None = None, goster: str = "
 
 @router.get("/uretim-tanimlari/duzenle/{tip}/{kod}", response_class=HTMLResponse)
 def duzenle_form(tip: str, kod: str, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
-    modeller = {"personel": Personel, "istasyon": Istasyon, "makine": Makine}
+    modeller = {"personel": Personel, "istasyon": Istasyon, "makine": Makine, "sinif": UrunSinifi}
     model = modeller.get(tip)
     kayit = db.query(model).filter(model.kodu == kod).first() if model else None
     if not kayit:
