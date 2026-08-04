@@ -9,6 +9,7 @@ from app.setup import setup_database
 # uygulama başlarken oluşturulmasını garanti eder.
 from app.models.firma_ayarlari import FirmaAyarlari
 from app.models.islem_logu import IslemLogu
+from app.models.excel_aktarim_taslagi import ExcelAktarimTaslagi
 
 from app.routes import auth
 from app.routes import dashboard
