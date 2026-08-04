@@ -1,25 +1,16 @@
 document.addEventListener("DOMContentLoaded", () => {
     const sidebar = document.getElementById("sidebar");
     const menuToggle = document.getElementById("menuToggle");
-    const pageMenuToggle = document.getElementById("pageMenuToggle");
 
-    const sidebarDegistir = () => {
-        if (window.innerWidth <= 991) {
-            sidebar?.classList.toggle("show");
-        } else {
-            document.body.classList.toggle("sidebar-collapsed");
-        }
-    };
     menuToggle?.addEventListener("click", (event) => {
         event.stopPropagation();
         sidebar?.classList.toggle("show");
     });
-    pageMenuToggle?.addEventListener("click", sidebarDegistir);
 
     document.addEventListener("click", (event) => {
         if (window.innerWidth <= 991 && sidebar?.classList.contains("show")
             && !sidebar.contains(event.target) && !menuToggle?.contains(event.target)
-            && !pageMenuToggle?.contains(event.target)) {
+            ) {
             sidebar.classList.remove("show");
         }
     });
