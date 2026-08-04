@@ -59,6 +59,22 @@ def sayi(deger, alan):
         raise ValueError(f"{alan} sayısal olmalı")
 
 
+def sonraki_musteri_kodu(db: Session, kullanilan_kodlar: set[str]) -> str:
+    """İçe aktarım süresince tekrar etmeyen bir müşteri kodu üretir."""
+    en_yuksek_numara = 0
+    for kod in kullanilan_kodlar:
+        if kod and kod.startswith("M") and kod[1:].isdigit():
+            en_yuksek_numara = max(en_yuksek_numara, int(kod[1:]))
+
+    sira = en_yuksek_numara + 1
+    kod = f"M{sira:06}"
+    while kod in kullanilan_kodlar:
+        sira += 1
+        kod = f"M{sira:06}"
+    kullanilan_kodlar.add(kod)
+    return kod
+
+
 def excel_satirlarini_oku(dosya_icerigi):
     # Excel masaüstü uygulaması bazı açılır liste doğrulamalarını OpenPyXL'in
     # desteklemediği x14 uzantısına dönüştürebilir. Bu uyarı hücre verisini
@@ -325,11 +341,13 @@ def excel_onayla(request: Request, db: Session = Depends(get_db)):
         db.commit()
         return RedirectResponse("/ayarlar/excel", status_code=303)
     try:
+        kullanilan_kodlar = {
+            kod for (kod,) in db.query(Musteri.musteri_kodu).all() if kod
+        }
         for satir in satirlar:
             musteri = db.query(Musteri).filter(Musteri.firma_adi.ilike(satir["Firma Adı"])).first()
             if not musteri:
-                son = db.query(Musteri).order_by(Musteri.id.desc()).first()
-                musteri = Musteri(musteri_kodu=f"M{(son.id + 1) if son else 1:06}")
+                musteri = Musteri(musteri_kodu=sonraki_musteri_kodu(db, kullanilan_kodlar))
                 db.add(musteri)
             musteri.firma_adi = satir["Firma Adı"]
             musteri.yetkili = satir["Yetkili"]
