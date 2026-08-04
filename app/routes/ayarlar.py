@@ -30,7 +30,12 @@ ILLER_DOSYASI = Path(__file__).resolve().parent.parent / "data" / "iller.js"
 MUSTERI_SUTUNLARI = ["Firma Adı", "Yetkili", "Telefon", "E-Posta", "Vergi Dairesi", "Vergi No", "İl", "İlçe", "Müşteri Türü", "Adres", "Açıklama"]
 TURLER = ["Alıcı", "Tedarikçi", "Satıcı"]
 URUN_SUTUNLARI = ["Ürün Kodu", "Ürün Adı", "Ürün Türü", "Birim", "Mevcut Stok", "Min. Stok", "Max. Stok", "Maliyet", "Satış Fiyatı", "Açıklama", "Durum"]
-URUN_TURLERI = ["Hammadde", "YariMamul", "Mamul", "TicariMamul"]
+URUN_TURLERI = ["Hammadde", "Yarı Mamul", "Mamul", "Ticari Mamul"]
+URUN_TIP_KODLARI = {
+    "Hammadde": "Hammadde", "Yarı Mamul": "YariMamul", "YariMamul": "YariMamul",
+    "Mamul": "Mamul", "Ticari Mamul": "TicariMamul", "TicariMamul": "TicariMamul",
+}
+URUN_TIP_ETIKETLERI = {kod: etiket for etiket, kod in URUN_TIP_KODLARI.items() if etiket not in ("YariMamul", "TicariMamul")}
 
 
 def il_ilce_verisi():
@@ -92,12 +97,12 @@ def excel_satirlarini_oku(dosya_icerigi):
                 veri = dict(zip(URUN_SUTUNLARI, satir))
                 satir_hatalari = []
                 kod, ad = metin(veri["Ürün Kodu"]), metin(veri["Ürün Adı"])
-                urun_turu, birim = metin(veri["Ürün Türü"]), metin(veri["Birim"])
+                urun_turu, birim = URUN_TIP_KODLARI.get(metin(veri["Ürün Türü"])), metin(veri["Birim"])
                 if not kod:
                     satir_hatalari.append("Ürün kodu zorunlu")
                 if not ad:
                     satir_hatalari.append("Ürün adı zorunlu")
-                if urun_turu not in URUN_TURLERI:
+                if not urun_turu:
                     satir_hatalari.append("Ürün türü Hammadde, Yarı Mamul, Mamul veya Ticari Mamul olmalı")
                 if metin(veri["Durum"]) not in ("Aktif", "Pasif"):
                     satir_hatalari.append("Durum Aktif veya Pasif olmalı")
@@ -192,7 +197,7 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
     stok.append(URUN_SUTUNLARI)
     for urun in mevcut_urunler:
         stok.append([
-            urun.kodu, urun.adi, urun.urun_tipi or "Mamul", urun.birim or "Adet",
+            urun.kodu, urun.adi, URUN_TIP_ETIKETLERI.get(urun.urun_tipi, urun.urun_tipi or "Mamul"), urun.birim or "Adet",
             urun.mevcut_stok or 0, urun.min_stok or 0, urun.max_stok or 0,
             urun.maliyet or 0, urun.satis_fiyati or 0, urun.aciklama or "",
             "Aktif" if urun.aktif else "Pasif",
@@ -245,44 +250,74 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/ayarlar/excel/onizleme", response_class=HTMLResponse)
 async def excel_onizleme(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    dosya_adi = file.filename or "adsız dosya"
     try:
-        satirlar, hatalar = excel_satirlarini_oku(await file.read())
-    except Exception:
-        satirlar, hatalar = [], ["Excel dosyası okunamadı. Lütfen taslağı kullanın."]
+        satirlar, urunler, hatalar = excel_satirlarini_oku(await file.read())
+    except Exception as hata:
+        satirlar, urunler = [], []
+        hatalar = ["Excel dosyası okunamadı. Lütfen taslağı kullanın."]
+        islem_logla(db, request, "Excel", "Excel önizlemesi başarısız", f"Dosya: {dosya_adi}. Hata: {type(hata).__name__}: {hata}")
+        db.commit()
 
     mevcutlar = {m.firma_adi.casefold(): m for m in db.query(Musteri).all()}
     eklenecek, guncellenecek = [], []
     for satir in satirlar:
         (guncellenecek if satir["Firma Adı"].casefold() in mevcutlar else eklenecek).append(satir["Firma Adı"])
-    request.session["excel_onay"] = satirlar if not hatalar else []
+    if not hatalar and not satirlar and not urunler:
+        hatalar.append("Aktarılacak müşteri veya stok ürünü bulunamadı.")
+    if hatalar:
+        islem_logla(db, request, "Excel", "Excel önizlemesi geçersiz", f"Dosya: {dosya_adi}. {len(hatalar)} doğrulama hatası bulundu.")
+        db.commit()
+    else:
+        request.session["excel_onay"] = {"musteriler": satirlar, "urunler": urunler, "dosya_adi": dosya_adi}
+        islem_logla(db, request, "Excel", "Excel önizlemesi hazır", f"Dosya: {dosya_adi}. {len(satirlar)} müşteri, {len(urunler)} stok ürünü onay bekliyor.")
+        db.commit()
 
     data = template_data(request)
-    data.update({"hatalar": hatalar, "eklenecek": eklenecek, "guncellenecek": guncellenecek, "gecerli_satir": len(satirlar)})
+    data["son_aktarim"] = db.query(IslemLogu).filter(IslemLogu.modul == "Excel").order_by(IslemLogu.created_at.desc()).first()
+    data.update({"hatalar": hatalar, "eklenecek": eklenecek, "guncellenecek": guncellenecek, "gecerli_satir": len(satirlar), "gecerli_urun": len(urunler)})
     return templates.TemplateResponse("ayarlar/excel.html", data)
 
 
 @router.post("/ayarlar/excel/onayla")
 def excel_onayla(request: Request, db: Session = Depends(get_db)):
-    satirlar = request.session.pop("excel_onay", [])
-    if not satirlar:
+    aktarim = request.session.pop("excel_onay", {})
+    satirlar = aktarim.get("musteriler", [])
+    urunler = aktarim.get("urunler", [])
+    dosya_adi = aktarim.get("dosya_adi", "adsız dosya")
+    if not satirlar and not urunler:
+        islem_logla(db, request, "Excel", "Excel aktarımı başarısız", "Onaylanacak geçerli veri bulunamadı; önizleme süresi dolmuş veya dosya geçersiz.")
+        db.commit()
         return RedirectResponse("/ayarlar/excel", status_code=303)
-    for satir in satirlar:
-        musteri = db.query(Musteri).filter(Musteri.firma_adi.ilike(satir["Firma Adı"])).first()
-        if not musteri:
-            son = db.query(Musteri).order_by(Musteri.id.desc()).first()
-            musteri = Musteri(musteri_kodu=f"M{(son.id + 1) if son else 1:06}")
-            db.add(musteri)
-        musteri.firma_adi = satir["Firma Adı"]
-        musteri.yetkili = satir["Yetkili"]
-        musteri.telefon = satir["Telefon"]
-        musteri.email = satir["E-Posta"]
-        musteri.vergi_dairesi = satir["Vergi Dairesi"]
-        musteri.vergi_no = satir["Vergi No"]
-        musteri.il, musteri.ilce = satir["İl"], satir["İlçe"]
-        musteri.musteri_turu = satir["Müşteri Türü"]
-        musteri.adres, musteri.aciklama = satir["Adres"], satir["Açıklama"]
-    islem_logla(db, request, "Excel", "Müşteri aktarımı", f"{len(satirlar)} müşteri satırı aktarıldı")
-    db.commit()
+    try:
+        for satir in satirlar:
+            musteri = db.query(Musteri).filter(Musteri.firma_adi.ilike(satir["Firma Adı"])).first()
+            if not musteri:
+                son = db.query(Musteri).order_by(Musteri.id.desc()).first()
+                musteri = Musteri(musteri_kodu=f"M{(son.id + 1) if son else 1:06}")
+                db.add(musteri)
+            musteri.firma_adi = satir["Firma Adı"]
+            musteri.yetkili = satir["Yetkili"]
+            musteri.telefon = satir["Telefon"]
+            musteri.email = satir["E-Posta"]
+            musteri.vergi_dairesi = satir["Vergi Dairesi"]
+            musteri.vergi_no = satir["Vergi No"]
+            musteri.il, musteri.ilce = satir["İl"], satir["İlçe"]
+            musteri.musteri_turu = satir["Müşteri Türü"]
+            musteri.adres, musteri.aciklama = satir["Adres"], satir["Açıklama"]
+        for satir in urunler:
+            urun = db.query(Urun).filter(Urun.kodu == satir["kodu"]).first()
+            if not urun:
+                urun = Urun(kodu=satir["kodu"])
+                db.add(urun)
+            for alan, deger in satir.items():
+                setattr(urun, alan, deger)
+        islem_logla(db, request, "Excel", "Excel aktarımı tamamlandı", f"Dosya: {dosya_adi}. {len(satirlar)} müşteri ve {len(urunler)} stok ürünü aktarıldı/güncellendi.")
+        db.commit()
+    except Exception as hata:
+        db.rollback()
+        islem_logla(db, request, "Excel", "Excel aktarımı başarısız", f"Dosya: {dosya_adi}. Hata: {type(hata).__name__}: {hata}")
+        db.commit()
     return RedirectResponse("/ayarlar/excel", status_code=303)
 
 
