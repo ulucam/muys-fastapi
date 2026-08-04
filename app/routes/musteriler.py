@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
 from app.models.musteri import Musteri
+from app.models.siparis import Siparis
 from app.context import template_data
 from app.security import yetki_kontrol
 from app.roles import MUSTERI
