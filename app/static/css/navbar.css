@@ -52,8 +52,7 @@
 
 .mobile-menu-btn{
 
-
-    display:none;
+    display:block;
 
     border:0;
 
@@ -67,16 +66,8 @@
 
 
 
-@media(max-width:991px){
+.mobile-menu-btn{
 
-
-    .mobile-menu-btn{
-
-        display:block;
-
-        margin-right:auto;
-
-    }
-
+    margin-right:auto;
 
 }
