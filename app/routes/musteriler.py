@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.musteri import Musteri
-from app.models.siparis import Siparis
 from app.context import template_data
 from app.security import yetki_kontrol
 from app.roles import MUSTERI
@@ -28,6 +27,29 @@ templates = Jinja2Templates(
 
 ILLER_DOSYASI = Path(__file__).resolve().parent.parent / "data" / "iller.js"
 
+IL_BOLGELERI = {
+    "Adana": "Akdeniz", "Adıyaman": "Güneydoğu Anadolu", "Afyonkarahisar": "Ege", "Ağrı": "Doğu Anadolu",
+    "Aksaray": "İç Anadolu", "Amasya": "Karadeniz", "Ankara": "İç Anadolu", "Antalya": "Akdeniz",
+    "Ardahan": "Doğu Anadolu", "Artvin": "Karadeniz", "Aydın": "Ege", "Balıkesir": "Marmara",
+    "Bartın": "Karadeniz", "Batman": "Güneydoğu Anadolu", "Bayburt": "Karadeniz", "Bilecik": "Marmara",
+    "Bingöl": "Doğu Anadolu", "Bitlis": "Doğu Anadolu", "Bolu": "Karadeniz", "Burdur": "Akdeniz",
+    "Bursa": "Marmara", "Çanakkale": "Marmara", "Çankırı": "İç Anadolu", "Çorum": "Karadeniz",
+    "Denizli": "Ege", "Diyarbakır": "Güneydoğu Anadolu", "Düzce": "Karadeniz", "Edirne": "Marmara",
+    "Elazığ": "Doğu Anadolu", "Erzincan": "Doğu Anadolu", "Erzurum": "Doğu Anadolu", "Eskişehir": "İç Anadolu",
+    "Gaziantep": "Güneydoğu Anadolu", "Giresun": "Karadeniz", "Gümüşhane": "Karadeniz", "Hakkari": "Doğu Anadolu",
+    "Hatay": "Akdeniz", "Iğdır": "Doğu Anadolu", "Isparta": "Akdeniz", "İstanbul": "Marmara",
+    "İzmir": "Ege", "Kahramanmaraş": "Akdeniz", "Karabük": "Karadeniz", "Karaman": "İç Anadolu",
+    "Kars": "Doğu Anadolu", "Kastamonu": "Karadeniz", "Kayseri": "İç Anadolu", "Kırıkkale": "İç Anadolu",
+    "Kırklareli": "Marmara", "Kırşehir": "İç Anadolu", "Kilis": "Güneydoğu Anadolu", "Kocaeli": "Marmara",
+    "Konya": "İç Anadolu", "Kütahya": "Ege", "Malatya": "Doğu Anadolu", "Manisa": "Ege",
+    "Mardin": "Güneydoğu Anadolu", "Mersin": "Akdeniz", "Muğla": "Ege", "Muş": "Doğu Anadolu",
+    "Nevşehir": "İç Anadolu", "Niğde": "İç Anadolu", "Ordu": "Karadeniz", "Osmaniye": "Akdeniz",
+    "Rize": "Karadeniz", "Sakarya": "Marmara", "Samsun": "Karadeniz", "Şanlıurfa": "Güneydoğu Anadolu",
+    "Siirt": "Güneydoğu Anadolu", "Sinop": "Karadeniz", "Sivas": "İç Anadolu", "Şırnak": "Güneydoğu Anadolu",
+    "Tekirdağ": "Marmara", "Tokat": "Karadeniz", "Trabzon": "Karadeniz", "Tunceli": "Doğu Anadolu",
+    "Uşak": "Ege", "Van": "Doğu Anadolu", "Yalova": "Marmara", "Yozgat": "İç Anadolu", "Zonguldak": "Karadeniz",
+}
+
 
 def il_ilce_listesi():
     with ILLER_DOSYASI.open(encoding="utf-8") as dosya:
@@ -44,31 +66,19 @@ def liste(
     db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(MUSTERI))
 ):
+    # Aktif müşteriler firma adına göre sıralanır; pasif kayıtlar listenin sonunda kalır.
     musteriler = (
         db.query(Musteri)
-        .order_by(Musteri.id.desc())
+        .order_by(Musteri.aktif.desc(), Musteri.firma_adi.asc())
         .all()
     )
 
-    siparis_ozetleri = {}
-    durum_adlari = {
-        "Beklemede": "Bekleyen",
-        "Üretimde": "Üretimde",
-        "Sevke Hazır": "Sevke Hazır",
-        "Tamamlandı": "Geçmiş",
-        "Geçmiş": "Geçmiş",
-    }
-    for musteri_id, durum in db.query(Siparis.musteri_id, Siparis.durum).all():
-        ozet = siparis_ozetleri.setdefault(musteri_id, [])
-        durum_adi = durum_adlari.get(durum, durum)
-        if durum_adi and durum_adi not in ozet:
-            ozet.append(durum_adi)
-
     data = template_data(request)
     data["musteriler"] = musteriler
-    data["siparis_ozetleri"] = siparis_ozetleri
     data["firma_adlari"] = sorted({musteri.firma_adi for musteri in musteriler})
     data["iller"] = sorted({musteri.il for musteri in musteriler if musteri.il})
+    data["il_bolgeleri"] = IL_BOLGELERI
+    data["bolgeler"] = sorted({IL_BOLGELERI.get(musteri.il, "Diğer") for musteri in musteriler})
 
     return templates.TemplateResponse(
         "musteri/index.html",
