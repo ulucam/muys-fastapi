@@ -19,7 +19,7 @@
         <div class="col-md-3"><a class="text-decoration-none text-body" href="/uretim-tanimlari?goster=personeller"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Aktif Personel</small><div class="fs-3 fw-bold">{{ personel_sayisi }}</div></div></div></a></div>
         <div class="col-md-3"><a class="text-decoration-none text-body" href="/uretim-tanimlari?goster=istasyonlar"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Aktif İstasyon</small><div class="fs-3 fw-bold">{{ istasyon_sayisi }}</div></div></div></a></div>
         <div class="col-md-3"><a class="text-decoration-none text-body" href="/uretim-tanimlari?goster=makineler"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Aktif Makine</small><div class="fs-3 fw-bold">{{ makine_sayisi }}</div></div></div></a></div>
-        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ürün Sınıfı</small><div class="fs-3 fw-bold">{{ urun_sinifi_sayisi }}</div></div></div></div>
+        <div class="col-md-3"><a class="text-decoration-none text-body" href="/uretim-tanimlari?goster=urun_siniflari"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ürün Sınıfı</small><div class="fs-3 fw-bold">{{ urun_sinifi_sayisi }}</div></div></div></a></div>
     </div>
 
     <div class="card shadow-sm border-0 mb-4">
@@ -104,36 +104,12 @@
         </div>
     </div>
 
-    <div class="row g-4">
-        <div class="col-lg-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <h5><i class="bi bi-file-earmark-arrow-down text-success"></i> Excel Şablonu</h5>
-                    <p class="text-muted">Mevcut kayıtları da içeren üretim ana veri dosyasını indirin. Yeni satır ekleyerek istasyon ve makine sayısını istediğiniz gibi belirleyebilirsiniz.</p>
-                    <a class="btn btn-success" href="/uretim-tanimlari/excel-sablon">Şablonu İndir</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <h5><i class="bi bi-file-earmark-arrow-up text-primary"></i> Toplu Excel Aktarımı</h5>
-                    <p class="text-muted">Sayfa ve sütun adlarını değiştirmeden doldurduğunuz <code>.xlsx</code> dosyasını yükleyin.</p>
-                    <form action="/uretim-tanimlari/excel-aktar" method="post" enctype="multipart/form-data" class="d-flex gap-2">
-                        <input class="form-control" type="file" name="file" accept=".xlsx" required>
-                        <button class="btn btn-primary text-nowrap" type="submit">Aktar</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
     {% if liste_basligi %}
     <div class="card shadow-sm border-0 mt-4">
         <div class="card-header bg-white d-flex justify-content-between"><strong>{{ liste_basligi }}</strong><a href="/uretim-tanimlari" class="btn btn-sm btn-outline-secondary">Listeyi gizle</a></div>
         <div class="table-responsive">
-            <table class="table table-hover mb-0"><thead><tr><th>Kod</th><th>Adı</th><th>{% if goster == 'personeller' %}Departman{% elif goster == 'istasyonlar' %}Bölüm{% else %}İstasyon{% endif %}</th><th>Durum</th><th></th></tr></thead>
-                <tbody>{% for kayit in secili_kayitlar %}<tr><td>{{ kayit.kodu }}</td><td>{{ kayit.ad_soyad if goster == 'personeller' else kayit.adi }}</td><td>{% if goster == 'personeller' %}{{ kayit.departman or '-' }}{% elif goster == 'istasyonlar' %}{{ kayit.bolum or '-' }}{% else %}{% for i in istasyonlar if i.id == kayit.istasyon_id %}{{ i.adi }}{% endfor %}{% endif %}</td><td><span class="badge text-bg-success">Aktif</span></td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/uretim-tanimlari/duzenle/{{ 'personel' if goster == 'personeller' else 'istasyon' if goster == 'istasyonlar' else 'makine' }}/{{ kayit.kodu }}">Düzenle</a></td></tr>{% else %}<tr><td colspan="5" class="text-center text-muted py-4">Aktif kayıt bulunamadı.</td></tr>{% endfor %}</tbody>
+            <table class="table table-hover mb-0"><thead><tr><th>Kod</th><th>Adı</th><th>{% if goster == 'personeller' %}Departman{% elif goster == 'istasyonlar' %}Bölüm{% elif goster == 'urun_siniflari' %}Açıklama{% else %}İstasyon{% endif %}</th><th>Durum</th><th></th></tr></thead>
+                <tbody>{% for kayit in secili_kayitlar %}<tr><td>{{ kayit.kodu }}</td><td>{{ kayit.ad_soyad if goster == 'personeller' else kayit.adi }}</td><td>{% if goster == 'personeller' %}{{ kayit.departman or '-' }}{% elif goster == 'istasyonlar' %}{{ kayit.bolum or '-' }}{% elif goster == 'urun_siniflari' %}{{ kayit.aciklama or '-' }}{% else %}{% for i in istasyonlar if i.id == kayit.istasyon_id %}{{ i.adi }}{% endfor %}{% endif %}</td><td><span class="badge text-bg-success">Aktif</span></td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/uretim-tanimlari/duzenle/{{ 'personel' if goster == 'personeller' else 'istasyon' if goster == 'istasyonlar' else 'sinif' if goster == 'urun_siniflari' else 'makine' }}/{{ kayit.kodu }}">Düzenle</a></td></tr>{% else %}<tr><td colspan="5" class="text-center text-muted py-4">Aktif kayıt bulunamadı.</td></tr>{% endfor %}</tbody>
             </table>
         </div>
     </div>
