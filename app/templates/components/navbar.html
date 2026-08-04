@@ -1,7 +1,9 @@
 <nav class="top-navbar">
 
     <button id="menuToggle"
-            class="mobile-menu-btn">
+            class="mobile-menu-btn"
+            type="button"
+            onclick="if (window.innerWidth <= 991) { document.getElementById('sidebar').classList.toggle('show'); } else { document.body.classList.toggle('sidebar-collapsed'); }">
 
         <i class="bi bi-list"></i>
 
