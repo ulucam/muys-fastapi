@@ -22,6 +22,13 @@
         <div class="col-md-3"><a class="text-decoration-none text-body" href="/uretim-tanimlari?goster=urun_siniflari"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ürün Sınıfı</small><div class="fs-3 fw-bold">{{ urun_sinifi_sayisi }}</div></div></div></a></div>
     </div>
 
+    <div class="mb-4 text-end">
+        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#tanimModal"><i class="bi bi-plus-circle"></i> Tanım Ekle / Güncelle</button>
+    </div>
+
+    <div class="modal fade" id="tanimModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-white"><strong>Programdan Tanım Ekle / Güncelle</strong><small class="d-block text-muted">Aynı kod ile tekrar kaydedilen tanımlar güncellenir.</small></div>
         <div class="card-body">
@@ -103,10 +110,13 @@
             </div>
         </div>
     </div>
+            </div>
+        </div>
+    </div>
 
     {% if liste_basligi %}
     <div class="card shadow-sm border-0 mt-4">
-        <div class="card-header bg-white d-flex justify-content-between"><strong>{{ liste_basligi }}</strong><a href="/uretim-tanimlari" class="btn btn-sm btn-outline-secondary">Listeyi gizle</a></div>
+        <div class="card-header bg-white d-flex justify-content-between"><strong>{{ liste_basligi }}</strong><a href="/uretim-tanimlari" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Geri</a></div>
         <div class="table-responsive">
             <table class="table table-hover mb-0"><thead><tr><th>Kod</th><th>Adı</th><th>{% if goster == 'personeller' %}Departman{% elif goster == 'istasyonlar' %}Bölüm{% elif goster == 'urun_siniflari' %}Açıklama{% else %}İstasyon{% endif %}</th><th>Durum</th><th></th></tr></thead>
                 <tbody>{% for kayit in secili_kayitlar %}<tr><td>{{ kayit.kodu }}</td><td>{{ kayit.ad_soyad if goster == 'personeller' else kayit.adi }}</td><td>{% if goster == 'personeller' %}{{ kayit.departman or '-' }}{% elif goster == 'istasyonlar' %}{{ kayit.bolum or '-' }}{% elif goster == 'urun_siniflari' %}{{ kayit.aciklama or '-' }}{% else %}{% for i in istasyonlar if i.id == kayit.istasyon_id %}{{ i.adi }}{% endfor %}{% endif %}</td><td><span class="badge text-bg-success">Aktif</span></td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/uretim-tanimlari/duzenle/{{ 'personel' if goster == 'personeller' else 'istasyon' if goster == 'istasyonlar' else 'sinif' if goster == 'urun_siniflari' else 'makine' }}/{{ kayit.kodu }}">Düzenle</a></td></tr>{% else %}<tr><td colspan="5" class="text-center text-muted py-4">Aktif kayıt bulunamadı.</td></tr>{% endfor %}</tbody>
