@@ -85,9 +85,9 @@
 
             {% if request.url.path not in ["/", "/login"] %}
             <div class="d-flex justify-content-end mb-3">
-                <button id="pageMenuToggle" class="btn btn-sm btn-outline-secondary" type="button"
-                        onclick="if (window.innerWidth <= 991) { document.getElementById('sidebar').classList.toggle('show'); } else { document.body.classList.toggle('sidebar-collapsed'); }">
-                    <i class="bi bi-list"></i> Menü
+                <button class="btn btn-sm btn-outline-secondary" type="button"
+                        onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href = '/'; }">
+                    <i class="bi bi-arrow-left"></i> Geri
                 </button>
             </div>
             {% endif %}
