@@ -1,5 +1,6 @@
 import io
 import json
+import warnings
 from pathlib import Path
 from datetime import datetime
 
@@ -57,7 +58,17 @@ def sayi(deger, alan):
 
 
 def excel_satirlarini_oku(dosya_icerigi):
-    kitap = openpyxl.load_workbook(io.BytesIO(dosya_icerigi), data_only=True)
+    # Excel masaüstü uygulaması bazı açılır liste doğrulamalarını OpenPyXL'in
+    # desteklemediği x14 uzantısına dönüştürebilir. Bu uyarı hücre verisini
+    # etkilemez; yalnızca doğrulama tanımını kaldırır ve aktarımı durdurmamalıdır.
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=r"Data Validation extension is not supported and will be removed",
+            category=UserWarning,
+            module=r"openpyxl\\.worksheet\\._reader",
+        )
+        kitap = openpyxl.load_workbook(io.BytesIO(dosya_icerigi), data_only=True)
     if "Müşteriler" not in kitap.sheetnames:
         return [], [], ["'Müşteriler' sayfası bulunamadı."]
     sayfa = kitap["Müşteriler"]
@@ -251,13 +262,20 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
 @router.post("/ayarlar/excel/onizleme", response_class=HTMLResponse)
 async def excel_onizleme(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
     dosya_adi = file.filename or "adsız dosya"
-    try:
-        satirlar, urunler, hatalar = excel_satirlarini_oku(await file.read())
-    except Exception as hata:
+    if not dosya_adi.lower().endswith(".xlsx"):
+        hatalar = ["Yalnızca .xlsx uzantılı Excel dosyaları yüklenebilir."]
         satirlar, urunler = [], []
-        hatalar = ["Excel dosyası okunamadı. Lütfen taslağı kullanın."]
-        islem_logla(db, request, "Excel", "Excel önizlemesi başarısız", f"Dosya: {dosya_adi}. Hata: {type(hata).__name__}: {hata}")
-        db.commit()
+    else:
+        try:
+            dosya_icerigi = await file.read()
+            if not dosya_icerigi:
+                raise ValueError("Dosya boş")
+            satirlar, urunler, hatalar = excel_satirlarini_oku(dosya_icerigi)
+        except Exception as hata:
+            satirlar, urunler = [], []
+            hatalar = [f"Excel dosyası okunamadı: {type(hata).__name__}. Ayrıntı işlem geçmişine kaydedildi."]
+            islem_logla(db, request, "Excel", "Excel önizlemesi başarısız", f"Dosya: {dosya_adi}. Hata: {type(hata).__name__}: {hata}")
+            db.commit()
 
     mevcutlar = {m.firma_adi.casefold(): m for m in db.query(Musteri).all()}
     eklenecek, guncellenecek = [], []
