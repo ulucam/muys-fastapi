@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Üretim Tanımları{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1"><i class="bi bi-diagram-3"></i> Üretim Tanımları</h3>
+            <p class="text-muted mb-0">Personel, istasyon, makine, ürün sınıfı ve reçete ana verilerini yönetin.</p>
+        </div>
+        <a href="/" class="btn btn-outline-secondary">Geri</a>
+    </div>
+
+    {% if basari %}<div class="alert alert-success">{{ basari }}</div>{% endif %}
+    {% if hata %}<div class="alert alert-danger"><strong>Aktarım yapılamadı:</strong> {{ hata }}</div>{% endif %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Aktif Personel</small><div class="fs-3 fw-bold">{{ personel_sayisi }}</div></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Aktif İstasyon</small><div class="fs-3 fw-bold">{{ istasyon_sayisi }}</div></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Aktif Makine</small><div class="fs-3 fw-bold">{{ makine_sayisi }}</div></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ürün Sınıfı</small><div class="fs-3 fw-bold">{{ urun_sinifi_sayisi }}</div></div></div></div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5><i class="bi bi-file-earmark-arrow-down text-success"></i> Excel Şablonu</h5>
+                    <p class="text-muted">Mevcut kayıtları da içeren üretim ana veri dosyasını indirin. Yeni satır ekleyerek istasyon ve makine sayısını istediğiniz gibi belirleyebilirsiniz.</p>
+                    <a class="btn btn-success" href="/uretim-tanimlari/excel-sablon">Şablonu İndir</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5><i class="bi bi-file-earmark-arrow-up text-primary"></i> Toplu Excel Aktarımı</h5>
+                    <p class="text-muted">Sayfa ve sütun adlarını değiştirmeden doldurduğunuz <code>.xlsx</code> dosyasını yükleyin.</p>
+                    <form action="/uretim-tanimlari/excel-aktar" method="post" enctype="multipart/form-data" class="d-flex gap-2">
+                        <input class="form-control" type="file" name="file" accept=".xlsx" required>
+                        <button class="btn btn-primary text-nowrap" type="submit">Aktar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mt-4">
+        <div class="card-header bg-white"><strong>Tanımlı İstasyonlar</strong></div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0"><thead><tr><th>Kod</th><th>İstasyon</th><th>Bölüm</th><th>Durum</th></tr></thead>
+                <tbody>{% for istasyon in istasyonlar %}<tr><td>{{ istasyon.kodu }}</td><td>{{ istasyon.adi }}</td><td>{{ istasyon.bolum or '-' }}</td><td>{% if istasyon.aktif %}<span class="badge text-bg-success">Aktif</span>{% else %}<span class="badge text-bg-secondary">Pasif</span>{% endif %}</td></tr>{% else %}<tr><td colspan="4" class="text-center text-muted py-4">Henüz istasyon tanımı yok. Excel şablonundan toplu giriş yapabilirsiniz.</td></tr>{% endfor %}</tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
