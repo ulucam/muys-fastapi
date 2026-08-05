@@ -17,6 +17,7 @@ from app.models.personel_makine import PersonelMakine
 from app.models.puantaj import Puantaj
 from app.models.urun_sinifi import UrunSinifi
 from app.models.urun_sinif_operasyon import UrunSinifOperasyon
+from app.models.urun_sinif_operasyon_makine import UrunSinifOperasyonMakine
 
 from app.routes import auth
 from app.routes import dashboard
@@ -44,6 +45,9 @@ with engine.begin() as connection:
         connection.execute(text("ALTER TABLE urunler ADD COLUMN urun_sinifi_id INTEGER"))
     if "urun_cinsi" not in urun_sutunlari:
         connection.execute(text("ALTER TABLE urunler ADD COLUMN urun_cinsi VARCHAR(100)"))
+    recete_kalem_sutunlari = {sutun["name"] for sutun in inspect(connection).get_columns("recete_kalemleri")}
+    if "hedef_cevrim_suresi" not in recete_kalem_sutunlari:
+        connection.execute(text("ALTER TABLE recete_kalemleri ADD COLUMN hedef_cevrim_suresi FLOAT DEFAULT 0"))
     kullanici_sutunlari = {sutun["name"] for sutun in inspect(connection).get_columns("kullanicilar")}
     if "istasyon_id" not in kullanici_sutunlari:
         connection.execute(text("ALTER TABLE kullanicilar ADD COLUMN istasyon_id INTEGER REFERENCES istasyonlar(id)"))
