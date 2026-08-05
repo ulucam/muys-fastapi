@@ -19,7 +19,7 @@
 
         </div>
 
-        <a href="/ayarlar" class="btn btn-outline-secondary">
+        <a href="/" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i>
             Geri
         </a>
@@ -85,7 +85,7 @@
 
                     <p class="text-muted">
 
-                        Şablondaki <strong>Müşteriler</strong> ve <strong>Stok Ürünleri</strong> sayfalarını düzenleyip yükleyin.
+                        Şablondaki <strong>Müşteriler</strong>, <strong>Stok Ürünleri</strong>, <strong>Personel</strong>, <strong>İstasyon</strong> ve <strong>Makine</strong> sayfalarını düzenleyip yükleyin.
 
                     </p>
 
@@ -195,6 +195,9 @@
                 <li><strong>{{ eklenecek|length }}</strong> yeni müşteri eklenecek.</li>
                 <li><strong>{{ guncellenecek|length }}</strong> mevcut müşteri güncellenecek.</li>
                 <li><strong>{{ gecerli_urun }}</strong> stok ürünü eklenecek veya güncellenecek.</li>
+                <li><strong>{{ gecerli_personel }}</strong> personel eklenecek veya güncellenecek.</li>
+                <li><strong>{{ gecerli_istasyon }}</strong> istasyon eklenecek veya güncellenecek.</li>
+                <li><strong>{{ gecerli_makine }}</strong> makine eklenecek veya güncellenecek.</li>
             </ul>
             {% if guncellenecek %}<p class="text-muted small">Güncellenecekler: {{ guncellenecek|join(', ') }}</p>{% endif %}
             <form action="/ayarlar/excel/onayla" method="post">
