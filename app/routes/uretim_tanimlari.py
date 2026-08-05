@@ -126,6 +126,17 @@ def uretim_tanimlari(request: Request, error: str | None = None, goster: str = "
     return templates.TemplateResponse("uretim/tanimlar.html", ekran_verisi(request, db, hata=hata, goster=goster, liste_basligi=baslik, secili_kayitlar=kayitlar))
 
 
+@router.get("/uretim-tanimlari/personel/{personel_id}/puantaj", response_class=HTMLResponse)
+def personel_puantaj_gecmisi(personel_id: int, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
+    personel = db.query(Personel).filter(Personel.id == personel_id).first()
+    if not personel:
+        return RedirectResponse("/uretim-tanimlari?goster=personeller", status_code=303)
+    puantajlar = db.query(Puantaj).filter(Puantaj.personel_id == personel_id).order_by(Puantaj.tarih.desc()).all()
+    data = template_data(request)
+    data.update({"personel": personel, "puantajlar": puantajlar})
+    return templates.TemplateResponse("uretim/personel_puantaj.html", data)
+
+
 @router.get("/uretim-tanimlari/duzenle/{tip}/{kod}", response_class=HTMLResponse)
 def duzenle_form(tip: str, kod: str, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
     modeller = {"personel": Personel, "istasyon": Istasyon, "makine": Makine, "sinif": UrunSinifi}
