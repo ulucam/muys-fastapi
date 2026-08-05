@@ -22,7 +22,7 @@
             <div class="stat-icon bg-warning"><i class="bi bi-truck"></i></div>
             <div class="stat-body"><h3>{{ teslim_bekleyen }}</h3><span>Teslim Bekleyen</span></div>
         </a>
-        <a class="stat-card text-decoration-none text-body" href="#puantajPanel" data-bs-toggle="collapse" role="button" aria-controls="puantajPanel">
+        <a class="stat-card text-decoration-none text-body" href="/personeller?sekme=puantaj&tarih={{ secili_tarih.isoformat() }}&devamsiz=1">
             <div class="stat-icon bg-danger"><i class="bi bi-person-x"></i></div>
             <div class="stat-body"><h3>{{ devamsiz_sayisi }}</h3><span>Devamsız</span></div>
         </a>
