@@ -11,7 +11,7 @@ from app.models.personel import Personel
 from app.context import template_data
 from app.security import yetki_kontrol
 from app.password import sifre_olustur
-from app.roles import ADMIN
+from app.roles import ADMIN, YONETIM
 
 router = APIRouter(
     prefix="/kullanicilar",
@@ -30,7 +30,7 @@ def liste(
     request: Request,
     filtre: str = "",
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(ADMIN))
+    yetki=Depends(yetki_kontrol(YONETIM))
 ):
     kullanicilar = (
         db.query(User)
@@ -152,7 +152,7 @@ def duzenle_form(
     id: int,
     request: Request,
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(ADMIN))
+    yetki=Depends(yetki_kontrol(YONETIM))
 ):
     kullanici = (
         db.query(User)
@@ -195,7 +195,7 @@ def duzenle(
     aktif: bool = Form(True),
     sifre: str = Form(""),  
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(ADMIN))
+    yetki=Depends(yetki_kontrol(YONETIM))
 ):
     kullanici = (
         db.query(User)
