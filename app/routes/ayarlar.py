@@ -19,6 +19,7 @@ from app.models.urun import Urun
 from app.models.personel import Personel
 from app.models.istasyon import Istasyon
 from app.models.makine import Makine
+from app.models.urun_sinifi import UrunSinifi
 from app.models.firma_ayarlari import FirmaAyarlari
 from app.models.islem_logu import IslemLogu
 from app.models.excel_aktarim_taslagi import ExcelAktarimTaslagi
@@ -33,13 +34,14 @@ templates = Jinja2Templates(
 )
 
 ILLER_DOSYASI = Path(__file__).resolve().parent.parent / "data" / "iller.js"
-MUSTERI_SUTUNLARI = ["Firma Adı", "Yetkili", "Telefon", "E-Posta", "Vergi Dairesi", "Vergi No", "İl", "İlçe", "Müşteri Türü", "Adres", "Açıklama"]
+MUSTERI_SUTUNLARI = ["Firma Adı", "Yetkili", "Telefon", "E-Posta", "Vergi Dairesi", "Vergi No", "İl", "İlçe", "Müşteri Türü", "Adres", "Açıklama", "Durum"]
 TURLER = ["Alıcı", "Tedarikçi", "Satıcı"]
-URUN_SUTUNLARI = ["Ürün Kodu", "Ürün Adı", "Ürün Türü", "Birim", "Mevcut Stok", "Min. Stok", "Max. Stok", "Maliyet", "Satış Fiyatı", "Açıklama", "Durum"]
-URUN_TURLERI = ["Hammadde", "Yarı Mamul", "Mamul", "Ticari Mamul"]
+URUN_SUTUNLARI = ["Ürün Kodu", "Ürün Adı", "Ürün Türü", "Ürün Sınıfı", "Ürün Cinsi", "Birim", "Mevcut Stok", "Min. Stok", "Max. Stok", "Maliyet", "Satış Fiyatı", "Açıklama", "Durum"]
+URUN_TURLERI = ["Hammadde", "Ticari Ürün"]
 URUN_TIP_KODLARI = {
     "Hammadde": "Hammadde", "Yarı Mamul": "YariMamul", "YariMamul": "YariMamul",
     "Mamul": "Mamul", "Ticari Mamul": "TicariMamul", "TicariMamul": "TicariMamul",
+    "Ticari Ürün": "TicariMamul",
 }
 URUN_TIP_ETIKETLERI = {kod: etiket for etiket, kod in URUN_TIP_KODLARI.items() if etiket not in ("YariMamul", "TicariMamul")}
 PERSONEL_SUTUNLARI = ["Ad Soyad", "Departman", "Görev", "Durum"]
@@ -126,6 +128,8 @@ def excel_satirlarini_oku(dosya_icerigi):
             satir_hatalari.append("Firma adı zorunlu")
         if veri["Müşteri Türü"] not in TURLER:
             satir_hatalari.append("Müşteri türü Alıcı, Tedarikçi veya Satıcı olmalı")
+        if veri["Durum"] not in ("Aktif", "Pasif"):
+            satir_hatalari.append("Durum Aktif veya Pasif olmalı")
         if veri["İl"] and veri["İl"] not in iller:
             satir_hatalari.append("Geçersiz il")
         if veri["İlçe"] and (not veri["İl"] or veri["İlçe"] not in iller.get(veri["İl"], [])):
@@ -135,11 +139,12 @@ def excel_satirlarini_oku(dosya_icerigi):
         else:
             satirlar.append(veri)
     urunler = []
-    if "Stok Ürünleri" in kitap.sheetnames:
-        stok_sayfasi = kitap["Stok Ürünleri"]
+    urun_sayfa_adi = next((ad for ad in ("Hammadde ve Ticari Ürünler", "Stok Ürünleri") if ad in kitap.sheetnames), None)
+    if urun_sayfa_adi:
+        stok_sayfasi = kitap[urun_sayfa_adi]
         stok_basliklari = [metin(hucre.value) for hucre in stok_sayfasi[1]]
         if stok_basliklari[:len(URUN_SUTUNLARI)] != URUN_SUTUNLARI:
-            hatalar.append("Stok Ürünleri sayfasındaki sütun başlıkları taslakla uyuşmuyor.")
+            hatalar.append(f"{urun_sayfa_adi} sayfasındaki sütun başlıkları taslakla uyuşmuyor.")
         else:
             for sira, satir in enumerate(stok_sayfasi.iter_rows(min_row=2, values_only=True), start=2):
                 if not any(satir):
@@ -153,12 +158,14 @@ def excel_satirlarini_oku(dosya_icerigi):
                 if not ad:
                     satir_hatalari.append("Ürün adı zorunlu")
                 if not urun_turu:
-                    satir_hatalari.append("Ürün türü Hammadde, Yarı Mamul, Mamul veya Ticari Mamul olmalı")
+                    satir_hatalari.append("Ürün türü Hammadde veya Ticari Ürün olmalı")
                 if metin(veri["Durum"]) not in ("Aktif", "Pasif"):
                     satir_hatalari.append("Durum Aktif veya Pasif olmalı")
                 try:
                     urun = {
-                        "kodu": kod, "adi": ad, "urun_tipi": urun_turu, "birim": birim or "Adet",
+                    "kodu": kod, "adi": ad, "urun_tipi": urun_turu,
+                        "urun_sinifi_kodu": metin(veri["Ürün Sınıfı"]), "urun_cinsi": metin(veri["Ürün Cinsi"]),
+                        "birim": birim or "Adet",
                         "mevcut_stok": sayi(veri["Mevcut Stok"], "Mevcut stok"),
                         "min_stok": sayi(veri["Min. Stok"], "Min. stok"),
                         "max_stok": sayi(veri["Max. Stok"], "Max. stok"),
@@ -171,7 +178,7 @@ def excel_satirlarini_oku(dosya_icerigi):
                     satir_hatalari.append(str(hata))
                     urun = None
                 if satir_hatalari:
-                    hatalar.append(f"Stok Ürünleri satır {sira}: {', '.join(satir_hatalari)}")
+                    hatalar.append(f"{urun_sayfa_adi} satır {sira}: {', '.join(satir_hatalari)}")
                 elif urun:
                     urunler.append(urun)
     def liste_sayfasi_oku(sayfa_adlari, sutunlar, etiket, zorunlu_alanlar=None):
@@ -249,6 +256,7 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
     mevcut_personeller = db.query(Personel).order_by(Personel.kodu).all()
     mevcut_istasyonlar = db.query(Istasyon).order_by(Istasyon.kodu).all()
     mevcut_makineler = db.query(Makine).order_by(Makine.kodu).all()
+    mevcut_siniflar = db.query(UrunSinifi).order_by(UrunSinifi.kodu).all()
     kitap = openpyxl.Workbook()
     sistem = kitap.active
     sistem.title = "Sistem Bilgileri"
@@ -275,33 +283,16 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
             musteri.firma_adi, musteri.yetkili, musteri.telefon, musteri.email,
             musteri.vergi_dairesi, musteri.vergi_no, musteri.il, musteri.ilce,
             musteri.musteri_turu or "Alıcı", musteri.adres, musteri.aciklama,
+            "Aktif" if musteri.aktif else "Pasif",
         ])
     musteriler.freeze_panes = "A2"
     son_satir = max(501, len(mevcut_musteriler) + 1)
-    musteriler.auto_filter.ref = f"A1:K{son_satir}"
+    musteriler.auto_filter.ref = f"A1:L{son_satir}"
     for hucre in musteriler[1]:
         hucre.font = openpyxl.styles.Font(bold=True, color="FFFFFF")
         hucre.fill = openpyxl.styles.PatternFill("solid", fgColor="1F4E78")
-    for sutun, genislik in zip("ABCDEFGHIJK", [28, 22, 18, 28, 20, 16, 18, 20, 18, 45, 35]):
+    for sutun, genislik in zip("ABCDEFGHIJKL", [28, 22, 18, 28, 20, 16, 18, 20, 18, 45, 35, 14]):
         musteriler.column_dimensions[sutun].width = genislik
-
-    stok = kitap.create_sheet("Stok Ürünleri")
-    stok.append(URUN_SUTUNLARI)
-    for urun in mevcut_urunler:
-        stok.append([
-            urun.kodu, urun.adi, URUN_TIP_ETIKETLERI.get(urun.urun_tipi, urun.urun_tipi or "Mamul"), urun.birim or "Adet",
-            urun.mevcut_stok or 0, urun.min_stok or 0, urun.max_stok or 0,
-            urun.maliyet or 0, urun.satis_fiyati or 0, urun.aciklama or "",
-            "Aktif" if urun.aktif else "Pasif",
-        ])
-    stok.freeze_panes = "A2"
-    stok_son_satir = max(501, len(mevcut_urunler) + 1)
-    stok.auto_filter.ref = f"A1:K{stok_son_satir}"
-    for hucre in stok[1]:
-        hucre.font = openpyxl.styles.Font(bold=True, color="FFFFFF")
-        hucre.fill = openpyxl.styles.PatternFill("solid", fgColor="1F4E78")
-    for sutun, genislik in zip("ABCDEFGHIJK", [18, 32, 18, 14, 16, 16, 16, 14, 16, 36, 12]):
-        stok.column_dimensions[sutun].width = genislik
 
     istasyon_kodlari = {istasyon.id: istasyon.kodu for istasyon in mevcut_istasyonlar}
     for sayfa_adi, basliklar, satirlar, genislikler in [
@@ -321,16 +312,39 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
         for index, genislik in enumerate(genislikler, start=1):
             sayfa.column_dimensions[openpyxl.utils.get_column_letter(index)].width = genislik
 
+    sinif_kodlari = {sinif.id: sinif.kodu for sinif in mevcut_siniflar}
+    aktarilacak_urunler = [u for u in mevcut_urunler if u.urun_tipi in ("Hammadde", "TicariMamul")]
+    stok = kitap.create_sheet("Hammadde ve Ticari Ürünler")
+    stok.append(URUN_SUTUNLARI)
+    for urun in aktarilacak_urunler:
+        stok.append([
+            urun.kodu, urun.adi, "Ticari Ürün" if urun.urun_tipi == "TicariMamul" else "Hammadde",
+            sinif_kodlari.get(urun.urun_sinifi_id, ""), urun.urun_cinsi or "", urun.birim or "Adet",
+            urun.mevcut_stok or 0, urun.min_stok or 0, urun.max_stok or 0,
+            urun.maliyet or 0, urun.satis_fiyati or 0, urun.aciklama or "",
+            "Aktif" if urun.aktif else "Pasif",
+        ])
+    stok.freeze_panes = "A2"
+    stok_son_satir = max(501, len(aktarilacak_urunler) + 1)
+    stok.auto_filter.ref = f"A1:M{stok_son_satir}"
+    for hucre in stok[1]:
+        hucre.font = openpyxl.styles.Font(bold=True, color="FFFFFF")
+        hucre.fill = openpyxl.styles.PatternFill("solid", fgColor="1F4E78")
+    for sutun, genislik in zip("ABCDEFGHIJKLM", [18, 32, 18, 20, 22, 14, 16, 16, 16, 14, 16, 36, 12]):
+        stok.column_dimensions[sutun].width = genislik
+
     listeler = kitap.create_sheet("Listeler")
-    listeler.append(["İller", "İlçeler", "Müşteri Türleri", "Ürün Türleri", "Durumlar"])
+    listeler.append(["İller", "İlçeler", "Müşteri Türleri", "Ürün Türleri", "Ürün Sınıfları", "Durumlar"])
     tum_ilceler = sorted({ilce for ilceler in iller.values() for ilce in ilceler})
     durumlar = ["Aktif", "Pasif"]
-    for sira in range(max(len(iller), len(tum_ilceler), len(TURLER), len(URUN_TURLERI), len(durumlar))):
+    sinif_listesi = [sinif.kodu for sinif in mevcut_siniflar]
+    for sira in range(max(len(iller), len(tum_ilceler), len(TURLER), len(URUN_TURLERI), len(sinif_listesi), len(durumlar))):
         listeler.append([
             sorted(iller)[sira] if sira < len(iller) else None,
             tum_ilceler[sira] if sira < len(tum_ilceler) else None,
             TURLER[sira] if sira < len(TURLER) else None,
             URUN_TURLERI[sira] if sira < len(URUN_TURLERI) else None,
+            sinif_listesi[sira] if sira < len(sinif_listesi) else None,
             durumlar[sira] if sira < len(durumlar) else None,
         ])
     listeler.sheet_state = "hidden"
@@ -339,13 +353,26 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
         musteriler.add_data_validation(dogrulama)
         dogrulama.add(alan)
 
-    for formül, alan in [
-        ("'Listeler'!$D$2:$D$5", f"C2:C{stok_son_satir}"),
-        ("'Listeler'!$E$2:$E$3", f"K2:K{stok_son_satir}"),
+    for formül, alan, bos_birakilabilir in [
+        ("'Listeler'!$D$2:$D$3", f"C2:C{stok_son_satir}", False),
+        (f"'Listeler'!$E$2:$E${max(2, len(sinif_listesi) + 1)}", f"D2:D{stok_son_satir}", True),
+        ("'Listeler'!$F$2:$F$3", f"M2:M{stok_son_satir}", False),
     ]:
-        dogrulama = DataValidation(type="list", formula1=formül, allow_blank=False)
+        dogrulama = DataValidation(type="list", formula1=formül, allow_blank=bos_birakilabilir)
         stok.add_data_validation(dogrulama)
         dogrulama.add(alan)
+    musteri_durumu = DataValidation(type="list", formula1="'Listeler'!$F$2:$F$3", allow_blank=False)
+    musteriler.add_data_validation(musteri_durumu)
+    musteri_durumu.add(f"L2:L{son_satir}")
+
+    for sayfa_adi, alan in [("Personel Listesi", "D2:D1000"), ("İstasyon Listesi", "E2:E1000"), ("Makine Listesi", "F2:F1000")]:
+        dogrulama = DataValidation(type="list", formula1="'Listeler'!$F$2:$F$3", allow_blank=False)
+        kitap[sayfa_adi].add_data_validation(dogrulama)
+        dogrulama.add(alan)
+
+    # Gizli yardımcı liste sayfasından sonra da olsa ürün sayfasını çalışma
+    # kitabındaki mutlak son sekme yap.
+    kitap.move_sheet(stok, offset=len(kitap.sheetnames))
 
     akis = io.BytesIO()
     kitap.save(akis)
@@ -463,15 +490,7 @@ def excel_onayla(request: Request, db: Session = Depends(get_db)):
             musteri.il, musteri.ilce = satir["İl"], satir["İlçe"]
             musteri.musteri_turu = satir["Müşteri Türü"]
             musteri.adres, musteri.aciklama = satir["Adres"], satir["Açıklama"]
-        urun_haritasi = {u.kodu: u for u in db.query(Urun).all()}
-        for satir in urunler:
-            urun = urun_haritasi.get(satir["kodu"])
-            if not urun:
-                urun = Urun(kodu=satir["kodu"])
-                db.add(urun)
-                urun_haritasi[satir["kodu"]] = urun
-            for alan, deger in satir.items():
-                setattr(urun, alan, deger)
+            musteri.aktif = satir["Durum"] == "Aktif"
         kullanilan_personel_kodlari = {kod for (kod,) in db.query(Personel.kodu).all() if kod}
         personel_haritasi = {p.ad_soyad.casefold(): p for p in db.query(Personel).all() if p.ad_soyad}
         for satir in personeller:
@@ -515,6 +534,18 @@ def excel_onayla(request: Request, db: Session = Depends(get_db)):
             makine.model = metin(satir["Model"])
             makine.kapasite = metin(satir["Kapasite"])
             makine.aktif = metin(satir["Durum"]) == "Aktif"
+        urun_haritasi = {u.kodu: u for u in db.query(Urun).all()}
+        sinif_haritasi = {s.kodu: s for s in db.query(UrunSinifi).all()}
+        for satir in urunler:
+            urun = urun_haritasi.get(satir["kodu"])
+            if not urun:
+                urun = Urun(kodu=satir["kodu"])
+                db.add(urun)
+                urun_haritasi[satir["kodu"]] = urun
+            sinif_kodu = satir.pop("urun_sinifi_kodu", "")
+            urun.urun_sinifi_id = sinif_haritasi[sinif_kodu].id if sinif_kodu in sinif_haritasi else None
+            for alan, deger in satir.items():
+                setattr(urun, alan, deger)
         db.delete(taslak)
         request.session.pop("excel_onay_token", None)
         islem_logla(db, request, "Excel", "Excel aktarımı tamamlandı", f"Dosya: {dosya_adi}. {len(satirlar)} müşteri, {len(urunler)} stok ürünü, {len(personeller)} personel, {len(istasyonlar)} istasyon ve {len(makineler)} makine aktarıldı/güncellendi.")
