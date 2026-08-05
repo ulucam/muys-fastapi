@@ -1,0 +1,16 @@
+#tanimModal .modal-dialog{
+    height:calc(100vh - 2rem);
+    margin-top:1rem;
+    margin-bottom:1rem;
+}
+
+#tanimModal .modal-content{
+    max-height:100%;
+    overflow:hidden;
+}
+
+#tanimModal .modal-body{
+    max-height:calc(100vh - 2rem);
+    overflow-y:auto !important;
+    overscroll-behavior:contain;
+}
