@@ -15,7 +15,7 @@ from app.services.islem_log_service import islem_logla
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
-PUANTAJ_DURUMLARI = ("Geldi", "Devamsız", "İzinli", "Raporlu")
+PUANTAJ_DURUMLARI = ("Geldi", "Gelmedi", "İzinli", "Raporlu")
 SIPARIS_DURUMLARI = ("Beklemede", "Üretimde", "Sevke Hazır")
 
 
@@ -53,7 +53,8 @@ def dashboard(request: Request, tarih: str | None = None, db: Session = Depends(
         "aktif_siparis": len(siparisler),
         "uretimde": len(siparisler_duruma_gore["Üretimde"]),
         "teslim_bekleyen": len(siparisler_duruma_gore["Sevke Hazır"]),
-        "devamsiz_sayisi": sum(1 for p in gunluk_puantaj.values() if p.durum == "Devamsız"),
+        "devamsiz_sayisi": sum(1 for p in gunluk_puantaj.values() if p.durum in ("Devamsız", "Gelmedi")),
+        "puantaj_acik": request.query_params.get("puantaj") == "1",
     })
     return templates.TemplateResponse("dashboard/index.html", data)
 
@@ -79,4 +80,4 @@ async def puantaj_kaydet(request: Request, db: Session = Depends(get_db)):
         kayit.aciklama = str(form.get(f"aciklama_{personel.id}") or "").strip()
     islem_logla(db, request, "Puantaj", "Günlük puantaj kaydedildi", f"Tarih: {secili_tarih.isoformat()}, personel: {len(aktif_personeller)}")
     db.commit()
-    return RedirectResponse(f"/?tarih={secili_tarih.isoformat()}#puantaj", status_code=303)
+    return RedirectResponse(f"/?tarih={secili_tarih.isoformat()}&puantaj=1#puantaj", status_code=303)
