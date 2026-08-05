@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container py-3"><div class="d-flex justify-content-between align-items-center"><h3>{{ duzenle_tipi|capitalize }} Düzenle</h3><a class="btn btn-outline-secondary" href="/">Dashboard</a></div><div class="card shadow-sm"><div class="card-body">
+<div class="container py-3"><div class="d-flex justify-content-between align-items-center"><h3>{{ duzenle_tipi|capitalize }} Düzenle</h3><a class="btn btn-outline-secondary" href="/uretim-tanimlari" data-page-back><i class="bi bi-arrow-left"></i> Geri</a></div><div class="card shadow-sm"><div class="card-body">
 <form method="post" action="/uretim-tanimlari/kaydet/{{ duzenle_tipi }}" class="row g-3">
 <input type="hidden" name="orijinal_kodu" value="{{ kayit.kodu }}">
 <div class="col-md-4"><label class="form-label">Kod</label><input class="form-control" name="kodu" value="{{ kayit.kodu }}" {% if not (duzenle_tipi == 'sinif' and request.session.get('rol') == 'Admin') %}readonly{% endif %} required>{% if duzenle_tipi == 'sinif' and request.session.get('rol') == 'Admin' %}<div class="form-text">Ürün sınıfı kodunu Admin olarak değiştirebilirsiniz.</div>{% endif %}</div>
