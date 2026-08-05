@@ -85,10 +85,9 @@
 
             {% if request.url.path not in ["/", "/login"] %}
             <div class="d-flex justify-content-end mb-3">
-                <button class="btn btn-sm btn-outline-secondary" type="button"
-                        onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href = '/'; }">
+                <a class="btn btn-sm btn-outline-secondary" href="/">
                     <i class="bi bi-arrow-left"></i> Geri
-                </button>
+                </a>
             </div>
             {% endif %}
 
