@@ -167,7 +167,9 @@ def personel_listesi(
 
 @router.get("/uretim-tanimlari", response_class=HTMLResponse)
 def uretim_tanimlari(request: Request, error: str | None = None, goster: str = "", db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
-    hata = "Kayıt kaydedilemedi. Zorunlu alanları ve seçilen ilişkileri kontrol edin." if error else None
+    hata = request.session.pop("uretim_tanim_hatasi", None)
+    if error and not hata:
+        hata = "Kayıt kaydedilemedi. Zorunlu alanları ve seçilen ilişkileri kontrol edin."
     listeler = {
         "personeller": ("Aktif Personeller", db.query(Personel).filter(Personel.aktif.is_(True)).order_by(Personel.kodu).all()),
         "istasyonlar": ("Aktif İstasyonlar", db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.kodu).all()),
@@ -404,8 +406,15 @@ async def manuel_kaydet(tip: str, request: Request, db: Session = Depends(get_db
         islem_logla(db, request, "Üretim", "Üretim tanımı kaydedildi", tip)
         db.commit()
         return RedirectResponse(donus, status_code=303)
-    except Exception:
+    except Exception as hata:
         db.rollback()
+        hata_mesaji = f"{type(hata).__name__}: {hata}"
+        request.session["uretim_tanim_hatasi"] = hata_mesaji
+        try:
+            islem_logla(db, request, "Üretim", "Üretim tanımı kaydedilemedi", f"Tür: {tip}. Hata: {hata_mesaji}")
+            db.commit()
+        except Exception:
+            db.rollback()
         ayirici = "&" if "?" in donus else "?"
         return RedirectResponse(f"{donus}{ayirici}error=kayit", status_code=303)
 
