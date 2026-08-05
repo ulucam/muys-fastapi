@@ -287,13 +287,15 @@ def manuel_tanim_kaydet(
                 if not nesne:
                     nesne = UrunSinifOperasyon(urun_sinifi_id=sinif.id, sira_no=sira)
                     db.add(nesne)
-                    db.flush()
                 nesne.istasyon_id = istasyon.id
                 nesne.makine_id = secili_makineler[0].id if secili_makineler else None
                 nesne.operasyon_adi = operasyon_adi
                 nesne.hedef_cevrim_suresi = 0
                 nesne.kontrol_noktasi = metin(form.get(f"kontrol_noktasi_{sira}"))
                 nesne.aktif = aktif
+                # Yeni operasyonun zorunlu alanları atanmadan flush edilirse
+                # PostgreSQL istasyon_id için boş değer hatası verir.
+                db.flush()
                 db.query(UrunSinifOperasyonMakine).filter(UrunSinifOperasyonMakine.operasyon_id == nesne.id).delete()
                 for makine in secili_makineler:
                     db.add(UrunSinifOperasyonMakine(operasyon_id=nesne.id, makine_id=makine.id))
