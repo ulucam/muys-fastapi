@@ -197,6 +197,7 @@ def duzenle_form(tip: str, kod: str, request: Request, db: Session = Depends(get
 @router.post("/uretim-tanimlari/kaydet/{tip}")
 async def manuel_kaydet(tip: str, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
     form = await request.form()
+    donus = "/personeller" if form.get("donus") == "/personeller" else "/uretim-tanimlari"
     aktif = form.get("aktif") == "true"
     try:
         if tip == "personel":
@@ -283,10 +284,11 @@ async def manuel_kaydet(tip: str, request: Request, db: Session = Depends(get_db
             db.add(nesne)
         islem_logla(db, request, "Üretim", "Üretim tanımı kaydedildi", tip)
         db.commit()
-        return RedirectResponse("/uretim-tanimlari", status_code=303)
+        return RedirectResponse(donus, status_code=303)
     except Exception:
         db.rollback()
-        return RedirectResponse("/uretim-tanimlari?error=kayit", status_code=303)
+        ayirici = "&" if "?" in donus else "?"
+        return RedirectResponse(f"{donus}{ayirici}error=kayit", status_code=303)
 
 
 @router.get("/uretim-tanimlari/excel-sablon")
