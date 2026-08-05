@@ -2,7 +2,8 @@
 {% block content %}
 <div class="container py-3"><div class="d-flex justify-content-between align-items-center"><h3>{{ duzenle_tipi|capitalize }} Düzenle</h3><a class="btn btn-outline-secondary" href="/">Dashboard</a></div><div class="card shadow-sm"><div class="card-body">
 <form method="post" action="/uretim-tanimlari/kaydet/{{ duzenle_tipi }}" class="row g-3">
-<div class="col-md-4"><label class="form-label">Kod</label><input class="form-control" name="kodu" value="{{ kayit.kodu }}" readonly></div>
+<input type="hidden" name="orijinal_kodu" value="{{ kayit.kodu }}">
+<div class="col-md-4"><label class="form-label">Kod</label><input class="form-control" name="kodu" value="{{ kayit.kodu }}" {% if not (duzenle_tipi == 'sinif' and request.session.get('rol') == 'Admin') %}readonly{% endif %} required>{% if duzenle_tipi == 'sinif' and request.session.get('rol') == 'Admin' %}<div class="form-text">Ürün sınıfı kodunu Admin olarak değiştirebilirsiniz.</div>{% endif %}</div>
 {% if duzenle_tipi == 'personel' %}
 <div class="col-md-8"><label class="form-label">Ad Soyad</label><input class="form-control" name="ad_soyad" value="{{ kayit.ad_soyad }}" required></div><div class="col-md-6"><label class="form-label">Departman</label><input class="form-control" name="departman" value="{{ kayit.departman or '' }}"></div><div class="col-md-6"><label class="form-label">Görev</label><input class="form-control" name="gorev" value="{{ kayit.gorev or '' }}"></div>
 {% elif duzenle_tipi == 'istasyon' %}
