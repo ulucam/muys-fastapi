@@ -105,11 +105,15 @@ def ekran_verisi(request, db, **ek):
         "pasif_istasyon_sayisi": db.query(Istasyon).filter(Istasyon.aktif.is_(False)).count(),
         "pasif_makine_sayisi": db.query(Makine).filter(Makine.aktif.is_(False)).count(),
         "urun_sinifi_sayisi": db.query(UrunSinifi).filter(UrunSinifi.aktif.is_(True)).count(),
+        "operasyon_sayisi": db.query(UrunSinifOperasyon).filter(UrunSinifOperasyon.aktif.is_(True)).count(),
+        "urun_sayisi": db.query(Urun).filter(Urun.aktif.is_(True)).count(),
+        "recete_bileseni_sayisi": db.query(ReceteKalem).filter(ReceteKalem.aktif.is_(True)).count(),
         "istasyonlar": db.query(Istasyon).order_by(Istasyon.kodu).all(),
         "personeller": db.query(Personel).order_by(Personel.kodu).all(),
         "makineler": db.query(Makine).order_by(Makine.kodu).all(),
         "urun_siniflari": db.query(UrunSinifi).order_by(UrunSinifi.kodu).all(),
         "urunler": db.query(Urun).order_by(Urun.kodu).all(),
+        "receteler": {r.id: r for r in db.query(Recete).all()},
         "personel_atamalari": personel_atamalari,
         "personel_puantajlari": personel_puantajlari,
     })
@@ -171,6 +175,9 @@ def uretim_tanimlari(request: Request, error: str | None = None, goster: str = "
         "istasyonlar_pasif": ("Pasif İstasyonlar", db.query(Istasyon).filter(Istasyon.aktif.is_(False)).order_by(Istasyon.kodu).all()),
         "makineler_pasif": ("Pasif Makineler", db.query(Makine).filter(Makine.aktif.is_(False)).order_by(Makine.kodu).all()),
         "urun_siniflari": ("Aktif Ürün Sınıfları", db.query(UrunSinifi).filter(UrunSinifi.aktif.is_(True)).order_by(UrunSinifi.kodu).all()),
+        "operasyonlar": ("Sınıf Reçetesi Operasyonları", db.query(UrunSinifOperasyon).order_by(UrunSinifOperasyon.urun_sinifi_id, UrunSinifOperasyon.sira_no).all()),
+        "urunler": ("Ürün Kartları", db.query(Urun).order_by(Urun.kodu).all()),
+        "recete_bilesenleri": ("Ürün Reçetesi Bileşenleri", db.query(ReceteKalem).order_by(ReceteKalem.recete_id, ReceteKalem.sira_no).all()),
     }
     baslik, kayitlar = listeler.get(goster, (None, []))
     return templates.TemplateResponse("uretim/tanimlar.html", ekran_verisi(request, db, hata=hata, goster=goster, liste_basligi=baslik, secili_kayitlar=kayitlar))
@@ -215,6 +222,79 @@ def tanim_sil(tip: str, kod: str, db: Session = Depends(get_db), yetki=Depends(y
             kayit.aktif = False
             db.commit()
     return RedirectResponse(f"/uretim-tanimlari?goster={'istasyonlar' if tip == 'istasyon' else 'makineler'}", status_code=303)
+
+
+@router.get("/uretim-tanimlari/kayit-duzenle/{tip}/{kayit_id}", response_class=HTMLResponse)
+def iliskili_kayit_duzenle(tip: str, kayit_id: int, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
+    model = {"operasyon": UrunSinifOperasyon, "urun": Urun, "recete": ReceteKalem}.get(tip)
+    kayit = db.query(model).filter(model.id == kayit_id).first() if model else None
+    if not kayit:
+        return RedirectResponse("/uretim-tanimlari", status_code=303)
+    data = ekran_verisi(request, db, kayit=kayit, kayit_tipi=tip)
+    data["secili_makine_idleri"] = [x.makine_id for x in db.query(UrunSinifOperasyonMakine).filter(UrunSinifOperasyonMakine.operasyon_id == kayit_id).all()] if tip == "operasyon" else []
+    return templates.TemplateResponse("uretim/iliskili_duzenle.html", data)
+
+
+@router.post("/uretim-tanimlari/kayit-duzenle/{tip}/{kayit_id}")
+async def iliskili_kayit_guncelle(tip: str, kayit_id: int, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
+    form = await request.form()
+    try:
+        if tip == "operasyon":
+            kayit = db.query(UrunSinifOperasyon).filter(UrunSinifOperasyon.id == kayit_id).first()
+            sinif = db.query(UrunSinifi).filter(UrunSinifi.kodu == metin(form.get("sinif_kodu"))).first()
+            istasyon = db.query(Istasyon).filter(Istasyon.kodu == metin(form.get("istasyon_kodu"))).first()
+            makineler = db.query(Makine).filter(Makine.kodu.in_(form.getlist("makine_kodlari"))).all()
+            if not kayit or not sinif or not istasyon or not metin(form.get("operasyon_adi")) or any(m.istasyon_id != istasyon.id for m in makineler):
+                raise ValueError("Geçersiz operasyon bilgisi")
+            kayit.urun_sinifi_id, kayit.sira_no, kayit.istasyon_id = sinif.id, sayi(form.get("sira"), "Sıra", True), istasyon.id
+            kayit.operasyon_adi, kayit.kontrol_noktasi, kayit.aktif = metin(form.get("operasyon_adi")), metin(form.get("kontrol_noktasi")), form.get("aktif") == "true"
+            kayit.makine_id = makineler[0].id if makineler else None
+            db.query(UrunSinifOperasyonMakine).filter(UrunSinifOperasyonMakine.operasyon_id == kayit.id).delete()
+            for makine in makineler:
+                db.add(UrunSinifOperasyonMakine(operasyon_id=kayit.id, makine_id=makine.id))
+            donus = "operasyonlar"
+        elif tip == "urun":
+            kayit = db.query(Urun).filter(Urun.id == kayit_id).first()
+            sinif = db.query(UrunSinifi).filter(UrunSinifi.kodu == metin(form.get("sinif_kodu"))).first() if metin(form.get("sinif_kodu")) else None
+            if not kayit or not metin(form.get("kodu")) or not metin(form.get("adi")) or metin(form.get("urun_tipi")) not in URUN_TIPLERI:
+                raise ValueError("Geçersiz ürün bilgisi")
+            cakisan = db.query(Urun).filter(Urun.kodu == metin(form.get("kodu")), Urun.id != kayit.id).first()
+            if cakisan: raise ValueError("Ürün kodu kullanılıyor")
+            kayit.kodu, kayit.adi, kayit.urun_tipi = metin(form.get("kodu")), metin(form.get("adi")), metin(form.get("urun_tipi"))
+            kayit.urun_sinifi_id, kayit.birim, kayit.urun_cinsi = sinif.id if sinif else None, metin(form.get("birim")) or "Adet", metin(form.get("urun_cinsi"))
+            kayit.mevcut_stok, kayit.min_stok, kayit.aktif = sayi(form.get("mevcut_stok") or 0, "Stok"), sayi(form.get("min_stok") or 0, "Min stok"), form.get("aktif") == "true"
+            donus = "urunler"
+        elif tip == "recete":
+            kayit = db.query(ReceteKalem).filter(ReceteKalem.id == kayit_id).first()
+            bilesen = db.query(Urun).filter(Urun.kodu == metin(form.get("bilesen_urun_kodu"))).first()
+            if not kayit or not bilesen: raise ValueError("Bileşen bulunamadı")
+            kayit.malzeme_id, kayit.miktar, kayit.birim = bilesen.id, sayi(form.get("miktar"), "Miktar"), metin(form.get("birim")) or bilesen.birim
+            kayit.fire_orani, kayit.sira_no = sayi(form.get("fire_orani") or 0, "Fire"), sayi(form.get("sira") or 1, "Sıra", True)
+            kayit.hedef_cevrim_suresi, kayit.aktif = sayi(form.get("hedef_cevrim") or 0, "Çevrim"), form.get("aktif") == "true"
+            donus = "recete_bilesenleri"
+        else: raise ValueError("Geçersiz tür")
+        db.commit()
+        return RedirectResponse(f"/uretim-tanimlari?goster={donus}", status_code=303)
+    except Exception:
+        db.rollback()
+        return RedirectResponse(f"/uretim-tanimlari/kayit-duzenle/{tip}/{kayit_id}?error=1", status_code=303)
+
+
+@router.post("/uretim-tanimlari/kayit-sil/{tip}/{kayit_id}")
+def iliskili_kayit_sil(tip: str, kayit_id: int, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
+    model = {"operasyon": UrunSinifOperasyon, "urun": Urun, "recete": ReceteKalem}.get(tip)
+    kayit = db.query(model).filter(model.id == kayit_id).first() if model else None
+    donus = {"operasyon": "operasyonlar", "urun": "urunler", "recete": "recete_bilesenleri"}.get(tip, "")
+    if kayit:
+        try:
+            if tip == "operasyon": db.query(UrunSinifOperasyonMakine).filter(UrunSinifOperasyonMakine.operasyon_id == kayit.id).delete()
+            db.delete(kayit); db.commit()
+        except Exception:
+            db.rollback()
+            if tip == "urun":
+                kayit = db.query(Urun).filter(Urun.id == kayit_id).first()
+                if kayit: kayit.aktif = False; db.commit()
+    return RedirectResponse(f"/uretim-tanimlari?goster={donus}", status_code=303)
 
 
 @router.post("/uretim-tanimlari/kaydet/{tip}")
