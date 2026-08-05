@@ -182,7 +182,19 @@ async def manuel_kaydet(tip: str, request: Request, db: Session = Depends(get_db
             nesne.rol, nesne.hedef_performans, nesne.aktif = metin(form.get("rol")) or "Operatör", sayi(form.get("hedef_performans") or 100, "Hedef performans"), aktif
         elif tip == "sinif":
             kod = metin(form.get("kodu"))
-            nesne = db.query(UrunSinifi).filter(UrunSinifi.kodu == kod).first() or UrunSinifi(kodu=kod)
+            orijinal_kodu = metin(form.get("orijinal_kodu"))
+            if orijinal_kodu:
+                nesne = db.query(UrunSinifi).filter(UrunSinifi.kodu == orijinal_kodu).first()
+                if not nesne:
+                    raise ValueError("Düzenlenecek ürün sınıfı bulunamadı")
+                if request.session.get("rol") != "Admin":
+                    kod = orijinal_kodu
+                cakisan = db.query(UrunSinifi).filter(UrunSinifi.kodu == kod, UrunSinifi.id != nesne.id).first()
+                if cakisan:
+                    raise ValueError("Bu ürün sınıfı kodu başka bir kayıtta kullanılıyor")
+                nesne.kodu = kod
+            else:
+                nesne = db.query(UrunSinifi).filter(UrunSinifi.kodu == kod).first() or UrunSinifi(kodu=kod)
             if not kod or not metin(form.get("adi")):
                 raise ValueError("Sınıf kodu ve adı zorunlu")
             nesne.adi, nesne.aciklama, nesne.aktif = metin(form.get("adi")), metin(form.get("aciklama")), aktif
