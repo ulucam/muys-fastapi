@@ -1,21 +1,25 @@
-import io
 import json
-import openpyxl
 from pathlib import Path
 from fastapi import APIRouter, Request, Depends, Form, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
-from app.models.musteri import Musteri
-from app.models.siparis import Siparis
 from app.context import template_data
 from app.security import yetki_kontrol
 from app.roles import MUSTERI
 from app.roles import MUSTERI_YONET
 from app.roles import ADMIN
+from app.services.musteri_service import (
+    musteri_detayi,
+    musteri_getir,
+    musteri_guncelle,
+    musteri_olustur,
+    musteri_sil,
+    musterileri_excelden_aktar,
+    musterileri_listele,
+)
 
 
 router = APIRouter(
@@ -69,18 +73,7 @@ def liste(
     yetki=Depends(yetki_kontrol(MUSTERI))
 ):
     # Pasif müşteriler ana listeden ayrılarak alt tablodan görüntülenir.
-    musteriler = (
-        db.query(Musteri)
-        .filter(Musteri.aktif.is_(True))
-        .order_by(Musteri.firma_adi.asc())
-        .all()
-    )
-    pasif_musteriler = (
-        db.query(Musteri)
-        .filter(Musteri.aktif.is_(False))
-        .order_by(Musteri.firma_adi.asc())
-        .all()
-    )
+    musteriler, pasif_musteriler = musterileri_listele(db)
 
     data = template_data(request)
     data["musteriler"] = musteriler
@@ -112,60 +105,10 @@ async def excel_import(
         return RedirectResponse("/musteriler?error=invalid_format", status_code=303)
 
     try:
-        contents = await file.read()
-        workbook = openpyxl.load_workbook(filename=io.BytesIO(contents), data_only=True)
-        sheet = workbook.active
-
-        # İlk satırdaki başlıkları oku ve normalize et
-        headers = []
-        for cell in sheet[1]:
-            val = str(cell.value or "").strip().lower().replace(" ", "_")
-            headers.append(val)
-
-        # Satırları dön (2. satırdan itibaren)
-        for row in sheet.iter_rows(min_row=2, values_only=True):
-            if not any(row):  # Tamamen boş satırsa atla
-                continue
-
-            row_data = dict(zip(headers, row))
-
-            # Firma adı kontrolü
-            firma_adi = str(row_data.get("firma_adi") or row_data.get("firma_adı") or "").strip()
-            if not firma_adi or firma_adi.lower() == "none":
-                continue
-
-            # Kod üretimi
-            son = db.query(Musteri).order_by(Musteri.id.desc()).first()
-            kod = f"M{son.id + 1:06}" if son else "M000001"
-
-            def clean_val(key):
-                val = row_data.get(key)
-                if val is None or str(val).lower() == "none":
-                    return ""
-                return str(val).strip()
-
-            musteri = Musteri(
-                musteri_kodu=kod,
-                firma_adi=firma_adi,
-                yetkili=clean_val("yetkili"),
-                telefon=clean_val("telefon"),
-                email=clean_val("email"),
-                vergi_dairesi=clean_val("vergi_dairesi"),
-                vergi_no=clean_val("vergi_no"),
-                il=clean_val("il"),
-                ilce=clean_val("ilce"),
-                adres=clean_val("adres"),
-                aciklama=clean_val("aciklama"),
-                aktif=True
-            )
-            db.add(musteri)
-            db.flush()
-
-        db.commit()
+        musterileri_excelden_aktar(db, await file.read())
         return RedirectResponse("/musteriler?success=imported", status_code=303)
 
-    except Exception as e:
-        db.rollback()
+    except Exception:
         return RedirectResponse("/musteriler?error=import_failed", status_code=303)
 
 
@@ -209,17 +152,8 @@ def ekle(
     )
 ):
 
-    son = db.query(Musteri).order_by(
-        Musteri.id.desc()
-    ).first()
-
-    if son:
-        kod = f"M{son.id + 1:06}"
-    else:
-        kod = "M000001"
-
-    musteri = Musteri(
-        musteri_kodu=kod,
+    musteri_olustur(
+        db,
         firma_adi=firma_adi,
         musteri_turu=musteri_turu,
         yetkili=yetkili,
@@ -230,11 +164,8 @@ def ekle(
         il=il,
         ilce=ilce,
         adres=adres,
-        aciklama=aciklama
+        aciklama=aciklama,
     )
-
-    db.add(musteri)
-    db.commit()
 
     return RedirectResponse(
         "/musteriler",
@@ -257,11 +188,7 @@ def duzenle_form(
     )
 ):
 
-    musteri = (
-        db.query(Musteri)
-        .filter(Musteri.id == id)
-        .first()
-    )
+    musteri = musteri_getir(db, id)
 
     if not musteri:
         return RedirectResponse(
@@ -307,34 +234,26 @@ def duzenle(
     )
 ):
 
-    musteri = (
-        db.query(Musteri)
-        .filter(Musteri.id == id)
-        .first()
-    )
-
-    if not musteri:
+    if not musteri_guncelle(
+        db,
+        id,
+        firma_adi=firma_adi,
+        musteri_turu=musteri_turu,
+        yetkili=yetkili,
+        telefon=telefon,
+        email=email,
+        vergi_dairesi=vergi_dairesi,
+        vergi_no=vergi_no,
+        il=il,
+        ilce=ilce,
+        adres=adres,
+        aktif=aktif == "true",
+        aciklama=aciklama,
+    ):
         return RedirectResponse(
             "/musteriler",
             status_code=303
         )
-
-    musteri.firma_adi = firma_adi
-    musteri.musteri_turu = musteri_turu
-    musteri.yetkili = yetkili
-    musteri.telefon = telefon
-    musteri.email = email
-    musteri.vergi_dairesi = vergi_dairesi
-    musteri.vergi_no = vergi_no
-    musteri.il = il
-    musteri.ilce = ilce
-    musteri.adres = adres
-    # İşaretlenmeyen checkbox form verisine hiç eklenmez; Form(True) kullanımı
-    # müşteriyi tekrar aktif yapıyordu. Böylece işaret kaldırıldığında pasif kalır.
-    musteri.aktif = aktif == "true"
-    musteri.aciklama = aciklama
-
-    db.commit()
 
     return RedirectResponse(
         "/musteriler",
@@ -355,11 +274,7 @@ def detay(
     yetki=Depends(yetki_kontrol(MUSTERI))
 ):
 
-    musteri = (
-        db.query(Musteri)
-        .filter(Musteri.id == id)
-        .first()
-    )
+    musteri, siparis_ozeti = musteri_detayi(db, id)
 
     if not musteri:
         return RedirectResponse(
@@ -367,20 +282,8 @@ def detay(
             status_code=303
         )
 
-    siparisler = (
-        db.query(Siparis)
-        .filter(Siparis.musteri_id == musteri.id)
-        .all()
-    )
-
     data = template_data(request)
-    data.update({
-        "musteri": musteri,
-        "bekleyen_siparis": sum(s.durum == "Beklemede" for s in siparisler),
-        "uretimdeki_siparis": sum(s.durum == "Üretimde" for s in siparisler),
-        "tamamlanan_siparis": sum(s.durum == "Tamamlandı" for s in siparisler),
-        "toplam_siparis": len(siparisler),
-    })
+    data.update({"musteri": musteri, **siparis_ozeti})
 
     return templates.TemplateResponse(
         "musteri/detay.html",
@@ -401,19 +304,8 @@ def sil(
     yetki=Depends(yetki_kontrol(ADMIN))
 ):
 
-    musteri = (
-        db.query(Musteri)
-        .filter(Musteri.id == id)
-        .first()
-    )
-
-    if musteri:
-        try:
-            db.delete(musteri)
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            return RedirectResponse("/musteriler?error=silinemedi", status_code=303)
+    if not musteri_sil(db, id):
+        return RedirectResponse("/musteriler?error=silinemedi", status_code=303)
 
     return RedirectResponse(
         "/musteriler",
