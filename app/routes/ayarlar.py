@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, Response, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -25,12 +25,21 @@ from app.services.excel_aktarim_service import (
     onizleme_hatasini_logla,
     onizleme_hazirla,
 )
+from app.services.islem_log_service import son_kullanici_hareketleri
 
 router = APIRouter()
 
 templates = Jinja2Templates(
     directory="app/templates"
 )
+
+
+@router.get("/api/islem-loglari/son")
+def son_islem_hareketleri(
+    db: Session = Depends(get_db),
+    yetki=Depends(yetki_kontrol(ADMIN)),
+):
+    return JSONResponse({"hareketler": son_kullanici_hareketleri(db)})
 
 @router.get("/ayarlar", response_class=HTMLResponse)
 async def ayarlar(request: Request):
