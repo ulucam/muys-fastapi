@@ -14,17 +14,7 @@ def setup_database(db: Session):
             .first()
         )
 
-        if admin:
-
-            admin.sifre = sifre_olustur("admin123")
-            admin.ad_soyad = "Sistem Yöneticisi"
-            admin.email = "admin@muys.local"
-            admin.rol = "Admin"
-            admin.aktif = True
-
-            print("✅ Admin güncellendi.")
-
-        else:
+        if not admin:
 
             admin = User(
 
@@ -47,8 +37,9 @@ def setup_database(db: Session):
             db.add(admin)
 
             print("✅ Varsayılan admin oluşturuldu.")
-
-        db.commit()
+            db.commit()
+        else:
+            print("✅ Admin hesabı mevcut; değiştirilmedi.")
 
     except Exception as e:
 
