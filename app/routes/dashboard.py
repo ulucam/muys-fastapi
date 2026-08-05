@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -70,6 +70,8 @@ def dashboard(request: Request, tarih: str | None = None, db: Session = Depends(
 
 @router.post("/puantaj/kaydet")
 async def puantaj_kaydet(request: Request, db: Session = Depends(get_db)):
+    if request.session.get("rol") == "Operatör":
+        raise HTTPException(status_code=403, detail="Operatör puantaj kayıtlarını yalnızca görüntüleyebilir.")
     form = await request.form()
     secili_tarih = tarihi_oku(form.get("tarih"))
     personel_sorgusu = db.query(Personel).filter(Personel.aktif.is_(True))
