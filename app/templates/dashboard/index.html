@@ -22,21 +22,24 @@
             <div class="stat-icon bg-warning"><i class="bi bi-truck"></i></div>
             <div class="stat-body"><h3>{{ teslim_bekleyen }}</h3><span>Teslim Bekleyen</span></div>
         </a>
-        <a class="stat-card text-decoration-none text-body" href="#puantaj">
+        <a class="stat-card text-decoration-none text-body" href="#puantajPanel" data-bs-toggle="collapse" role="button" aria-controls="puantajPanel">
             <div class="stat-icon bg-danger"><i class="bi bi-person-x"></i></div>
             <div class="stat-body"><h3>{{ devamsiz_sayisi }}</h3><span>Devamsız</span></div>
         </a>
     </div>
 
     <div class="card border-0 shadow-sm mb-4" id="puantaj">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-            <div><strong><i class="bi bi-calendar-check me-2"></i>Günlük Puantaj</strong><div class="small text-muted">Sabah yoklamasını buradan kaydedin.</div></div>
-            <form method="get" action="/" class="d-flex gap-2">
-                <input class="form-control" type="date" name="tarih" value="{{ secili_tarih.isoformat() }}">
-                <button class="btn btn-outline-primary" type="submit">Göster</button>
+        <button class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#puantajPanel" aria-expanded="{{ 'true' if puantaj_acik else 'false' }}">
+            <div><strong><i class="bi bi-calendar-check me-2"></i>Günlük Puantaj</strong><div class="small text-muted">Kutuyu açarak tarih seçin ve personel durumlarını kaydedin.</div></div>
+            <span class="badge bg-danger fs-6">{{ devamsiz_sayisi }} Gelmedi <i class="bi bi-chevron-down ms-2"></i></span>
+        </button>
+        <div class="collapse {% if puantaj_acik %}show{% endif %}" id="puantajPanel">
+        <div class="card-body p-0 border-top">
+            <form method="get" action="/" class="d-flex gap-2 p-3 bg-light border-bottom">
+                <input type="hidden" name="puantaj" value="1">
+                <input class="form-control" style="max-width:220px" type="date" name="tarih" value="{{ secili_tarih.isoformat() }}">
+                <button class="btn btn-outline-primary" type="submit">Tarihi Göster</button>
             </form>
-        </div>
-        <div class="card-body p-0">
             <form method="post" action="/puantaj/kaydet">
                 <input type="hidden" name="tarih" value="{{ secili_tarih.isoformat() }}">
                 <div class="table-responsive">
@@ -48,7 +51,7 @@
                             <tr>
                                 <td><strong>{{ personel.ad_soyad }}</strong><div class="small text-muted">{{ personel.kodu }}</div></td>
                                 <td>{{ personel.departman or '-' }} / {{ personel.gorev or '-' }}</td>
-                                <td><select class="form-select" name="durum_{{ personel.id }}">{% for durum in puantaj_durumlari %}<option value="{{ durum }}" {% if (kayit and kayit.durum == durum) or (not kayit and durum == 'Geldi') %}selected{% endif %}>{{ durum }}</option>{% endfor %}</select></td>
+                                <td><select class="form-select" name="durum_{{ personel.id }}">{% for durum in puantaj_durumlari %}<option value="{{ durum }}" {% if (kayit and (kayit.durum == durum or (kayit.durum == 'Devamsız' and durum == 'Gelmedi'))) or (not kayit and durum == 'Geldi') %}selected{% endif %}>{{ durum }}</option>{% endfor %}</select></td>
                                 <td><input class="form-control" name="aciklama_{{ personel.id }}" value="{{ kayit.aciklama if kayit else '' }}" placeholder="İsteğe bağlı not"></td>
                             </tr>
                         {% else %}
@@ -59,6 +62,7 @@
                 </div>
                 {% if personeller %}<div class="p-3 text-end border-top"><button class="btn btn-success" type="submit"><i class="bi bi-check2-circle"></i> Puantajı Kaydet</button></div>{% endif %}
             </form>
+        </div>
         </div>
     </div>
 
