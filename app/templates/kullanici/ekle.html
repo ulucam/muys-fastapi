@@ -16,6 +16,8 @@
 
 <div class="card-body">
 
+{% if hata %}<div class="alert alert-danger">{{ hata }}</div>{% endif %}
+
 <form action="/kullanicilar/ekle" method="POST" autocomplete="off">
 
 <div class="row">
@@ -96,7 +98,8 @@ class="form-control">
 
 <select
 name="rol"
-class="form-select">
+class="form-select"
+id="rolSecimi">
 
 <option value="Admin">Admin</option>
 
@@ -130,6 +133,15 @@ class="form-select">
 
 </div>
 
+<div class="mb-3" id="istasyonAlani" style="display:none">
+<label>Operatör İstasyonu</label>
+<select name="istasyon_id" id="istasyonSecimi" class="form-select">
+<option value="">İstasyon seçin</option>
+{% for istasyon in istasyonlar %}<option value="{{ istasyon.id }}">{{ istasyon.kodu }} · {{ istasyon.adi }}</option>{% endfor %}
+</select>
+<div class="form-text">İş emirleri operatöre bu istasyon üzerinden yönlendirilecektir.</div>
+</div>
+
 <hr>
 
 <div class="d-flex justify-content-end">
@@ -159,4 +171,19 @@ class="btn btn-success">
 
 </div>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const rol = document.getElementById("rolSecimi");
+    const alan = document.getElementById("istasyonAlani");
+    const istasyon = document.getElementById("istasyonSecimi");
+    function istasyonAlaniniGuncelle() {
+        const operatorMu = rol.value === "Operatör";
+        alan.style.display = operatorMu ? "block" : "none";
+        istasyon.required = operatorMu;
+        if (!operatorMu) istasyon.value = "";
+    }
+    rol.addEventListener("change", istasyonAlaniniGuncelle);
+    istasyonAlaniniGuncelle();
+});
+</script>
 {% endblock %}
