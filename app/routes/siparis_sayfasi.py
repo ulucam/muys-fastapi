@@ -5,10 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.context import template_data
 from app.database import get_db
-from app.models.musteri import Musteri
-from app.models.siparis import Siparis
 from app.roles import SIPARIS
 from app.security import yetki_kontrol
+from app.services.siparis_service import SIPARIS_DURUMLARI, siparis_sayfasi_verisi
 
 
 router = APIRouter(tags=["Siparişler"])
@@ -23,23 +22,14 @@ def siparisler(
     db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(SIPARIS)),
 ):
-    musteri = db.query(Musteri).filter(Musteri.id == musteri_id).first() if musteri_id else None
-    siparis_sorgusu = db.query(Siparis)
-    if musteri_id:
-        siparis_sorgusu = siparis_sorgusu.filter(Siparis.musteri_id == musteri_id)
-    if durum:
-        siparis_sorgusu = siparis_sorgusu.filter(Siparis.durum == durum)
-    siparisler = siparis_sorgusu.order_by(Siparis.teslim_tarihi.asc(), Siparis.created_at.desc()).all()
-    durumlar = ["Beklemede", "Üretimde", "Sevke Hazır"]
+    musteri, siparisler_duruma_gore = siparis_sayfasi_verisi(db, musteri_id, durum)
+    durumlar = list(SIPARIS_DURUMLARI)
     data = template_data(request)
     data.update({
         "musteri_id": musteri_id,
         "musteri": musteri,
         "durum": durum,
         "durumlar": durumlar,
-        "siparisler_duruma_gore": {
-            durum_adi: [siparis for siparis in siparisler if siparis.durum == durum_adi]
-            for durum_adi in durumlar
-        },
+        "siparisler_duruma_gore": siparisler_duruma_gore,
     })
     return templates.TemplateResponse("siparisler/index.html", data)
