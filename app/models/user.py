@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from datetime import datetime
 
 from app.database import Base
@@ -74,4 +74,11 @@ class User(Base):
         DateTime,
         default=datetime.utcnow,
         onupdate=datetime.utcnow
+    )
+
+    # Operatörün görev yaptığı üretim istasyonu. Diğer rollerde boş tutulur.
+    istasyon_id = Column(
+        Integer,
+        ForeignKey("istasyonlar.id"),
+        nullable=True
     )
