@@ -38,22 +38,36 @@
     </div></div></div>
     {% endif %}
 
-    <form method="get" action="/personeller">
-    <div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
-        <thead>
-            <tr><th>Personel</th><th>Departman</th><th>Görev</th><th>Operatör Hesabı</th><th>Makine / İstasyon İlişkileri</th><th></th></tr>
-            <tr class="table-light">
-                <th><input class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Kod veya ad ara"></th>
-                <th><select class="form-select form-select-sm" name="departman"><option value="">Tüm departmanlar</option>{% for secenek in departmanlar %}<option value="{{ secenek }}" {% if departman == secenek %}selected{% endif %}>{{ secenek }}</option>{% endfor %}</select></th>
-                <th><select class="form-select form-select-sm" name="gorev"><option value="">Tüm görevler</option>{% for secenek in gorevler %}<option value="{{ secenek }}" {% if gorev == secenek %}selected{% endif %}>{{ secenek }}</option>{% endfor %}</select></th>
-                <th></th>
-                <th><select class="form-select form-select-sm" name="istasyon_id"><option value="">Tüm istasyonlar</option>{% for istasyon in istasyonlar %}<option value="{{ istasyon.id }}" {% if istasyon_id == istasyon.id %}selected{% endif %}>{{ istasyon.kodu }} · {{ istasyon.adi }}</option>{% endfor %}</select></th>
-                <th class="text-end"><button class="btn btn-sm btn-primary" type="submit">Filtrele</button> <a class="btn btn-sm btn-outline-secondary" href="/personeller">Temizle</a></th>
-            </tr>
-        </thead>
-        <tbody>{% for personel in personeller %}<tr><td><strong>{{ personel.ad_soyad }}</strong><div class="small text-muted">{{ personel.kodu }}</div></td><td>{{ personel.departman or '-' }}</td><td>{{ personel.gorev or '-' }}</td><td>{% set hesap = kullanici_haritasi.get(personel.id) %}{% if hesap %}<span class="badge bg-primary">{{ hesap.kullanici_adi }}</span>{% set hesap_istasyonu = istasyon_haritasi.get(hesap.istasyon_id) %}{% if hesap_istasyonu %}<div class="small text-muted mt-1">{{ hesap_istasyonu.kodu }} · {{ hesap_istasyonu.adi }}</div>{% endif %}{% else %}-{% endif %}</td><td>{% for iliski in iliskiler.get(personel.id, []) %}<span class="badge text-bg-light border me-1 mb-1">{{ iliski.makine.adi if iliski.makine else '-' }} · {{ iliski.istasyon.adi if iliski.istasyon else '-' }}</span>{% else %}<span class="text-muted">Atama yok</span>{% endfor %}</td><td class="text-end">{% if kullanici_rol in ['Admin', 'Yönetici'] %}<a class="btn btn-sm btn-outline-primary" href="/uretim-tanimlari/duzenle/personel/{{ personel.kodu }}">Düzenle</a>{% endif %}</td></tr>{% else %}<tr><td colspan="6" class="text-center text-muted py-5">Filtreye uygun aktif personel bulunamadı.</td></tr>{% endfor %}</tbody>
-    </table></div></div>
-    </form>
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <form method="get" action="/personeller" class="row g-2">
+                <input type="hidden" name="sekme" value="personel">
+                <div class="col-12 col-md-3"><input class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Kod veya ad ara"></div>
+                <div class="col-6 col-md-2"><select class="form-select form-select-sm" name="departman"><option value="">Tüm departmanlar</option>{% for secenek in departmanlar %}<option value="{{ secenek }}" {% if departman == secenek %}selected{% endif %}>{{ secenek }}</option>{% endfor %}</select></div>
+                <div class="col-6 col-md-2"><select class="form-select form-select-sm" name="gorev"><option value="">Tüm görevler</option>{% for secenek in gorevler %}<option value="{{ secenek }}" {% if gorev == secenek %}selected{% endif %}>{{ secenek }}</option>{% endfor %}</select></div>
+                <div class="col-12 col-md-3"><select class="form-select form-select-sm" name="istasyon_id"><option value="">Tüm istasyonlar</option>{% for istasyon in istasyonlar %}<option value="{{ istasyon.id }}" {% if istasyon_id == istasyon.id %}selected{% endif %}>{{ istasyon.kodu }} · {{ istasyon.adi }}</option>{% endfor %}</select></div>
+                <div class="col-12 col-md-2 d-flex gap-1"><button class="btn btn-sm btn-primary flex-grow-1" type="submit">Filtrele</button><a class="btn btn-sm btn-outline-secondary" href="/personeller">Temizle</a></div>
+            </form>
+        </div>
+        <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+            <thead><tr><th>Personel</th><th>Departman</th><th>Görev</th></tr></thead>
+            <tbody>
+            {% for personel in personeller %}
+                <tr>
+                    <td><button class="btn btn-link p-0 text-start text-decoration-none fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#personelDetay{{ personel.id }}" aria-expanded="false"><i class="bi bi-chevron-down me-1"></i>{{ personel.ad_soyad }}</button><div class="small text-muted">{{ personel.kodu }}</div></td>
+                    <td>{{ personel.departman or '-' }}</td><td>{{ personel.gorev or '-' }}</td>
+                </tr>
+                <tr class="bg-light">
+                    <td colspan="3" class="p-0 border-0"><div class="collapse p-3" id="personelDetay{{ personel.id }}"><div class="row g-3">
+                        <div class="col-12 col-md-5"><div class="small text-muted mb-1">Operatör Hesabı</div>{% set hesap = kullanici_haritasi.get(personel.id) %}{% if hesap %}<span class="badge bg-primary">{{ hesap.kullanici_adi }}</span>{% set hesap_istasyonu = istasyon_haritasi.get(hesap.istasyon_id) %}{% if hesap_istasyonu %}<div class="small mt-1">{{ hesap_istasyonu.kodu }} · {{ hesap_istasyonu.adi }}</div>{% endif %}{% else %}<span class="text-muted">Hesap bağlı değil</span>{% endif %}</div>
+                        <div class="col-12 col-md-5"><div class="small text-muted mb-1">Makine / İstasyon İlişkileri</div>{% for iliski in iliskiler.get(personel.id, []) %}<span class="badge text-bg-light border me-1 mb-1">{{ iliski.makine.adi if iliski.makine else '-' }} · {{ iliski.istasyon.adi if iliski.istasyon else '-' }}</span>{% else %}<span class="text-muted">Atama yok</span>{% endfor %}</div>
+                        {% if kullanici_rol in ['Admin', 'Yönetici'] %}<div class="col-12 col-md-2 d-flex align-items-end"><a class="btn btn-sm btn-outline-primary w-100" href="/uretim-tanimlari/duzenle/personel/{{ personel.kodu }}"><i class="bi bi-pencil"></i> Düzenle</a></div>{% endif %}
+                    </div></div></td>
+                </tr>
+            {% else %}<tr><td colspan="3" class="text-center text-muted py-5">Filtreye uygun aktif personel bulunamadı.</td></tr>{% endfor %}
+            </tbody>
+        </table></div>
+    </div>
     {% else %}
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3">
