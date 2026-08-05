@@ -137,3 +137,14 @@ grid-template-columns:1fr;
 }
 
 }
+
+/* Bootstrap collapse normalde blok olarak açılır; tablo ayrıntı satırının
+   sütun yapısını koruması için tablo satırı görünümü kullanılır. */
+table tr.collapse.show{
+    display:table-row;
+}
+
+#puantaj,
+#siparisler{
+    scroll-margin-top:90px;
+}
