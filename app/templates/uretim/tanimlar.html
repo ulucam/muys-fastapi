@@ -9,7 +9,7 @@
             <h3 class="fw-bold mb-1"><i class="bi bi-diagram-3"></i> Üretim Tanımları</h3>
             <p class="text-muted mb-0">Personel, istasyon, makine, ürün sınıfı ve reçete ana verilerini yönetin.</p>
         </div>
-        <a href="/" class="btn btn-outline-secondary">Dashboard</a>
+        <a href="/" class="btn btn-outline-secondary" data-page-back><i class="bi bi-arrow-left"></i> Geri</a>
     </div>
 
     {% if basari %}<div class="alert alert-success">{{ basari }}</div>{% endif %}
@@ -122,7 +122,7 @@
 
     {% if liste_basligi %}
     <div class="card shadow-sm border-0 mt-4">
-        <div class="card-header bg-white d-flex justify-content-between"><strong>{{ liste_basligi }}</strong><a href="/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-speedometer2"></i> Dashboard</a></div>
+        <div class="card-header bg-white d-flex justify-content-between"><strong>{{ liste_basligi }}</strong><a href="/uretim-tanimlari" class="btn btn-sm btn-outline-secondary" data-page-back><i class="bi bi-arrow-left"></i> Geri</a></div>
         {% if goster == 'operasyonlar' %}
         <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Sınıf</th><th>Sıra</th><th>Operasyon</th><th>İstasyon</th><th>Durum</th><th></th></tr></thead><tbody>{% for kayit in secili_kayitlar %}<tr><td>{% for s in urun_siniflari if s.id == kayit.urun_sinifi_id %}{{ s.kodu }} · {{ s.adi }}{% endfor %}</td><td>{{ kayit.sira_no }}</td><td>{{ kayit.operasyon_adi }}</td><td>{% for i in istasyonlar if i.id == kayit.istasyon_id %}{{ i.kodu }} · {{ i.adi }}{% endfor %}</td><td><span class="badge {{ 'bg-success' if kayit.aktif else 'bg-secondary' }}">{{ 'Aktif' if kayit.aktif else 'Pasif' }}</span></td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/uretim-tanimlari/kayit-duzenle/operasyon/{{ kayit.id }}">Düzenle</a> <form class="d-inline" method="post" action="/uretim-tanimlari/kayit-sil/operasyon/{{ kayit.id }}" onsubmit="return confirm('Operasyon silinsin mi?')"><button class="btn btn-sm btn-outline-danger">Sil</button></form></td></tr>{% else %}<tr><td colspan="6" class="text-center text-muted py-4">Kayıt yok.</td></tr>{% endfor %}</tbody></table></div>
         {% elif goster == 'urunler' %}
