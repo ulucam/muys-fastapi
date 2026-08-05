@@ -92,6 +92,25 @@ def personel_listesi_verisi(db: Session, q: str, departman: str, gorev: str, ist
     }
 
 
+def puantaj_listesi_verisi(db: Session, tarih, sadece_gelmeyen: bool = False) -> dict:
+    personeller = db.query(Personel).filter(Personel.aktif.is_(True)).order_by(Personel.ad_soyad).all()
+    kayitlar = {
+        kayit.personel_id: kayit
+        for kayit in db.query(Puantaj).filter(Puantaj.tarih == tarih).all()
+    }
+    if sadece_gelmeyen:
+        personeller = [
+            personel for personel in personeller
+            if kayitlar.get(personel.id) and kayitlar[personel.id].durum in ("Gelmedi", "Devamsız")
+        ]
+    return {
+        "puantaj_personelleri": personeller,
+        "puantaj_kayitlari": kayitlar,
+        "puantaj_tarihi": tarih,
+        "sadece_gelmeyen": sadece_gelmeyen,
+    }
+
+
 def tanim_listesi(db: Session, goster: str):
     listeler = {
         "personeller": ("Aktif Personeller", db.query(Personel).filter(Personel.aktif.is_(True)).order_by(Personel.kodu).all()),
