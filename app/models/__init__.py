@@ -14,3 +14,4 @@ from app.models.personel_makine import PersonelMakine
 from app.models.puantaj import Puantaj
 from app.models.urun_sinifi import UrunSinifi
 from app.models.urun_sinif_operasyon import UrunSinifOperasyon
+from app.models.urun_sinif_operasyon_makine import UrunSinifOperasyonMakine
