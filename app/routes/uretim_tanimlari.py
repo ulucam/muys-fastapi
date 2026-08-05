@@ -22,6 +22,8 @@ from app.services.uretim_tanimlari_service import (
     manuel_tanim_kaydet,
     personel_listesi_verisi,
     personel_puantaji,
+    sinif_recetesi_getir,
+    sinif_recetesi_guncelle,
     puantaj_listesi_verisi,
     tanim_listesi,
     tanim_sil as tanim_sil_service,
@@ -106,6 +108,24 @@ def iliskili_kayit_duzenle(tip: str, kayit_id: int, request: Request, db: Sessio
     data = ekran_verisi(request, db, kayit=kayit, kayit_tipi=tip)
     data["secili_makine_idleri"] = secili_makine_idleri
     return templates.TemplateResponse("uretim/iliskili_duzenle.html", data)
+
+
+@router.get("/uretim-tanimlari/sinif-recetesi/{sinif_id}/duzenle", response_class=HTMLResponse)
+def sinif_recetesi_duzenle(sinif_id: int, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
+    sinif, operasyonlar, makine_kodlari = sinif_recetesi_getir(db, sinif_id)
+    if not sinif or not operasyonlar:
+        return RedirectResponse("/uretim-tanimlari?goster=operasyonlar", status_code=303)
+    return templates.TemplateResponse(
+        "uretim/sinif_recetesi_duzenle.html",
+        ekran_verisi(request, db, sinif=sinif, operasyonlar=operasyonlar, makine_kodlari=makine_kodlari),
+    )
+
+
+@router.post("/uretim-tanimlari/sinif-recetesi/{sinif_id}/duzenle")
+async def sinif_recetesi_guncelle_route(sinif_id: int, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
+    if sinif_recetesi_guncelle(db, sinif_id, await request.form()):
+        return RedirectResponse("/uretim-tanimlari?goster=operasyonlar", status_code=303)
+    return RedirectResponse(f"/uretim-tanimlari/sinif-recetesi/{sinif_id}/duzenle?error=1", status_code=303)
 
 
 @router.post("/uretim-tanimlari/kayit-duzenle/{tip}/{kayit_id}")
