@@ -27,7 +27,8 @@ SIPARIS = [
     "Admin",
     "Yönetici",
     "Satış",
-    "Üretim"
+    "Üretim",
+    "Operatör"
 ]
 
 STOK = [
