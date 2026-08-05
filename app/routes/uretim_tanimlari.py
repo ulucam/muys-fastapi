@@ -14,6 +14,7 @@ from app.models.istasyon import Istasyon
 from app.models.makine import Makine
 from app.models.personel import Personel
 from app.models.personel_makine import PersonelMakine
+from app.models.puantaj import Puantaj
 from app.models.recete import Recete
 from app.models.recete_kalem import ReceteKalem
 from app.models.urun import Urun
@@ -85,6 +86,15 @@ def sayfa_ekle(kitap, ad, satirlar):
 
 
 def ekran_verisi(request, db, **ek):
+    atamalar = db.query(PersonelMakine).filter(PersonelMakine.aktif.is_(True)).all()
+    makine_haritasi = {m.id: m for m in db.query(Makine).all()}
+    personel_atamalari = {}
+    for atama in atamalar:
+        personel_atamalari.setdefault(atama.personel_id, []).append((atama, makine_haritasi.get(atama.makine_id)))
+    personel_puantajlari = {}
+    for puantaj in db.query(Puantaj).order_by(Puantaj.tarih.desc()).limit(500).all():
+        if len(personel_puantajlari.setdefault(puantaj.personel_id, [])) < 10:
+            personel_puantajlari[puantaj.personel_id].append(puantaj)
     data = template_data(request)
     data.update({
         "personel_sayisi": db.query(Personel).filter(Personel.aktif.is_(True)).count(),
@@ -96,6 +106,8 @@ def ekran_verisi(request, db, **ek):
         "makineler": db.query(Makine).order_by(Makine.kodu).all(),
         "urun_siniflari": db.query(UrunSinifi).order_by(UrunSinifi.kodu).all(),
         "urunler": db.query(Urun).order_by(Urun.kodu).all(),
+        "personel_atamalari": personel_atamalari,
+        "personel_puantajlari": personel_puantajlari,
     })
     data.update(ek)
     return data
