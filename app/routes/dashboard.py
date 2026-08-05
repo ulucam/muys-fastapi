@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from app.context import template_data
 from app.database import get_db
 from app.services.dashboard_service import (
-    PUANTAJ_DURUMLARI,
     dashboard_verisi,
     puantaj_kaydet as puantaj_kaydet_service,
 )
@@ -26,15 +25,13 @@ def tarihi_oku(deger: str | None) -> date:
 
 
 @router.get("/", response_class=HTMLResponse)
-def dashboard(request: Request, tarih: str | None = None, db: Session = Depends(get_db)):
-    secili_tarih = tarihi_oku(tarih)
+def dashboard(request: Request, db: Session = Depends(get_db)):
+    secili_tarih = date.today()
     servis_verisi = dashboard_verisi(db, secili_tarih, request.session.get("rol"), request.session.get("user_id"))
     data = template_data(request)
     data.update({
         "secili_tarih": secili_tarih,
         "bugun": date.today(),
-        "puantaj_durumlari": PUANTAJ_DURUMLARI,
-        "puantaj_acik": request.query_params.get("puantaj") == "1",
         **servis_verisi,
     })
     return templates.TemplateResponse("dashboard/index.html", data)
