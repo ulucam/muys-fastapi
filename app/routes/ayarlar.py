@@ -20,12 +20,18 @@ from app.models.personel import Personel
 from app.models.istasyon import Istasyon
 from app.models.makine import Makine
 from app.models.urun_sinifi import UrunSinifi
-from app.models.firma_ayarlari import FirmaAyarlari
-from app.models.islem_logu import IslemLogu
 from app.models.excel_aktarim_taslagi import ExcelAktarimTaslagi
 from app.roles import ADMIN
 from app.security import yetki_kontrol
 from app.services.islem_log_service import islem_logla
+from app.services.ayarlar_service import (
+    excel_indirme_logu,
+    excel_sablon_verileri,
+    firma_bilgilerini_kaydet,
+    firma_getir,
+    loglari_listele,
+    son_excel_aktarimi,
+)
 
 router = APIRouter()
 
@@ -235,12 +241,7 @@ async def ayarlar(request: Request):
 @router.get("/ayarlar/excel", response_class=HTMLResponse)
 async def excel(request: Request, db: Session = Depends(get_db)):
     data = template_data(request)
-    data["son_aktarim"] = (
-        db.query(IslemLogu)
-        .filter(IslemLogu.modul == "Excel")
-        .order_by(IslemLogu.created_at.desc())
-        .first()
-    )
+    data["son_aktarim"] = son_excel_aktarimi(db)
     return templates.TemplateResponse(
         "ayarlar/excel.html",
         data
@@ -250,13 +251,14 @@ async def excel(request: Request, db: Session = Depends(get_db)):
 @router.get("/ayarlar/excel/sablon")
 def excel_sablon(request: Request, db: Session = Depends(get_db)):
     iller = il_ilce_verisi()
-    firma = db.query(FirmaAyarlari).first()
-    mevcut_musteriler = db.query(Musteri).order_by(Musteri.id).all()
-    mevcut_urunler = db.query(Urun).order_by(Urun.kodu).all()
-    mevcut_personeller = db.query(Personel).order_by(Personel.kodu).all()
-    mevcut_istasyonlar = db.query(Istasyon).order_by(Istasyon.kodu).all()
-    mevcut_makineler = db.query(Makine).order_by(Makine.kodu).all()
-    mevcut_siniflar = db.query(UrunSinifi).order_by(UrunSinifi.kodu).all()
+    sablon_verisi = excel_sablon_verileri(db)
+    firma = sablon_verisi["firma"]
+    mevcut_musteriler = sablon_verisi["musteriler"]
+    mevcut_urunler = sablon_verisi["urunler"]
+    mevcut_personeller = sablon_verisi["personeller"]
+    mevcut_istasyonlar = sablon_verisi["istasyonlar"]
+    mevcut_makineler = sablon_verisi["makineler"]
+    mevcut_siniflar = sablon_verisi["siniflar"]
     kitap = openpyxl.Workbook()
     sistem = kitap.active
     sistem.title = "Sistem Bilgileri"
@@ -376,8 +378,12 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
 
     akis = io.BytesIO()
     kitap.save(akis)
-    islem_logla(db, request, "Excel", "Excel şablonu indirildi", f"{len(mevcut_musteriler)} müşteri, {len(mevcut_urunler)} stok ürünü, {len(mevcut_personeller)} personel, {len(mevcut_istasyonlar)} istasyon ve {len(mevcut_makineler)} makine dışa aktarıldı")
-    db.commit()
+    excel_indirme_logu(
+        db,
+        request.session.get("kullanici_adi", "Sistem"),
+        request.client.host if request.client else "",
+        f"{len(mevcut_musteriler)} müşteri, {len(mevcut_urunler)} stok ürünü, {len(mevcut_personeller)} personel, {len(mevcut_istasyonlar)} istasyon ve {len(mevcut_makineler)} makine dışa aktarıldı",
+    )
     return Response(
         akis.getvalue(),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -444,7 +450,7 @@ async def excel_onizleme(request: Request, file: UploadFile = File(...), db: Ses
         db.commit()
 
     data = template_data(request)
-    data["son_aktarim"] = db.query(IslemLogu).filter(IslemLogu.modul == "Excel").order_by(IslemLogu.created_at.desc()).first()
+    data["son_aktarim"] = son_excel_aktarimi(db)
     data.update({
         "hatalar": hatalar, "eklenecek": eklenecek, "guncellenecek": guncellenecek,
         "gecerli_satir": len(satirlar), "gecerli_urun": len(urunler),
@@ -573,7 +579,7 @@ async def loglar(
     yetki=Depends(yetki_kontrol(ADMIN)),
 ):
     data = template_data(request)
-    data["loglar"] = db.query(IslemLogu).order_by(IslemLogu.created_at.desc()).limit(500).all()
+    data["loglar"] = loglari_listele(db)
 
     return templates.TemplateResponse("ayarlar/loglar.html", data)
 
@@ -581,7 +587,7 @@ async def loglar(
 @router.get("/ayarlar/firma", response_class=HTMLResponse)
 async def firma(request: Request, db: Session = Depends(get_db)):
     data = template_data(request)
-    data["firma"] = db.query(FirmaAyarlari).first()
+    data["firma"] = firma_getir(db)
 
     return templates.TemplateResponse("ayarlar/firma.html", data)
 
@@ -594,15 +600,18 @@ async def firma_kaydet(
     email: str = Form(""), web_sitesi: str = Form(""), adres: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    firma = db.query(FirmaAyarlari).first()
-    if not firma:
-        firma = FirmaAyarlari()
-        db.add(firma)
-    firma.firma_adi, firma.vergi_no = firma_adi, vergi_no
-    firma.vergi_dairesi, firma.telefon = vergi_dairesi, telefon
-    firma.email, firma.web_sitesi, firma.adres = email, web_sitesi, adres
-    islem_logla(db, request, "Ayarlar", "Firma bilgileri güncellendi", firma_adi)
-    db.commit()
+    firma_bilgilerini_kaydet(
+        db,
+        request.session.get("kullanici_adi", "Sistem"),
+        request.client.host if request.client else "",
+        firma_adi=firma_adi,
+        vergi_no=vergi_no,
+        vergi_dairesi=vergi_dairesi,
+        telefon=telefon,
+        email=email,
+        web_sitesi=web_sitesi,
+        adres=adres,
+    )
 
     return RedirectResponse("/ayarlar/firma", status_code=303)
 
