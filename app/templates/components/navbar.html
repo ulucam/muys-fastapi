@@ -10,6 +10,29 @@
 
     <div class="user-area">
 
+        {% if kullanici_rol == "Admin" %}
+        <div class="dropdown activity-area">
+
+            <button class="activity-button"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    aria-label="Son kullanıcı hareketleri">
+                <i class="bi bi-bell"></i>
+                <span id="activityBadge" class="activity-badge d-none"></span>
+            </button>
+
+            <div class="dropdown-menu dropdown-menu-end activity-panel p-0">
+                <div class="activity-panel-header">
+                    <strong>Son Hareketler</strong>
+                    <small>Son 60 saniye</small>
+                </div>
+                <div id="activityFeed" class="activity-feed"></div>
+            </div>
+
+        </div>
+        {% endif %}
+
         <div class="dropdown">
 
             <button class="user-button"
