@@ -20,6 +20,7 @@ from app.models.recete import Recete
 from app.models.recete_kalem import ReceteKalem
 from app.models.urun import Urun
 from app.models.urun_sinif_operasyon import UrunSinifOperasyon
+from app.models.urun_sinif_operasyon_makine import UrunSinifOperasyonMakine
 from app.models.urun_sinifi import UrunSinifi
 from app.roles import PERSONEL_GORUNTULE, YONETIM
 from app.security import yetki_kontrol
@@ -34,9 +35,9 @@ SAYFALAR = {
     "Makineler": ["Makine Kodu", "Makine Adı", "İstasyon Kodu", "Model", "Kapasite", "Durum"],
     "Personel Makine Atamaları": ["Personel Kodu", "Makine Kodu", "Rol", "Hedef Performans", "Durum"],
     "Ürün Sınıfları": ["Sınıf Kodu", "Sınıf Adı", "Açıklama", "Durum"],
-    "Sınıf Reçete Operasyonları": ["Sınıf Kodu", "Sıra", "İstasyon Kodu", "Makine Kodu", "Operasyon Adı", "Hedef Çevrim Süresi (dk)", "Kontrol Noktası", "Durum"],
+    "Sınıf Reçete Operasyonları": ["Sınıf Kodu", "Sıra", "İstasyon Kodu", "Makine Kodu", "Operasyon Adı", "Kontrol Noktası", "Durum"],
     "Ürünler": ["Ürün Kodu", "Ürün Adı", "Ürün Türü", "Ürün Sınıfı Kodu", "Birim", "Mevcut Stok", "Min. Stok", "Max. Stok", "Maliyet", "Satış Fiyatı", "Açıklama", "Durum"],
-    "Ürün Reçetesi": ["Üst Ürün Kodu", "Bileşen Ürün Kodu", "Miktar", "Birim", "Fire Oranı (%)", "Sıra"],
+    "Ürün Reçetesi": ["Üst Ürün Kodu", "Bileşen Ürün Kodu", "Miktar", "Birim", "Fire Oranı (%)", "Sıra", "Hedef Çevrim Süresi (dk)"],
 }
 URUN_TIPLERI = {"Hammadde", "YariMamul", "Mamul", "TicariMamul"}
 AKTIF_DURUMLAR = {"Aktif": True, "Pasif": False}
@@ -101,6 +102,8 @@ def ekran_verisi(request, db, **ek):
         "personel_sayisi": db.query(Personel).filter(Personel.aktif.is_(True)).count(),
         "istasyon_sayisi": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).count(),
         "makine_sayisi": db.query(Makine).filter(Makine.aktif.is_(True)).count(),
+        "pasif_istasyon_sayisi": db.query(Istasyon).filter(Istasyon.aktif.is_(False)).count(),
+        "pasif_makine_sayisi": db.query(Makine).filter(Makine.aktif.is_(False)).count(),
         "urun_sinifi_sayisi": db.query(UrunSinifi).filter(UrunSinifi.aktif.is_(True)).count(),
         "istasyonlar": db.query(Istasyon).order_by(Istasyon.kodu).all(),
         "personeller": db.query(Personel).order_by(Personel.kodu).all(),
@@ -165,6 +168,8 @@ def uretim_tanimlari(request: Request, error: str | None = None, goster: str = "
         "personeller": ("Aktif Personeller", db.query(Personel).filter(Personel.aktif.is_(True)).order_by(Personel.kodu).all()),
         "istasyonlar": ("Aktif İstasyonlar", db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.kodu).all()),
         "makineler": ("Aktif Makineler", db.query(Makine).filter(Makine.aktif.is_(True)).order_by(Makine.kodu).all()),
+        "istasyonlar_pasif": ("Pasif İstasyonlar", db.query(Istasyon).filter(Istasyon.aktif.is_(False)).order_by(Istasyon.kodu).all()),
+        "makineler_pasif": ("Pasif Makineler", db.query(Makine).filter(Makine.aktif.is_(False)).order_by(Makine.kodu).all()),
         "urun_siniflari": ("Aktif Ürün Sınıfları", db.query(UrunSinifi).filter(UrunSinifi.aktif.is_(True)).order_by(UrunSinifi.kodu).all()),
     }
     baslik, kayitlar = listeler.get(goster, (None, []))
@@ -192,6 +197,24 @@ def duzenle_form(tip: str, kod: str, request: Request, db: Session = Depends(get
     data = ekran_verisi(request, db)
     data.update({"duzenle_tipi": tip, "kayit": kayit})
     return templates.TemplateResponse("uretim/duzenle.html", data)
+
+
+@router.post("/uretim-tanimlari/sil/{tip}/{kod}")
+def tanim_sil(tip: str, kod: str, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
+    model = {"istasyon": Istasyon, "makine": Makine}.get(tip)
+    kayit = db.query(model).filter(model.kodu == kod).first() if model else None
+    if not kayit:
+        return RedirectResponse("/uretim-tanimlari", status_code=303)
+    try:
+        db.delete(kayit)
+        db.commit()
+    except Exception:
+        db.rollback()
+        kayit = db.query(model).filter(model.kodu == kod).first()
+        if kayit:
+            kayit.aktif = False
+            db.commit()
+    return RedirectResponse(f"/uretim-tanimlari?goster={'istasyonlar' if tip == 'istasyon' else 'makineler'}", status_code=303)
 
 
 @router.post("/uretim-tanimlari/kaydet/{tip}")
@@ -246,17 +269,32 @@ async def manuel_kaydet(tip: str, request: Request, db: Session = Depends(get_db
             nesne.adi, nesne.aciklama, nesne.aktif = metin(form.get("adi")), metin(form.get("aciklama")), aktif
         elif tip == "operasyon":
             sinif = db.query(UrunSinifi).filter(UrunSinifi.kodu == metin(form.get("sinif_kodu"))).first()
-            istasyon = db.query(Istasyon).filter(Istasyon.kodu == metin(form.get("istasyon_kodu"))).first()
-            makine_kodu = metin(form.get("makine_kodu"))
-            makine = db.query(Makine).filter(Makine.kodu == makine_kodu).first() if makine_kodu else None
-            sira = sayi(form.get("sira"), "Sıra", tam_sayi=True)
-            if not sinif or not istasyon or not metin(form.get("operasyon_adi")):
-                raise ValueError("Ürün sınıfı, istasyon, sıra ve operasyon adı zorunlu")
-            if makine and makine.istasyon_id != istasyon.id:
-                raise ValueError("Makine seçilen istasyona bağlı olmalı")
-            nesne = db.query(UrunSinifOperasyon).filter(UrunSinifOperasyon.urun_sinifi_id == sinif.id, UrunSinifOperasyon.sira_no == sira).first() or UrunSinifOperasyon(urun_sinifi_id=sinif.id, sira_no=sira)
-            nesne.istasyon_id, nesne.makine_id, nesne.operasyon_adi = istasyon.id, makine.id if makine else None, metin(form.get("operasyon_adi"))
-            nesne.hedef_cevrim_suresi, nesne.kontrol_noktasi, nesne.aktif = sayi(form.get("hedef_cevrim") or 0, "Hedef çevrim"), metin(form.get("kontrol_noktasi")), aktif
+            operasyon_sayisi = sayi(form.get("operasyon_sayisi"), "Operasyon sayısı", tam_sayi=True)
+            if not sinif or operasyon_sayisi < 1 or operasyon_sayisi > 50:
+                raise ValueError("Ürün sınıfı ve 1-50 arası operasyon sayısı zorunlu")
+            for sira in range(1, operasyon_sayisi + 1):
+                istasyon = db.query(Istasyon).filter(Istasyon.kodu == metin(form.get(f"istasyon_kodu_{sira}"))).first()
+                operasyon_adi = metin(form.get(f"operasyon_adi_{sira}"))
+                if not istasyon or not operasyon_adi:
+                    raise ValueError(f"{sira}. sıra için istasyon ve operasyon adı zorunlu")
+                makine_kodlari = [metin(kod) for kod in form.getlist(f"makine_kodlari_{sira}") if metin(kod)]
+                secili_makineler = db.query(Makine).filter(Makine.kodu.in_(makine_kodlari)).all() if makine_kodlari else []
+                if any(makine.istasyon_id != istasyon.id for makine in secili_makineler) or len(secili_makineler) != len(set(makine_kodlari)):
+                    raise ValueError(f"{sira}. sıradaki makineler seçilen istasyona bağlı olmalı")
+                nesne = db.query(UrunSinifOperasyon).filter(UrunSinifOperasyon.urun_sinifi_id == sinif.id, UrunSinifOperasyon.sira_no == sira).first()
+                if not nesne:
+                    nesne = UrunSinifOperasyon(urun_sinifi_id=sinif.id, sira_no=sira)
+                    db.add(nesne)
+                    db.flush()
+                nesne.istasyon_id = istasyon.id
+                nesne.makine_id = secili_makineler[0].id if secili_makineler else None
+                nesne.operasyon_adi = operasyon_adi
+                nesne.hedef_cevrim_suresi = 0
+                nesne.kontrol_noktasi = metin(form.get(f"kontrol_noktasi_{sira}"))
+                nesne.aktif = aktif
+                db.query(UrunSinifOperasyonMakine).filter(UrunSinifOperasyonMakine.operasyon_id == nesne.id).delete()
+                for makine in secili_makineler:
+                    db.add(UrunSinifOperasyonMakine(operasyon_id=nesne.id, makine_id=makine.id))
         elif tip == "urun":
             kod, sinif_kodu, urun_tipi = metin(form.get("kodu")), metin(form.get("sinif_kodu")), metin(form.get("urun_tipi"))
             sinif = db.query(UrunSinifi).filter(UrunSinifi.kodu == sinif_kodu).first() if sinif_kodu else None
@@ -278,6 +316,7 @@ async def manuel_kaydet(tip: str, request: Request, db: Session = Depends(get_db
                 db.flush()
             nesne = db.query(ReceteKalem).filter(ReceteKalem.recete_id == recete.id, ReceteKalem.malzeme_id == bilesen.id).first() or ReceteKalem(recete_id=recete.id, malzeme_id=bilesen.id)
             nesne.miktar, nesne.birim, nesne.fire_orani, nesne.sira_no, nesne.aktif = sayi(form.get("miktar"), "Miktar"), metin(form.get("birim")) or bilesen.birim, sayi(form.get("fire_orani") or 0, "Fire oranı"), sayi(form.get("sira") or 1, "Sıra", tam_sayi=True), aktif
+            nesne.hedef_cevrim_suresi = sayi(form.get("hedef_cevrim") or 0, "Hedef çevrim")
         else:
             raise ValueError("Bilinmeyen kayıt türü")
         if nesne not in db:
@@ -311,18 +350,18 @@ def excel_sablon(request: Request, db: Session = Depends(get_db), yetki=Depends(
     sayfa_ekle(kitap, "Personel Makine Atamaları", [[personel_kodlari.get(a.personel_id, ""), makine_kodlari.get(a.makine_id, ""), a.rol, a.hedef_performans, "Aktif" if a.aktif else "Pasif"] for a in db.query(PersonelMakine).all()])
     sayfa_ekle(kitap, "Ürün Sınıfları", [[s.kodu, s.adi, s.aciklama, "Aktif" if s.aktif else "Pasif"] for s in db.query(UrunSinifi).order_by(UrunSinifi.kodu)])
     sinif_kodlari = {s.id: s.kodu for s in db.query(UrunSinifi).all()}
-    sayfa_ekle(kitap, "Sınıf Reçete Operasyonları", [[sinif_kodlari.get(o.urun_sinifi_id, ""), o.sira_no, istasyon_kodlari.get(o.istasyon_id, ""), makine_kodlari.get(o.makine_id, ""), o.operasyon_adi, o.hedef_cevrim_suresi, o.kontrol_noktasi, "Aktif" if o.aktif else "Pasif"] for o in db.query(UrunSinifOperasyon).order_by(UrunSinifOperasyon.urun_sinifi_id, UrunSinifOperasyon.sira_no)])
+    sayfa_ekle(kitap, "Sınıf Reçete Operasyonları", [[sinif_kodlari.get(o.urun_sinifi_id, ""), o.sira_no, istasyon_kodlari.get(o.istasyon_id, ""), makine_kodlari.get(o.makine_id, ""), o.operasyon_adi, o.kontrol_noktasi, "Aktif" if o.aktif else "Pasif"] for o in db.query(UrunSinifOperasyon).order_by(UrunSinifOperasyon.urun_sinifi_id, UrunSinifOperasyon.sira_no)])
     sayfa_ekle(kitap, "Ürünler", [[u.kodu, u.adi, u.urun_tipi, sinif_kodlari.get(u.urun_sinifi_id, ""), u.birim, u.mevcut_stok, u.min_stok, u.max_stok, u.maliyet, u.satis_fiyati, u.aciklama, "Aktif" if u.aktif else "Pasif"] for u in db.query(Urun).order_by(Urun.kodu)])
     urun_kodlari = {u.id: u.kodu for u in db.query(Urun).all()}
     recete_kalemleri = db.query(ReceteKalem, Recete).join(Recete, ReceteKalem.recete_id == Recete.id).all()
-    sayfa_ekle(kitap, "Ürün Reçetesi", [[urun_kodlari.get(r.urun_id, ""), urun_kodlari.get(k.malzeme_id, ""), k.miktar, k.birim, k.fire_orani, k.sira_no] for k, r in recete_kalemleri])
+    sayfa_ekle(kitap, "Ürün Reçetesi", [[urun_kodlari.get(r.urun_id, ""), urun_kodlari.get(k.malzeme_id, ""), k.miktar, k.birim, k.fire_orani, k.sira_no, k.hedef_cevrim_suresi] for k, r in recete_kalemleri])
 
     listeler = kitap.create_sheet("Listeler")
     listeler.append(["Durumlar", "Ürün Türleri"])
     for sira in range(4):
         listeler.append([["Aktif", "Pasif"][sira] if sira < 2 else None, ["Hammadde", "YariMamul", "Mamul", "TicariMamul"][sira]])
     listeler.sheet_state = "hidden"
-    for ad, sutun in [("Personeller", "E"), ("İstasyonlar", "E"), ("Makineler", "F"), ("Personel Makine Atamaları", "E"), ("Ürün Sınıfları", "D"), ("Sınıf Reçete Operasyonları", "H"), ("Ürünler", "L")]:
+    for ad, sutun in [("Personeller", "E"), ("İstasyonlar", "E"), ("Makineler", "F"), ("Personel Makine Atamaları", "E"), ("Ürün Sınıfları", "D"), ("Sınıf Reçete Operasyonları", "G"), ("Ürünler", "L")]:
         dogrulama = DataValidation(type="list", formula1="'Listeler'!$A$2:$A$3")
         kitap[ad].add_data_validation(dogrulama)
         dogrulama.add(f"{sutun}2:{sutun}1000")
@@ -443,7 +482,7 @@ async def excel_aktar(request: Request, file: UploadFile = File(...), db: Sessio
                 db.add(nesne)
             nesne.istasyon_id, nesne.makine_id = istasyon.id, makine.id if makine else None
             nesne.operasyon_adi = metin(satir["Operasyon Adı"])
-            nesne.hedef_cevrim_suresi = sayi(satir["Hedef Çevrim Süresi (dk)"] or 0, "Hedef Çevrim Süresi")
+            nesne.hedef_cevrim_suresi = 0
             nesne.kontrol_noktasi, nesne.aktif = metin(satir["Kontrol Noktası"]), durum(satir["Durum"])
 
         for satir in veriler["Ürün Reçetesi"]:
@@ -461,6 +500,7 @@ async def excel_aktar(request: Request, file: UploadFile = File(...), db: Sessio
                 db.add(kalem)
             kalem.miktar, kalem.birim = sayi(satir["Miktar"], "Miktar"), metin(satir["Birim"]) or bilesen.birim
             kalem.fire_orani, kalem.sira_no, kalem.aktif = sayi(satir["Fire Oranı (%)"] or 0, "Fire Oranı"), sayi(satir["Sıra"], "Sıra", tam_sayi=True), True
+            kalem.hedef_cevrim_suresi = sayi(satir["Hedef Çevrim Süresi (dk)"] or 0, "Hedef Çevrim Süresi")
 
         toplam = sum(len(satirlar) for satirlar in veriler.values())
         islem_logla(db, request, "Üretim", "Üretim ana verisi aktarıldı", f"Dosya: {dosya_adi}. {toplam} satır işlendi.")
