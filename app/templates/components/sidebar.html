@@ -14,15 +14,12 @@
 
 
     <ul class="sidebar-menu">
-
-
         <li>
             <a href="/">
                 <i class="bi bi-speedometer2"></i>
                 <span>Dashboard</span>
             </a>
         </li>
-
 
         <li>
             <a href="/siparisler">
@@ -31,8 +28,7 @@
             </a>
         </li>
 
-
-
+        {% if kullanici_rol != "Operatör" %}
         <li>
 
             <a class="menu-toggle"
@@ -85,14 +81,18 @@
 
         </li>
 
+        {% endif %}
 
 
+        {% if kullanici_rol != "Operatör" %}
         <li>
             <a href="/musteriler">
                 <i class="bi bi-people"></i>
                 <span>Müşteriler</span>
             </a>
         </li>
+
+        {% endif %}
 
 
 
