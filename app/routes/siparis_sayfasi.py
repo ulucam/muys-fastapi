@@ -7,7 +7,7 @@ from app.context import template_data
 from app.database import get_db
 from app.models.musteri import Musteri
 from app.models.siparis import Siparis
-from app.roles import MUSTERI
+from app.roles import SIPARIS
 from app.security import yetki_kontrol
 
 
@@ -21,7 +21,7 @@ def siparisler(
     musteri_id: int | None = None,
     durum: str | None = None,
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(MUSTERI)),
+    yetki=Depends(yetki_kontrol(SIPARIS)),
 ):
     musteri = db.query(Musteri).filter(Musteri.id == musteri_id).first() if musteri_id else None
     siparis_sorgusu = db.query(Siparis)
