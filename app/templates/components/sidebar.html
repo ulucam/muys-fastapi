@@ -67,14 +67,14 @@
 
                 </a>
 
-                <a href="/uretim-tanimlari"
+                {% if kullanici_rol in ["Admin", "Yönetici"] %}<a href="/uretim-tanimlari"
                    class="submenu">
 
                     <i class="bi bi-diagram-3"></i>
 
                     Üretim Tanımları
 
-                </a>
+                </a>{% endif %}
 
 
             </div>
@@ -82,6 +82,13 @@
         </li>
 
         {% endif %}
+
+        <li>
+            <a href="/personeller">
+                <i class="bi bi-person-badge"></i>
+                <span>Personeller</span>
+            </a>
+        </li>
 
 
         {% if kullanici_rol != "Operatör" %}
