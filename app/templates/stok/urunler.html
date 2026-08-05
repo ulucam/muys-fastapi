@@ -1,5 +1,31 @@
 {% extends "base.html" %}
-{% block title %}Ürünler{% endblock %}
+{% block title %}Hammaddeler{% endblock %}
 {% block content %}
-<div class="container-fluid py-3"><div class="d-flex justify-content-between align-items-center"><h3>Ürünler</h3><a class="btn btn-outline-secondary" href="/">Dashboard</a></div><p class="text-muted">Ürün kartı yönetimi bu sayfada geliştirilecek.</p><div class="card shadow-sm border-0"><div class="card-body"><p class="mb-0">Şimdilik ürün kartlarını Üretim Tanımları ekranından ekleyip düzenleyebilirsiniz.</p></div></div></div>
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div><h3 class="mb-1"><i class="bi bi-box-seam"></i> Hammadde Stokları</h3><p class="text-muted mb-0">Excel ile toplu hammadde kartı ve stok girişi yapın.</p></div>
+        <a class="btn btn-outline-secondary" href="/">Dashboard</a>
+    </div>
+
+    {% if request.query_params.get('aktarim') == 'basarili' %}<div class="alert alert-success"><i class="bi bi-check-circle"></i> Hammadde Excel aktarımı başarıyla tamamlandı.</div>{% endif %}
+    {% if hatalar %}<div class="alert alert-danger"><strong>Aktarım yapılamadı.</strong><ul class="mb-0 mt-2">{% for hata in hatalar %}<li>{{ hata }}</li>{% endfor %}</ul></div>{% endif %}
+
+    <div class="card border-0 shadow-sm mb-4">
+        <button class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#excelAktarim">
+            <div><strong><i class="bi bi-file-earmark-excel text-success me-2"></i>Toplu Hammadde Girişi</strong><div class="small text-muted">Kutuyu açıp şablonu indirin ve doldurduğunuz dosyayı yükleyin.</div></div><i class="bi bi-chevron-down"></i>
+        </button>
+        <div class="collapse {% if hatalar %}show{% endif %}" id="excelAktarim"><div class="card-body border-top">
+            <div class="row g-4 align-items-end">
+                <div class="col-lg-5"><h6>1. Excel şablonunu indirin</h6><p class="text-muted small">Ürün kodu, adı, birim, giriş miktarı ve stok sınırlarını doldurun.</p><a class="btn btn-success" href="/urunler/hammadde-sablon"><i class="bi bi-download"></i> Hammadde Şablonu İndir</a></div>
+                <div class="col-lg-7"><h6>2. Doldurulan Excel’i yükleyin</h6><form method="post" action="/urunler/hammadde-aktar" enctype="multipart/form-data" class="d-flex gap-2"><input class="form-control" type="file" name="file" accept=".xlsx" required><button class="btn btn-primary text-nowrap" type="submit"><i class="bi bi-upload"></i> Toplu Aktar</button></form></div>
+            </div>
+            <div class="alert alert-info mt-3 mb-0 small"><strong>Stok davranışı:</strong> Giriş Miktarı mevcut stoğun üzerine eklenir. Aynı ürün kodu dosyada tekrar ederse miktarlar toplanır.</div>
+        </div></div>
+    </div>
+
+    <div class="card border-0 shadow-sm"><div class="card-header bg-white"><strong>Hammadde Listesi</strong> <span class="badge bg-secondary">{{ urunler|length }}</span></div><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead><tr><th>Kod</th><th>Hammadde</th><th>Birim</th><th>Mevcut Stok</th><th>Min.</th><th>Max.</th><th>Maliyet</th><th>Durum</th></tr></thead>
+        <tbody>{% for urun in urunler %}<tr><td><strong>{{ urun.kodu }}</strong></td><td>{{ urun.adi }}</td><td>{{ urun.birim }}</td><td><strong>{{ urun.mevcut_stok or 0 }}</strong></td><td>{{ urun.min_stok or 0 }}</td><td>{{ urun.max_stok or 0 }}</td><td>{{ urun.maliyet or 0 }}</td><td>{% if urun.aktif %}<span class="badge bg-success">Aktif</span>{% else %}<span class="badge bg-secondary">Pasif</span>{% endif %}</td></tr>{% else %}<tr><td colspan="8" class="text-center text-muted py-5">Hammadde kaydı bulunamadı.</td></tr>{% endfor %}</tbody>
+    </table></div></div>
+</div>
 {% endblock %}
