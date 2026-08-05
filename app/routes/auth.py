@@ -4,8 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.user import User
-from app.password import sifre_kontrol
+from app.services.auth_service import kullanici_dogrula
 
 
 router = APIRouter()
@@ -52,17 +51,12 @@ async def login(
 
 
     # sadece kullanıcı adına göre buluyoruz
-    user = db.query(User).filter(
-        User.kullanici_adi == kullanici_adi
-    ).first()
+    user = kullanici_dogrula(db, kullanici_adi, sifre)
 
 
 
     # kullanıcı var mı ve şifre doğru mu?
-    if user and sifre_kontrol(
-        sifre,
-        user.sifre
-    ):
+    if user:
 
 
 
