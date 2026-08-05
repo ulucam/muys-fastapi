@@ -15,3 +15,6 @@ from app.models.puantaj import Puantaj
 from app.models.urun_sinifi import UrunSinifi
 from app.models.urun_sinif_operasyon import UrunSinifOperasyon
 from app.models.urun_sinif_operasyon_makine import UrunSinifOperasyonMakine
+from app.models.firma_ayarlari import FirmaAyarlari
+from app.models.islem_logu import IslemLogu
+from app.models.excel_aktarim_taslagi import ExcelAktarimTaslagi
