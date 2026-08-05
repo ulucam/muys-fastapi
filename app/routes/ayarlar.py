@@ -42,6 +42,9 @@ URUN_TIP_KODLARI = {
     "Mamul": "Mamul", "Ticari Mamul": "TicariMamul", "TicariMamul": "TicariMamul",
 }
 URUN_TIP_ETIKETLERI = {kod: etiket for etiket, kod in URUN_TIP_KODLARI.items() if etiket not in ("YariMamul", "TicariMamul")}
+PERSONEL_SUTUNLARI = ["Personel Kodu", "Ad Soyad", "Departman", "Görev", "Durum"]
+ISTASYON_SUTUNLARI = ["İstasyon Kodu", "İstasyon Adı", "Bölüm", "Açıklama", "Durum"]
+MAKINE_SUTUNLARI = ["Makine Kodu", "Makine Adı", "İstasyon Kodu", "Model", "Kapasite", "Durum"]
 
 
 def il_ilce_verisi():
@@ -156,7 +159,46 @@ def excel_satirlarini_oku(dosya_icerigi):
                     hatalar.append(f"Stok Ürünleri satır {sira}: {', '.join(satir_hatalari)}")
                 elif urun:
                     urunler.append(urun)
-    return satirlar, urunler, hatalar
+    def liste_sayfasi_oku(sayfa_adlari, sutunlar, etiket):
+        sayfa_adi = next((ad for ad in sayfa_adlari if ad in kitap.sheetnames), None)
+        if not sayfa_adi:
+            return []
+        liste_sayfasi = kitap[sayfa_adi]
+        basliklar = [metin(hucre.value) for hucre in liste_sayfasi[1]]
+        if basliklar[:len(sutunlar)] != sutunlar:
+            hatalar.append(f"{sayfa_adi} sayfasındaki sütun başlıkları taslakla uyuşmuyor.")
+            return []
+        sonuc = []
+        for sira, excel_satiri in enumerate(liste_sayfasi.iter_rows(min_row=2, values_only=True), start=2):
+            if not any(excel_satiri):
+                continue
+            veri = dict(zip(sutunlar, excel_satiri))
+            kod = metin(veri[sutunlar[0]])
+            ad = metin(veri[sutunlar[1]])
+            satir_hatalari = []
+            if not kod or not ad:
+                satir_hatalari.append(f"{sutunlar[0]} ve {sutunlar[1]} zorunlu")
+            if metin(veri["Durum"]) not in ("Aktif", "Pasif"):
+                satir_hatalari.append("Durum Aktif veya Pasif olmalı")
+            if satir_hatalari:
+                hatalar.append(f"{etiket} satır {sira}: {', '.join(satir_hatalari)}")
+            else:
+                sonuc.append(veri)
+        return sonuc
+
+    personeller = liste_sayfasi_oku(
+        ("Personel Listesi", "Personeller", "Çalışanlar"), PERSONEL_SUTUNLARI, "Personeller"
+    )
+    istasyonlar = liste_sayfasi_oku(
+        ("İstasyon Listesi", "İstasyonlar", "İstasyon"), ISTASYON_SUTUNLARI, "İstasyonlar"
+    )
+    makineler = liste_sayfasi_oku(
+        ("Makine Listesi", "Makineler", "Makine"), MAKINE_SUTUNLARI, "Makineler"
+    )
+    for sira, makine in enumerate(makineler, start=2):
+        if not metin(makine["İstasyon Kodu"]):
+            hatalar.append(f"Makineler satır {sira}: İstasyon Kodu zorunlu")
+    return satirlar, urunler, personeller, istasyonlar, makineler, hatalar
 
 
 @router.get("/ayarlar", response_class=HTMLResponse)
@@ -309,15 +351,21 @@ async def excel_onizleme(request: Request, file: UploadFile = File(...), db: Ses
     dosya_adi = file.filename or "adsız dosya"
     if not dosya_adi.lower().endswith(".xlsx"):
         hatalar = ["Yalnızca .xlsx uzantılı Excel dosyaları yüklenebilir."]
-        satirlar, urunler = [], []
+        satirlar, urunler, personeller, istasyonlar, makineler = [], [], [], [], []
     else:
         try:
             dosya_icerigi = await file.read()
             if not dosya_icerigi:
                 raise ValueError("Dosya boş")
-            satirlar, urunler, hatalar = excel_satirlarini_oku(dosya_icerigi)
+            satirlar, urunler, personeller, istasyonlar, makineler, hatalar = excel_satirlarini_oku(dosya_icerigi)
+            mevcut_istasyon_kodlari = {i.kodu for i in db.query(Istasyon).all()}
+            aktarilan_istasyon_kodlari = {metin(i["İstasyon Kodu"]) for i in istasyonlar}
+            for sira, makine in enumerate(makineler, start=2):
+                istasyon_kodu = metin(makine["İstasyon Kodu"])
+                if istasyon_kodu not in mevcut_istasyon_kodlari | aktarilan_istasyon_kodlari:
+                    hatalar.append(f"Makineler satır {sira}: '{istasyon_kodu}' istasyon kodu bulunamadı")
         except Exception as hata:
-            satirlar, urunler = [], []
+            satirlar, urunler, personeller, istasyonlar, makineler = [], [], [], [], []
             hatalar = [f"Excel dosyası okunamadı: {type(hata).__name__}. Ayrıntı işlem geçmişine kaydedildi."]
             islem_logla(db, request, "Excel", "Excel önizlemesi başarısız", f"Dosya: {dosya_adi}. Hata: {type(hata).__name__}: {hata}")
             db.commit()
@@ -326,8 +374,8 @@ async def excel_onizleme(request: Request, file: UploadFile = File(...), db: Ses
     eklenecek, guncellenecek = [], []
     for satir in satirlar:
         (guncellenecek if satir["Firma Adı"].casefold() in mevcutlar else eklenecek).append(satir["Firma Adı"])
-    if not hatalar and not satirlar and not urunler:
-        hatalar.append("Aktarılacak müşteri veya stok ürünü bulunamadı.")
+    if not hatalar and not any((satirlar, urunler, personeller, istasyonlar, makineler)):
+        hatalar.append("Aktarılacak veri bulunamadı.")
     if hatalar:
         islem_logla(db, request, "Excel", "Excel önizlemesi geçersiz", f"Dosya: {dosya_adi}. {len(hatalar)} doğrulama hatası bulundu.")
         db.commit()
@@ -339,19 +387,28 @@ async def excel_onizleme(request: Request, file: UploadFile = File(...), db: Ses
         db.add(ExcelAktarimTaslagi(
             token=token,
             veri=json.dumps(
-                {"musteriler": satirlar, "urunler": urunler, "dosya_adi": dosya_adi},
+                {
+                    "musteriler": satirlar, "urunler": urunler,
+                    "personeller": personeller, "istasyonlar": istasyonlar,
+                    "makineler": makineler, "dosya_adi": dosya_adi,
+                },
                 ensure_ascii=False,
             ),
         ))
         # SessionMiddleware istemci tarafı çerez kullanır; buraya Excel satırlarını
         # koymak çerez boyutu sınırını aşar. Sadece küçük taslak anahtarı tutulur.
         request.session["excel_onay_token"] = token
-        islem_logla(db, request, "Excel", "Excel önizlemesi hazır", f"Dosya: {dosya_adi}. {len(satirlar)} müşteri, {len(urunler)} stok ürünü onay bekliyor.")
+        islem_logla(db, request, "Excel", "Excel önizlemesi hazır", f"Dosya: {dosya_adi}. {len(satirlar)} müşteri, {len(urunler)} stok ürünü, {len(personeller)} personel, {len(istasyonlar)} istasyon ve {len(makineler)} makine onay bekliyor.")
         db.commit()
 
     data = template_data(request)
     data["son_aktarim"] = db.query(IslemLogu).filter(IslemLogu.modul == "Excel").order_by(IslemLogu.created_at.desc()).first()
-    data.update({"hatalar": hatalar, "eklenecek": eklenecek, "guncellenecek": guncellenecek, "gecerli_satir": len(satirlar), "gecerli_urun": len(urunler)})
+    data.update({
+        "hatalar": hatalar, "eklenecek": eklenecek, "guncellenecek": guncellenecek,
+        "gecerli_satir": len(satirlar), "gecerli_urun": len(urunler),
+        "gecerli_personel": len(personeller), "gecerli_istasyon": len(istasyonlar),
+        "gecerli_makine": len(makineler),
+    })
     return templates.TemplateResponse("ayarlar/excel.html", data)
 
 
@@ -362,8 +419,11 @@ def excel_onayla(request: Request, db: Session = Depends(get_db)):
     aktarim = json.loads(taslak.veri) if taslak else {}
     satirlar = aktarim.get("musteriler", [])
     urunler = aktarim.get("urunler", [])
+    personeller = aktarim.get("personeller", [])
+    istasyonlar = aktarim.get("istasyonlar", [])
+    makineler = aktarim.get("makineler", [])
     dosya_adi = aktarim.get("dosya_adi", "adsız dosya")
-    if not satirlar and not urunler:
+    if not any((satirlar, urunler, personeller, istasyonlar, makineler)):
         islem_logla(db, request, "Excel", "Excel aktarımı başarısız", "Onaylanacak geçerli veri bulunamadı; önizleme süresi dolmuş veya dosya geçersiz.")
         db.commit()
         return RedirectResponse("/ayarlar/excel", status_code=303)
@@ -392,9 +452,42 @@ def excel_onayla(request: Request, db: Session = Depends(get_db)):
                 db.add(urun)
             for alan, deger in satir.items():
                 setattr(urun, alan, deger)
+        for satir in personeller:
+            kod = metin(satir["Personel Kodu"])
+            personel = db.query(Personel).filter(Personel.kodu == kod).first() or Personel(kodu=kod)
+            personel.ad_soyad = metin(satir["Ad Soyad"])
+            personel.departman = metin(satir["Departman"])
+            personel.gorev = metin(satir["Görev"])
+            personel.aktif = metin(satir["Durum"]) == "Aktif"
+            if personel not in db:
+                db.add(personel)
+        for satir in istasyonlar:
+            kod = metin(satir["İstasyon Kodu"])
+            istasyon = db.query(Istasyon).filter(Istasyon.kodu == kod).first() or Istasyon(kodu=kod)
+            istasyon.adi = metin(satir["İstasyon Adı"])
+            istasyon.bolum = metin(satir["Bölüm"])
+            istasyon.aciklama = metin(satir["Açıklama"])
+            istasyon.aktif = metin(satir["Durum"]) == "Aktif"
+            if istasyon not in db:
+                db.add(istasyon)
+        db.flush()
+        istasyon_kodlari = {i.kodu: i for i in db.query(Istasyon).all()}
+        for satir in makineler:
+            kod = metin(satir["Makine Kodu"])
+            istasyon = istasyon_kodlari.get(metin(satir["İstasyon Kodu"]))
+            if not istasyon:
+                raise ValueError(f"{kod} makinesi için istasyon bulunamadı")
+            makine = db.query(Makine).filter(Makine.kodu == kod).first() or Makine(kodu=kod)
+            makine.adi = metin(satir["Makine Adı"])
+            makine.istasyon_id = istasyon.id
+            makine.model = metin(satir["Model"])
+            makine.kapasite = metin(satir["Kapasite"])
+            makine.aktif = metin(satir["Durum"]) == "Aktif"
+            if makine not in db:
+                db.add(makine)
         db.delete(taslak)
         request.session.pop("excel_onay_token", None)
-        islem_logla(db, request, "Excel", "Excel aktarımı tamamlandı", f"Dosya: {dosya_adi}. {len(satirlar)} müşteri ve {len(urunler)} stok ürünü aktarıldı/güncellendi.")
+        islem_logla(db, request, "Excel", "Excel aktarımı tamamlandı", f"Dosya: {dosya_adi}. {len(satirlar)} müşteri, {len(urunler)} stok ürünü, {len(personeller)} personel, {len(istasyonlar)} istasyon ve {len(makineler)} makine aktarıldı/güncellendi.")
         db.commit()
     except Exception as hata:
         db.rollback()
