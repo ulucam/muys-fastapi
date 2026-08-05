@@ -42,7 +42,7 @@ URUN_TIP_KODLARI = {
     "Mamul": "Mamul", "Ticari Mamul": "TicariMamul", "TicariMamul": "TicariMamul",
 }
 URUN_TIP_ETIKETLERI = {kod: etiket for etiket, kod in URUN_TIP_KODLARI.items() if etiket not in ("YariMamul", "TicariMamul")}
-PERSONEL_SUTUNLARI = ["Personel Kodu", "Ad Soyad", "Departman", "Görev", "Durum"]
+PERSONEL_SUTUNLARI = ["Ad Soyad", "Departman", "Görev", "Durum"]
 ISTASYON_SUTUNLARI = ["İstasyon Kodu", "İstasyon Adı", "Bölüm", "Açıklama", "Durum"]
 MAKINE_SUTUNLARI = ["Makine Kodu", "Makine Adı", "İstasyon Kodu", "Model", "Kapasite", "Durum"]
 
@@ -77,6 +77,21 @@ def sonraki_musteri_kodu(db: Session, kullanilan_kodlar: set[str]) -> str:
     while kod in kullanilan_kodlar:
         sira += 1
         kod = f"M{sira:06}"
+    kullanilan_kodlar.add(kod)
+    return kod
+
+
+def sonraki_personel_kodu(kullanilan_kodlar: set[str]) -> str:
+    """Excel aktarımında yeni personel için P000001 biçiminde kod üretir."""
+    en_yuksek_numara = 0
+    for kod in kullanilan_kodlar:
+        if kod and kod.startswith("P") and kod[1:].isdigit():
+            en_yuksek_numara = max(en_yuksek_numara, int(kod[1:]))
+    sira = en_yuksek_numara + 1
+    kod = f"P{sira:06}"
+    while kod in kullanilan_kodlar:
+        sira += 1
+        kod = f"P{sira:06}"
     kullanilan_kodlar.add(kod)
     return kod
 
@@ -159,7 +174,7 @@ def excel_satirlarini_oku(dosya_icerigi):
                     hatalar.append(f"Stok Ürünleri satır {sira}: {', '.join(satir_hatalari)}")
                 elif urun:
                     urunler.append(urun)
-    def liste_sayfasi_oku(sayfa_adlari, sutunlar, etiket):
+    def liste_sayfasi_oku(sayfa_adlari, sutunlar, etiket, zorunlu_alanlar=None):
         sayfa_adi = next((ad for ad in sayfa_adlari if ad in kitap.sheetnames), None)
         if not sayfa_adi:
             return []
@@ -173,11 +188,11 @@ def excel_satirlarini_oku(dosya_icerigi):
             if not any(excel_satiri):
                 continue
             veri = dict(zip(sutunlar, excel_satiri))
-            kod = metin(veri[sutunlar[0]])
-            ad = metin(veri[sutunlar[1]])
             satir_hatalari = []
-            if not kod or not ad:
-                satir_hatalari.append(f"{sutunlar[0]} ve {sutunlar[1]} zorunlu")
+            zorunlu_alanlar = zorunlu_alanlar or sutunlar[:2]
+            eksik_alanlar = [alan for alan in zorunlu_alanlar if not metin(veri[alan])]
+            if eksik_alanlar:
+                satir_hatalari.append(f"{', '.join(eksik_alanlar)} zorunlu")
             if metin(veri["Durum"]) not in ("Aktif", "Pasif"):
                 satir_hatalari.append("Durum Aktif veya Pasif olmalı")
             if satir_hatalari:
@@ -187,7 +202,7 @@ def excel_satirlarini_oku(dosya_icerigi):
         return sonuc
 
     personeller = liste_sayfasi_oku(
-        ("Personel Listesi", "Personeller", "Çalışanlar"), PERSONEL_SUTUNLARI, "Personeller"
+        ("Personel Listesi", "Personeller", "Çalışanlar"), PERSONEL_SUTUNLARI, "Personeller", ["Ad Soyad"]
     )
     istasyonlar = liste_sayfasi_oku(
         ("İstasyon Listesi", "İstasyonlar", "İstasyon"), ISTASYON_SUTUNLARI, "İstasyonlar"
@@ -290,7 +305,7 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
 
     istasyon_kodlari = {istasyon.id: istasyon.kodu for istasyon in mevcut_istasyonlar}
     for sayfa_adi, basliklar, satirlar, genislikler in [
-        ("Personel Listesi", ["Personel Kodu", "Ad Soyad", "Departman", "Görev", "Durum"], [[p.kodu, p.ad_soyad, p.departman, p.gorev, "Aktif" if p.aktif else "Pasif"] for p in mevcut_personeller], [18, 30, 22, 22, 14]),
+        ("Personel Listesi", PERSONEL_SUTUNLARI, [[p.ad_soyad, p.departman, p.gorev, "Aktif" if p.aktif else "Pasif"] for p in mevcut_personeller], [30, 22, 22, 14]),
         ("İstasyon Listesi", ["İstasyon Kodu", "İstasyon Adı", "Bölüm", "Açıklama", "Durum"], [[i.kodu, i.adi, i.bolum, i.aciklama, "Aktif" if i.aktif else "Pasif"] for i in mevcut_istasyonlar], [18, 30, 22, 36, 14]),
         ("Makine Listesi", ["Makine Kodu", "Makine Adı", "İstasyon Kodu", "Model", "Kapasite", "Durum"], [[m.kodu, m.adi, istasyon_kodlari.get(m.istasyon_id, ""), m.model, m.kapasite, "Aktif" if m.aktif else "Pasif"] for m in mevcut_makineler], [18, 30, 18, 22, 18, 14]),
     ]:
@@ -452,10 +467,13 @@ def excel_onayla(request: Request, db: Session = Depends(get_db)):
                 db.add(urun)
             for alan, deger in satir.items():
                 setattr(urun, alan, deger)
+        kullanilan_personel_kodlari = {kod for (kod,) in db.query(Personel.kodu).all() if kod}
         for satir in personeller:
-            kod = metin(satir["Personel Kodu"])
-            personel = db.query(Personel).filter(Personel.kodu == kod).first() or Personel(kodu=kod)
-            personel.ad_soyad = metin(satir["Ad Soyad"])
+            ad_soyad = metin(satir["Ad Soyad"])
+            personel = db.query(Personel).filter(Personel.ad_soyad.ilike(ad_soyad)).first()
+            if not personel:
+                personel = Personel(kodu=sonraki_personel_kodu(kullanilan_personel_kodlari))
+            personel.ad_soyad = ad_soyad
             personel.departman = metin(satir["Departman"])
             personel.gorev = metin(satir["Görev"])
             personel.aktif = metin(satir["Durum"]) == "Aktif"
