@@ -114,3 +114,9 @@ class Urun(Base):
         nullable=True,
         index=True,
     )
+
+    urun_cinsi = Column(
+        String(100),
+        default="",
+        nullable=True,
+    )
