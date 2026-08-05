@@ -27,10 +27,16 @@ def dashboard_verisi(db: Session, secili_tarih: date, rol: str | None, kullanici
     musteriler = {m.id: m for m in db.query(Musteri).all()}
     siparisler = db.query(Siparis).filter(Siparis.aktif.is_(True)).order_by(Siparis.teslim_tarihi.asc(), Siparis.created_at.desc()).all()
     gruplar = {durum: [s for s in siparisler if s.durum == durum] for durum in SIPARIS_DURUMLARI}
+    devamsiz_izinli_personeller = [
+        {"personel": personel, "kayit": puantaj[personel.id]}
+        for personel in personeller
+        if personel.id in puantaj and puantaj[personel.id].durum in ("Devamsız", "Gelmedi", "İzinli")
+    ]
     return {"personeller": personeller, "gunluk_puantaj": puantaj, "siparisler_duruma_gore": gruplar,
         "musteriler": musteriler, "aktif_siparis": len(siparisler), "uretimde": len(gruplar["Üretimde"]),
         "teslim_bekleyen": len(gruplar["Sevke Hazır"]),
-        "devamsiz_sayisi": sum(1 for p in puantaj.values() if p.durum in ("Devamsız", "Gelmedi"))}
+        "devamsiz_izinli_personeller": devamsiz_izinli_personeller,
+        "devamsiz_sayisi": len(devamsiz_izinli_personeller)}
 
 
 def puantaj_kaydet(db: Session, secili_tarih: date, form, rol: str | None, kullanici_id: int | None) -> int:
