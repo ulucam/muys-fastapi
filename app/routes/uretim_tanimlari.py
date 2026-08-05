@@ -1,3 +1,5 @@
+from datetime import date, datetime
+
 from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -20,6 +22,7 @@ from app.services.uretim_tanimlari_service import (
     manuel_tanim_kaydet,
     personel_listesi_verisi,
     personel_puantaji,
+    puantaj_listesi_verisi,
     tanim_listesi,
     tanim_sil as tanim_sil_service,
 )
@@ -27,9 +30,20 @@ from app.services.uretim_tanimlari_service import (
 router = APIRouter(tags=["Üretim Tanımları"])
 templates = Jinja2Templates(directory="app/templates")
 
+
+def ekran_verisi(request: Request, db: Session, **ek):
+    """Ortak template verisini üretim tanımları servis verisiyle birleştirir."""
+    data = template_data(request)
+    data.update(servis_ekran_verisi(db, **ek))
+    return data
+
+
 @router.get("/personeller", response_class=HTMLResponse)
 def personel_listesi(
     request: Request,
+    sekme: str = "personel",
+    tarih: str | None = None,
+    devamsiz: bool = False,
     q: str = "",
     departman: str = "",
     gorev: str = "",
@@ -37,8 +51,14 @@ def personel_listesi(
     db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(PERSONEL_GORUNTULE)),
 ):
+    try:
+        secili_tarih = datetime.strptime(tarih or "", "%Y-%m-%d").date()
+    except ValueError:
+        secili_tarih = date.today()
     data = template_data(request)
     data.update(personel_listesi_verisi(db, q, departman, gorev, istasyon_id))
+    data.update(puantaj_listesi_verisi(db, secili_tarih, devamsiz))
+    data["aktif_sekme"] = "puantaj" if sekme == "puantaj" else "personel"
     return templates.TemplateResponse("uretim/personeller.html", data)
 
 
