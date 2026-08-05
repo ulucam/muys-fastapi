@@ -51,8 +51,8 @@
                             <tr>
                                 <td><strong>{{ personel.ad_soyad }}</strong><div class="small text-muted">{{ personel.kodu }}</div></td>
                                 <td>{{ personel.departman or '-' }} / {{ personel.gorev or '-' }}</td>
-                                <td><select class="form-select" name="durum_{{ personel.id }}">{% for durum in puantaj_durumlari %}<option value="{{ durum }}" {% if (kayit and (kayit.durum == durum or (kayit.durum == 'Devamsız' and durum == 'Gelmedi'))) or (not kayit and durum == 'Geldi') %}selected{% endif %}>{{ durum }}</option>{% endfor %}</select></td>
-                                <td><input class="form-control" name="aciklama_{{ personel.id }}" value="{{ kayit.aciklama if kayit else '' }}" placeholder="İsteğe bağlı not"></td>
+                                <td><select class="form-select" name="durum_{{ personel.id }}" {% if kullanici_rol == 'Operatör' %}disabled{% endif %}>{% for durum in puantaj_durumlari %}<option value="{{ durum }}" {% if (kayit and (kayit.durum == durum or (kayit.durum == 'Devamsız' and durum == 'Gelmedi'))) or (not kayit and durum == 'Geldi') %}selected{% endif %}>{{ durum }}</option>{% endfor %}</select></td>
+                                <td><input class="form-control" name="aciklama_{{ personel.id }}" value="{{ kayit.aciklama if kayit else '' }}" placeholder="İsteğe bağlı not" {% if kullanici_rol == 'Operatör' %}readonly{% endif %}></td>
                             </tr>
                         {% else %}
                             <tr><td colspan="4" class="text-center text-muted py-4">Aktif personel bulunamadı.</td></tr>
@@ -60,7 +60,7 @@
                         </tbody>
                     </table>
                 </div>
-                {% if personeller %}<div class="p-3 text-end border-top"><button class="btn btn-success" type="submit"><i class="bi bi-check2-circle"></i> Puantajı Kaydet</button></div>{% endif %}
+                {% if personeller and kullanici_rol != 'Operatör' %}<div class="p-3 text-end border-top"><button class="btn btn-success" type="submit"><i class="bi bi-check2-circle"></i> Puantajı Kaydet</button></div>{% elif personeller %}<div class="p-3 border-top"><div class="alert alert-info mb-0"><i class="bi bi-eye"></i> Puantaj bilgileriniz salt okunur olarak gösterilmektedir.</div></div>{% endif %}
             </form>
         </div>
         </div>
