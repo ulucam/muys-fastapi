@@ -59,6 +59,5 @@ PERSONEL_GORUNTULE = [
     "Yönetici",
     "Satış",
     "Üretim",
-    "Operatör",
     "Depo"
 ]
