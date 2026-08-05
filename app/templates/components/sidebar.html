@@ -83,12 +83,14 @@
 
         {% endif %}
 
+        {% if kullanici_rol != "Operatör" %}
         <li>
             <a href="/personeller">
                 <i class="bi bi-person-badge"></i>
                 <span>Personeller</span>
             </a>
         </li>
+        {% endif %}
 
 
         {% if kullanici_rol != "Operatör" %}
