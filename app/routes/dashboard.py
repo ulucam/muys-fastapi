@@ -11,6 +11,7 @@ from app.models.musteri import Musteri
 from app.models.personel import Personel
 from app.models.puantaj import Puantaj
 from app.models.siparis import Siparis
+from app.models.user import User
 from app.services.islem_log_service import islem_logla
 
 router = APIRouter()
@@ -29,10 +30,18 @@ def tarihi_oku(deger: str | None) -> date:
 @router.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, tarih: str | None = None, db: Session = Depends(get_db)):
     secili_tarih = tarihi_oku(tarih)
-    personeller = db.query(Personel).filter(Personel.aktif.is_(True)).order_by(Personel.ad_soyad).all()
+    personel_sorgusu = db.query(Personel).filter(Personel.aktif.is_(True))
+    if request.session.get("rol") == "Operatör":
+        oturum_kullanicisi = db.query(User).filter(User.id == request.session.get("user_id")).first()
+        personel_sorgusu = personel_sorgusu.filter(Personel.id == (oturum_kullanicisi.personel_id if oturum_kullanicisi else None))
+    personeller = personel_sorgusu.order_by(Personel.ad_soyad).all()
+    gorulebilir_personel_idleri = [personel.id for personel in personeller]
     gunluk_puantaj = {
         p.personel_id: p
-        for p in db.query(Puantaj).filter(Puantaj.tarih == secili_tarih).all()
+        for p in db.query(Puantaj).filter(
+            Puantaj.tarih == secili_tarih,
+            Puantaj.personel_id.in_(gorulebilir_personel_idleri),
+        ).all()
     }
     musteriler = {m.id: m for m in db.query(Musteri).all()}
     siparisler = db.query(Siparis).filter(Siparis.aktif.is_(True)).order_by(
@@ -63,7 +72,11 @@ def dashboard(request: Request, tarih: str | None = None, db: Session = Depends(
 async def puantaj_kaydet(request: Request, db: Session = Depends(get_db)):
     form = await request.form()
     secili_tarih = tarihi_oku(form.get("tarih"))
-    aktif_personeller = db.query(Personel).filter(Personel.aktif.is_(True)).all()
+    personel_sorgusu = db.query(Personel).filter(Personel.aktif.is_(True))
+    if request.session.get("rol") == "Operatör":
+        oturum_kullanicisi = db.query(User).filter(User.id == request.session.get("user_id")).first()
+        personel_sorgusu = personel_sorgusu.filter(Personel.id == (oturum_kullanicisi.personel_id if oturum_kullanicisi else None))
+    aktif_personeller = personel_sorgusu.all()
     mevcutlar = {
         p.personel_id: p
         for p in db.query(Puantaj).filter(Puantaj.tarih == secili_tarih).all()
