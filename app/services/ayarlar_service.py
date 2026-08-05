@@ -23,6 +23,11 @@ def firma_getir(db: Session):
     return db.query(FirmaAyarlari).first()
 
 
+def firma_adi_getir(db: Session) -> str:
+    firma = firma_getir(db)
+    return firma.firma_adi if firma and firma.firma_adi else "MÜYS"
+
+
 def firma_bilgilerini_kaydet(db: Session, kullanici_adi: str, ip_adresi: str, **alanlar):
     firma = firma_getir(db)
     if not firma:
