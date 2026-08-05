@@ -14,13 +14,14 @@ from app.models.istasyon import Istasyon
 from app.models.makine import Makine
 from app.models.personel import Personel
 from app.models.personel_makine import PersonelMakine
+from app.models.user import User
 from app.models.puantaj import Puantaj
 from app.models.recete import Recete
 from app.models.recete_kalem import ReceteKalem
 from app.models.urun import Urun
 from app.models.urun_sinif_operasyon import UrunSinifOperasyon
 from app.models.urun_sinifi import UrunSinifi
-from app.roles import YONETIM
+from app.roles import PERSONEL_GORUNTULE, YONETIM
 from app.security import yetki_kontrol
 from app.services.islem_log_service import islem_logla
 
@@ -111,6 +112,50 @@ def ekran_verisi(request, db, **ek):
     })
     data.update(ek)
     return data
+
+
+@router.get("/personeller", response_class=HTMLResponse)
+def personel_listesi(
+    request: Request,
+    q: str = "",
+    departman: str = "",
+    gorev: str = "",
+    istasyon_id: int | None = None,
+    db: Session = Depends(get_db),
+    yetki=Depends(yetki_kontrol(PERSONEL_GORUNTULE)),
+):
+    sorgu = db.query(Personel).filter(Personel.aktif.is_(True))
+    if q.strip():
+        arama = f"%{q.strip()}%"
+        sorgu = sorgu.filter((Personel.ad_soyad.ilike(arama)) | (Personel.kodu.ilike(arama)))
+    if departman:
+        sorgu = sorgu.filter(Personel.departman == departman)
+    if gorev:
+        sorgu = sorgu.filter(Personel.gorev == gorev)
+    if istasyon_id:
+        makine_idleri = [m.id for m in db.query(Makine).filter(Makine.istasyon_id == istasyon_id).all()]
+        personel_idleri = [a.personel_id for a in db.query(PersonelMakine).filter(PersonelMakine.makine_id.in_(makine_idleri), PersonelMakine.aktif.is_(True)).all()]
+        sorgu = sorgu.filter(Personel.id.in_(personel_idleri))
+    personeller = sorgu.order_by(Personel.ad_soyad).all()
+    makine_haritasi = {m.id: m for m in db.query(Makine).all()}
+    istasyon_haritasi = {i.id: i for i in db.query(Istasyon).all()}
+    iliskiler = {}
+    for atama in db.query(PersonelMakine).filter(PersonelMakine.aktif.is_(True)).all():
+        makine = makine_haritasi.get(atama.makine_id)
+        iliskiler.setdefault(atama.personel_id, []).append({"atama": atama, "makine": makine, "istasyon": istasyon_haritasi.get(makine.istasyon_id) if makine else None})
+    kullanici_haritasi = {u.personel_id: u for u in db.query(User).filter(User.personel_id.isnot(None)).all()}
+    data = template_data(request)
+    data.update({
+        "personeller": personeller,
+        "departmanlar": sorted({d for (d,) in db.query(Personel.departman).filter(Personel.departman != "").distinct().all()}),
+        "gorevler": sorted({g for (g,) in db.query(Personel.gorev).filter(Personel.gorev != "").distinct().all()}),
+        "istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.kodu).all(),
+        "iliskiler": iliskiler,
+        "kullanici_haritasi": kullanici_haritasi,
+        "istasyon_haritasi": istasyon_haritasi,
+        "q": q, "departman": departman, "gorev": gorev, "istasyon_id": istasyon_id,
+    })
+    return templates.TemplateResponse("uretim/personeller.html", data)
 
 
 @router.get("/uretim-tanimlari", response_class=HTMLResponse)
