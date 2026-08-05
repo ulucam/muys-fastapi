@@ -25,6 +25,15 @@ from app.models.urun_sinifi import UrunSinifi
 from app.roles import PERSONEL_GORUNTULE, YONETIM
 from app.security import yetki_kontrol
 from app.services.islem_log_service import islem_logla
+from app.services.uretim_tanimlari_service import (
+    ana_kayit_getir,
+    ekran_verisi as servis_ekran_verisi,
+    iliskili_kayit_getir,
+    personel_listesi_verisi,
+    personel_puantaji,
+    tanim_listesi,
+    tanim_sil as tanim_sil_service,
+)
 
 router = APIRouter(tags=["Üretim Tanımları"])
 templates = Jinja2Templates(directory="app/templates")
@@ -88,36 +97,8 @@ def sayfa_ekle(kitap, ad, satirlar):
 
 
 def ekran_verisi(request, db, **ek):
-    atamalar = db.query(PersonelMakine).filter(PersonelMakine.aktif.is_(True)).all()
-    makine_haritasi = {m.id: m for m in db.query(Makine).all()}
-    personel_atamalari = {}
-    for atama in atamalar:
-        personel_atamalari.setdefault(atama.personel_id, []).append((atama, makine_haritasi.get(atama.makine_id)))
-    personel_puantajlari = {}
-    for puantaj in db.query(Puantaj).order_by(Puantaj.tarih.desc()).limit(500).all():
-        if len(personel_puantajlari.setdefault(puantaj.personel_id, [])) < 10:
-            personel_puantajlari[puantaj.personel_id].append(puantaj)
     data = template_data(request)
-    data.update({
-        "personel_sayisi": db.query(Personel).filter(Personel.aktif.is_(True)).count(),
-        "istasyon_sayisi": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).count(),
-        "makine_sayisi": db.query(Makine).filter(Makine.aktif.is_(True)).count(),
-        "pasif_istasyon_sayisi": db.query(Istasyon).filter(Istasyon.aktif.is_(False)).count(),
-        "pasif_makine_sayisi": db.query(Makine).filter(Makine.aktif.is_(False)).count(),
-        "urun_sinifi_sayisi": db.query(UrunSinifi).filter(UrunSinifi.aktif.is_(True)).count(),
-        "operasyon_sayisi": db.query(UrunSinifOperasyon).filter(UrunSinifOperasyon.aktif.is_(True)).count(),
-        "urun_sayisi": db.query(Urun).filter(Urun.aktif.is_(True)).count(),
-        "recete_bileseni_sayisi": db.query(ReceteKalem).filter(ReceteKalem.aktif.is_(True)).count(),
-        "istasyonlar": db.query(Istasyon).order_by(Istasyon.kodu).all(),
-        "personeller": db.query(Personel).order_by(Personel.kodu).all(),
-        "makineler": db.query(Makine).order_by(Makine.kodu).all(),
-        "urun_siniflari": db.query(UrunSinifi).order_by(UrunSinifi.kodu).all(),
-        "urunler": db.query(Urun).order_by(Urun.kodu).all(),
-        "receteler": {r.id: r for r in db.query(Recete).all()},
-        "personel_atamalari": personel_atamalari,
-        "personel_puantajlari": personel_puantajlari,
-    })
-    data.update(ek)
+    data.update(servis_ekran_verisi(db, **ek))
     return data
 
 
@@ -131,37 +112,8 @@ def personel_listesi(
     db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(PERSONEL_GORUNTULE)),
 ):
-    sorgu = db.query(Personel).filter(Personel.aktif.is_(True))
-    if q.strip():
-        arama = f"%{q.strip()}%"
-        sorgu = sorgu.filter((Personel.ad_soyad.ilike(arama)) | (Personel.kodu.ilike(arama)))
-    if departman:
-        sorgu = sorgu.filter(Personel.departman == departman)
-    if gorev:
-        sorgu = sorgu.filter(Personel.gorev == gorev)
-    if istasyon_id:
-        makine_idleri = [m.id for m in db.query(Makine).filter(Makine.istasyon_id == istasyon_id).all()]
-        personel_idleri = [a.personel_id for a in db.query(PersonelMakine).filter(PersonelMakine.makine_id.in_(makine_idleri), PersonelMakine.aktif.is_(True)).all()]
-        sorgu = sorgu.filter(Personel.id.in_(personel_idleri))
-    personeller = sorgu.order_by(Personel.ad_soyad).all()
-    makine_haritasi = {m.id: m for m in db.query(Makine).all()}
-    istasyon_haritasi = {i.id: i for i in db.query(Istasyon).all()}
-    iliskiler = {}
-    for atama in db.query(PersonelMakine).filter(PersonelMakine.aktif.is_(True)).all():
-        makine = makine_haritasi.get(atama.makine_id)
-        iliskiler.setdefault(atama.personel_id, []).append({"atama": atama, "makine": makine, "istasyon": istasyon_haritasi.get(makine.istasyon_id) if makine else None})
-    kullanici_haritasi = {u.personel_id: u for u in db.query(User).filter(User.personel_id.isnot(None)).all()}
     data = template_data(request)
-    data.update({
-        "personeller": personeller,
-        "departmanlar": sorted({d for (d,) in db.query(Personel.departman).filter(Personel.departman != "").distinct().all()}),
-        "gorevler": sorted({g for (g,) in db.query(Personel.gorev).filter(Personel.gorev != "").distinct().all()}),
-        "istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.kodu).all(),
-        "iliskiler": iliskiler,
-        "kullanici_haritasi": kullanici_haritasi,
-        "istasyon_haritasi": istasyon_haritasi,
-        "q": q, "departman": departman, "gorev": gorev, "istasyon_id": istasyon_id,
-    })
+    data.update(personel_listesi_verisi(db, q, departman, gorev, istasyon_id))
     return templates.TemplateResponse("uretim/personeller.html", data)
 
 
@@ -170,27 +122,15 @@ def uretim_tanimlari(request: Request, error: str | None = None, goster: str = "
     hata = request.session.pop("uretim_tanim_hatasi", None)
     if error and not hata:
         hata = "Kayıt kaydedilemedi. Zorunlu alanları ve seçilen ilişkileri kontrol edin."
-    listeler = {
-        "personeller": ("Aktif Personeller", db.query(Personel).filter(Personel.aktif.is_(True)).order_by(Personel.kodu).all()),
-        "istasyonlar": ("Aktif İstasyonlar", db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.kodu).all()),
-        "makineler": ("Aktif Makineler", db.query(Makine).filter(Makine.aktif.is_(True)).order_by(Makine.kodu).all()),
-        "istasyonlar_pasif": ("Pasif İstasyonlar", db.query(Istasyon).filter(Istasyon.aktif.is_(False)).order_by(Istasyon.kodu).all()),
-        "makineler_pasif": ("Pasif Makineler", db.query(Makine).filter(Makine.aktif.is_(False)).order_by(Makine.kodu).all()),
-        "urun_siniflari": ("Aktif Ürün Sınıfları", db.query(UrunSinifi).filter(UrunSinifi.aktif.is_(True)).order_by(UrunSinifi.kodu).all()),
-        "operasyonlar": ("Sınıf Reçetesi Operasyonları", db.query(UrunSinifOperasyon).order_by(UrunSinifOperasyon.urun_sinifi_id, UrunSinifOperasyon.sira_no).all()),
-        "urunler": ("Ürün Kartları", db.query(Urun).order_by(Urun.kodu).all()),
-        "recete_bilesenleri": ("Ürün Reçetesi Bileşenleri", db.query(ReceteKalem).order_by(ReceteKalem.recete_id, ReceteKalem.sira_no).all()),
-    }
-    baslik, kayitlar = listeler.get(goster, (None, []))
+    baslik, kayitlar = tanim_listesi(db, goster)
     return templates.TemplateResponse("uretim/tanimlar.html", ekran_verisi(request, db, hata=hata, goster=goster, liste_basligi=baslik, secili_kayitlar=kayitlar))
 
 
 @router.get("/uretim-tanimlari/personel/{personel_id}/puantaj", response_class=HTMLResponse)
 def personel_puantaj_gecmisi(personel_id: int, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
-    personel = db.query(Personel).filter(Personel.id == personel_id).first()
+    personel, puantajlar = personel_puantaji(db, personel_id)
     if not personel:
         return RedirectResponse("/uretim-tanimlari?goster=personeller", status_code=303)
-    puantajlar = db.query(Puantaj).filter(Puantaj.personel_id == personel_id).order_by(Puantaj.tarih.desc()).all()
     data = template_data(request)
     data.update({"personel": personel, "puantajlar": puantajlar})
     return templates.TemplateResponse("uretim/personel_puantaj.html", data)
@@ -198,9 +138,7 @@ def personel_puantaj_gecmisi(personel_id: int, request: Request, db: Session = D
 
 @router.get("/uretim-tanimlari/duzenle/{tip}/{kod}", response_class=HTMLResponse)
 def duzenle_form(tip: str, kod: str, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
-    modeller = {"personel": Personel, "istasyon": Istasyon, "makine": Makine, "sinif": UrunSinifi}
-    model = modeller.get(tip)
-    kayit = db.query(model).filter(model.kodu == kod).first() if model else None
+    kayit = ana_kayit_getir(db, tip, kod)
     if not kayit:
         return RedirectResponse("/uretim-tanimlari", status_code=303)
     data = ekran_verisi(request, db)
@@ -210,30 +148,18 @@ def duzenle_form(tip: str, kod: str, request: Request, db: Session = Depends(get
 
 @router.post("/uretim-tanimlari/sil/{tip}/{kod}")
 def tanim_sil(tip: str, kod: str, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
-    model = {"istasyon": Istasyon, "makine": Makine}.get(tip)
-    kayit = db.query(model).filter(model.kodu == kod).first() if model else None
-    if not kayit:
+    if not tanim_sil_service(db, tip, kod):
         return RedirectResponse("/uretim-tanimlari", status_code=303)
-    try:
-        db.delete(kayit)
-        db.commit()
-    except Exception:
-        db.rollback()
-        kayit = db.query(model).filter(model.kodu == kod).first()
-        if kayit:
-            kayit.aktif = False
-            db.commit()
     return RedirectResponse(f"/uretim-tanimlari?goster={'istasyonlar' if tip == 'istasyon' else 'makineler'}", status_code=303)
 
 
 @router.get("/uretim-tanimlari/kayit-duzenle/{tip}/{kayit_id}", response_class=HTMLResponse)
 def iliskili_kayit_duzenle(tip: str, kayit_id: int, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(YONETIM))):
-    model = {"operasyon": UrunSinifOperasyon, "urun": Urun, "recete": ReceteKalem}.get(tip)
-    kayit = db.query(model).filter(model.id == kayit_id).first() if model else None
+    kayit, secili_makine_idleri = iliskili_kayit_getir(db, tip, kayit_id)
     if not kayit:
         return RedirectResponse("/uretim-tanimlari", status_code=303)
     data = ekran_verisi(request, db, kayit=kayit, kayit_tipi=tip)
-    data["secili_makine_idleri"] = [x.makine_id for x in db.query(UrunSinifOperasyonMakine).filter(UrunSinifOperasyonMakine.operasyon_id == kayit_id).all()] if tip == "operasyon" else []
+    data["secili_makine_idleri"] = secili_makine_idleri
     return templates.TemplateResponse("uretim/iliskili_duzenle.html", data)
 
 
