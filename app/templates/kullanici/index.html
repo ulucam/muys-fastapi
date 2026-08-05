@@ -159,6 +159,8 @@
 
                             <th>Rol</th>
 
+                            <th>İstasyon</th>
+
                             <th>Durum</th>
 
                             <th></th>
@@ -184,7 +186,6 @@
 
                             </td>
 
-
                             <td>
 
                                 {{ k.ad_soyad }}
@@ -201,6 +202,8 @@
                                 </span>
 
                             </td>
+
+                            <td>{% if k.rol == 'Operatör' and k.istasyon_id %}{% for istasyon in istasyonlar if istasyon.id == k.istasyon_id %}{{ istasyon.kodu }} · {{ istasyon.adi }}{% endfor %}{% else %}-{% endif %}</td>
 
 
                             <td>
