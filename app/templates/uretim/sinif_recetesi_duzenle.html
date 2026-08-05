@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Sınıf Reçetesi Düzenle{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1"><i class="bi bi-diagram-3"></i> Sınıf Reçetesi Zinciri</h3>
+            <p class="text-muted mb-0">{{ sinif.kodu }} · {{ sinif.adi }} sınıfının tüm operasyonlarını tek seferde düzenleyin.</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="/uretim-tanimlari?goster=operasyonlar"><i class="bi bi-arrow-left"></i> Sınıf Reçeteleri</a>
+    </div>
+
+    {% if request.query_params.get('error') %}
+    <div class="alert alert-danger">Zincir güncellenemedi. Zorunlu alanları ve seçilen makineleri kontrol edin.</div>
+    {% endif %}
+
+    <form method="post" class="card border-0 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-8">
+                    <label class="form-label">Ürün Sınıfı</label>
+                    <input class="form-control" value="{{ sinif.kodu }} · {{ sinif.adi }}" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="operasyonSayisi">Operasyon Sayısı</label>
+                    <input class="form-control" id="operasyonSayisi" name="operasyon_sayisi" type="number" min="1" max="50" value="{{ operasyonlar|length }}" required>
+                </div>
+            </div>
+
+            <div id="operasyonSatirlari"></div>
+
+            <div class="text-end mt-3">
+                <button class="btn btn-primary"><i class="bi bi-save"></i> Zincirin Tamamını Kaydet</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const adet = document.getElementById("operasyonSayisi");
+    const alan = document.getElementById("operasyonSatirlari");
+    const istasyonlar = [{% for i in istasyonlar if i.aktif %}{id: {{ i.id }}, kod: {{ i.kodu|tojson }}, adi: {{ i.adi|tojson }} }{% if not loop.last %},{% endif %}{% endfor %}];
+    const makineler = [{% for m in makineler if m.aktif %}{kod: {{ m.kodu|tojson }}, adi: {{ m.adi|tojson }}, istasyonId: {{ m.istasyon_id }} }{% if not loop.last %},{% endif %}{% endfor %}];
+    const kayitliDegerler = {
+        {% for operasyon in operasyonlar %}
+        {{ operasyon.sira_no }}: {
+            operasyonAdi: {{ operasyon.operasyon_adi|tojson }},
+            istasyonKodu: {% for istasyon in istasyonlar if istasyon.id == operasyon.istasyon_id %}{{ istasyon.kodu|tojson }}{% endfor %},
+            kontrolNoktasi: {{ (operasyon.kontrol_noktasi or '')|tojson }},
+            makineKodlari: {{ makine_kodlari.get(operasyon.id, [])|tojson }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    function mevcutDegerleriAl() {
+        const degerler = {};
+        alan.querySelectorAll(".istasyon-secimi").forEach(secim => {
+            const sira = secim.dataset.sira;
+            degerler[sira] = {
+                operasyonAdi: alan.querySelector(`[name="operasyon_adi_${sira}"]`).value,
+                istasyonKodu: secim.value,
+                kontrolNoktasi: alan.querySelector(`[name="kontrol_noktasi_${sira}"]`).value,
+                makineKodlari: Array.from(alan.querySelectorAll(`[name="makine_kodlari_${sira}"]:checked`)).map(secili => secili.value),
+            };
+        });
+        return degerler;
+    }
+
+    function makineleriGoster(sira, istasyonKodu, seciliMakineKodlari = []) {
+        const istasyon = istasyonlar.find(item => item.kod === istasyonKodu);
+        const uygunMakineler = makineler.filter(makine => istasyon && makine.istasyonId === istasyon.id);
+        const makineAlani = document.getElementById(`makineler_${sira}`);
+        makineAlani.innerHTML = uygunMakineler.length
+            ? uygunMakineler.map(makine => `<label class="btn btn-sm btn-outline-secondary me-1 mb-1"><input class="form-check-input me-1" type="checkbox" name="makine_kodlari_${sira}" value="${makine.kod}" ${seciliMakineKodlari.includes(makine.kod) ? "checked" : ""}>${makine.kod} · ${makine.adi}</label>`).join("")
+            : (istasyon ? "Bu istasyonda aktif makine yok; operasyon makinesiz kaydedilebilir." : "Önce istasyon seçin.");
+    }
+
+    function satirlariOlustur() {
+        const degerler = { ...kayitliDegerler, ...mevcutDegerleriAl() };
+        const sayi = Math.max(1, Math.min(50, Number(adet.value) || 1));
+        alan.innerHTML = "";
+        for (let sira = 1; sira <= sayi; sira++) {
+            const onceki = degerler[sira] || {};
+            const kart = document.createElement("div");
+            kart.className = "border rounded p-3 mb-3";
+            kart.innerHTML = `<div class="fw-semibold mb-2">${sira}. Operasyon</div><div class="row g-2"><div class="col-md-4"><label class="form-label">Operasyon Adı</label><input class="form-control" name="operasyon_adi_${sira}" required></div><div class="col-md-4"><label class="form-label">İstasyon</label><select class="form-select istasyon-secimi" name="istasyon_kodu_${sira}" data-sira="${sira}" required><option value="">İstasyon seçin</option>${istasyonlar.map(istasyon => `<option value="${istasyon.kod}">${istasyon.kod} · ${istasyon.adi}</option>`).join("")}</select></div><div class="col-md-4"><label class="form-label">Kontrol Noktası</label><input class="form-control" name="kontrol_noktasi_${sira}"></div><div class="col-12"><div class="small fw-semibold mb-1">Uygun makineler</div><div class="makine-alani text-muted small" id="makineler_${sira}"></div></div></div>`;
+            alan.appendChild(kart);
+            kart.querySelector(`[name="operasyon_adi_${sira}"]`).value = onceki.operasyonAdi || "";
+            kart.querySelector(`[name="kontrol_noktasi_${sira}"]`).value = onceki.kontrolNoktasi || "";
+            const istasyonSecimi = kart.querySelector(".istasyon-secimi");
+            istasyonSecimi.value = onceki.istasyonKodu || "";
+            makineleriGoster(sira, istasyonSecimi.value, onceki.makineKodlari || []);
+        }
+        alan.querySelectorAll(".istasyon-secimi").forEach(secim => secim.addEventListener("change", function () {
+            makineleriGoster(this.dataset.sira, this.value);
+        }));
+    }
+
+    adet.addEventListener("input", satirlariOlustur);
+    satirlariOlustur();
+});
+</script>
+{% endblock %}
