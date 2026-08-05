@@ -152,21 +152,47 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!adet || !alan) return;
     const istasyonlar = [{% for i in istasyonlar if i.aktif %}{id: {{ i.id }}, kod: {{ i.kodu|tojson }}, adi: {{ i.adi|tojson }} }{% if not loop.last %},{% endif %}{% endfor %}];
     const makineler = [{% for m in makineler if m.aktif %}{kod: {{ m.kodu|tojson }}, adi: {{ m.adi|tojson }}, istasyonId: {{ m.istasyon_id }} }{% if not loop.last %},{% endif %}{% endfor %}];
+
+    function mevcutDegerleriAl() {
+        const degerler = {};
+        alan.querySelectorAll(".istasyon-secimi").forEach(secim => {
+            const sira = secim.dataset.sira;
+            degerler[sira] = {
+                operasyonAdi: alan.querySelector(`[name="operasyon_adi_${sira}"]`)?.value || "",
+                istasyonKodu: secim.value,
+                kontrolNoktasi: alan.querySelector(`[name="kontrol_noktasi_${sira}"]`)?.value || "",
+                makineKodlari: Array.from(alan.querySelectorAll(`[name="makine_kodlari_${sira}"]:checked`)).map(secili => secili.value),
+            };
+        });
+        return degerler;
+    }
+
+    function makineleriGoster(sira, istasyonKodu, seciliMakineKodlari = []) {
+        const seciliIstasyon = istasyonlar.find(i => i.kod === istasyonKodu);
+        const istasyonId = seciliIstasyon ? seciliIstasyon.id : null;
+        const makineAlani = document.getElementById(`makineler_${sira}`);
+        const uygunlar = makineler.filter(m => m.istasyonId === istasyonId);
+        makineAlani.innerHTML = uygunlar.length ? uygunlar.map(m => `<label class="btn btn-sm btn-outline-secondary me-1 mb-1"><input class="form-check-input me-1" type="checkbox" name="makine_kodlari_${sira}" value="${m.kod}" ${seciliMakineKodlari.includes(m.kod) ? "checked" : ""}>${m.kod} · ${m.adi}</label>`).join("") : "Bu istasyonda aktif makine yok; operasyon makinesiz kaydedilebilir.";
+    }
+
     function satirlariOlustur() {
+        const oncekiDegerler = mevcutDegerleriAl();
         const sayi = Math.max(1, Math.min(50, Number(adet.value) || 1));
         alan.innerHTML = "";
         for (let sira = 1; sira <= sayi; sira++) {
+            const onceki = oncekiDegerler[sira] || {};
             const kart = document.createElement("div");
             kart.className = "border rounded p-2 mb-2";
             kart.innerHTML = `<div class="fw-semibold mb-2">${sira}. Operasyon</div><div class="row g-2"><div class="col-md-4"><input class="form-control" name="operasyon_adi_${sira}" placeholder="Operasyon adı" required></div><div class="col-md-4"><select class="form-select istasyon-secimi" name="istasyon_kodu_${sira}" data-sira="${sira}" required><option value="">İstasyon seçin</option>${istasyonlar.map(i => `<option value="${i.kod}">${i.kod} · ${i.adi}</option>`).join("")}</select></div><div class="col-md-4"><input class="form-control" name="kontrol_noktasi_${sira}" placeholder="Kontrol noktası"></div><div class="col-12"><div class="small fw-semibold mb-1">Uygun makineler (birden fazla seçilebilir)</div><div class="makine-alani text-muted small" id="makineler_${sira}">Önce istasyon seçin.</div></div></div>`;
             alan.appendChild(kart);
+            kart.querySelector(`[name="operasyon_adi_${sira}"]`).value = onceki.operasyonAdi || "";
+            kart.querySelector(`[name="kontrol_noktasi_${sira}"]`).value = onceki.kontrolNoktasi || "";
+            const istasyonSecimi = kart.querySelector(".istasyon-secimi");
+            istasyonSecimi.value = onceki.istasyonKodu || "";
+            if (istasyonSecimi.value) makineleriGoster(sira, istasyonSecimi.value, onceki.makineKodlari || []);
         }
         alan.querySelectorAll(".istasyon-secimi").forEach(secim => secim.addEventListener("change", function () {
-            const seciliIstasyon = istasyonlar.find(i => i.kod === this.value);
-            const istasyonId = seciliIstasyon ? seciliIstasyon.id : null;
-            const makineAlani = document.getElementById(`makineler_${this.dataset.sira}`);
-            const uygunlar = makineler.filter(m => m.istasyonId === istasyonId);
-            makineAlani.innerHTML = uygunlar.length ? uygunlar.map(m => `<label class="btn btn-sm btn-outline-secondary me-1 mb-1"><input class="form-check-input me-1" type="checkbox" name="makine_kodlari_${this.dataset.sira}" value="${m.kod}">${m.kod} · ${m.adi}</label>`).join("") : "Bu istasyonda aktif makine yok; operasyon makinesiz kaydedilebilir.";
+            makineleriGoster(this.dataset.sira, this.value);
         }));
     }
     adet.addEventListener("input", satirlariOlustur);
