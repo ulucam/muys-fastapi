@@ -53,3 +53,12 @@ RECETE = [
 KULLANICI = [
     "Admin"
 ]
+
+PERSONEL_GORUNTULE = [
+    "Admin",
+    "Yönetici",
+    "Satış",
+    "Üretim",
+    "Operatör",
+    "Depo"
+]
