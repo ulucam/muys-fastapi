@@ -10,6 +10,20 @@
         </div>
     </div>
 
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link {% if aktif_sekme == 'personel' %}active{% endif %}" href="/personeller?sekme=personel">
+                <i class="bi bi-people"></i> Personel Listesi
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if aktif_sekme == 'puantaj' %}active{% endif %}" href="/personeller?sekme=puantaj&tarih={{ puantaj_tarihi.isoformat() }}">
+                <i class="bi bi-calendar-check"></i> Puantaj
+            </a>
+        </li>
+    </ul>
+
+    {% if aktif_sekme == 'personel' %}
     {% if kullanici_rol in ['Admin', 'Yönetici'] %}
     <div class="collapse mb-4" id="personelEkle"><div class="card border-0 shadow-sm"><div class="card-header bg-white"><strong>Yeni Personel</strong></div><div class="card-body">
         <form method="post" action="/uretim-tanimlari/kaydet/personel" class="row g-3">
@@ -40,5 +54,50 @@
         <tbody>{% for personel in personeller %}<tr><td><strong>{{ personel.ad_soyad }}</strong><div class="small text-muted">{{ personel.kodu }}</div></td><td>{{ personel.departman or '-' }}</td><td>{{ personel.gorev or '-' }}</td><td>{% set hesap = kullanici_haritasi.get(personel.id) %}{% if hesap %}<span class="badge bg-primary">{{ hesap.kullanici_adi }}</span>{% set hesap_istasyonu = istasyon_haritasi.get(hesap.istasyon_id) %}{% if hesap_istasyonu %}<div class="small text-muted mt-1">{{ hesap_istasyonu.kodu }} · {{ hesap_istasyonu.adi }}</div>{% endif %}{% else %}-{% endif %}</td><td>{% for iliski in iliskiler.get(personel.id, []) %}<span class="badge text-bg-light border me-1 mb-1">{{ iliski.makine.adi if iliski.makine else '-' }} · {{ iliski.istasyon.adi if iliski.istasyon else '-' }}</span>{% else %}<span class="text-muted">Atama yok</span>{% endfor %}</td><td class="text-end">{% if kullanici_rol in ['Admin', 'Yönetici'] %}<a class="btn btn-sm btn-outline-primary" href="/uretim-tanimlari/duzenle/personel/{{ personel.kodu }}">Düzenle</a>{% endif %}</td></tr>{% else %}<tr><td colspan="6" class="text-center text-muted py-5">Filtreye uygun aktif personel bulunamadı.</td></tr>{% endfor %}</tbody>
     </table></div></div>
     </form>
+    {% else %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <form method="get" action="/personeller" class="row g-2 align-items-end">
+                <input type="hidden" name="sekme" value="puantaj">
+                <div class="col-md-3">
+                    <label class="form-label">Puantaj Tarihi</label>
+                    <input class="form-control" type="date" name="tarih" value="{{ puantaj_tarihi.isoformat() }}">
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="devamsiz" value="true" id="devamsizFiltre" {% if sadece_gelmeyen %}checked{% endif %}>
+                        <label class="form-check-label" for="devamsizFiltre">Yalnızca gelmeyenleri göster</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary" type="submit">Göster</button>
+                    <a class="btn btn-outline-secondary" href="/personeller?sekme=puantaj&tarih={{ puantaj_tarihi.isoformat() }}">Filtreyi Temizle</a>
+                </div>
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Personel</th><th>Departman</th><th>Görev</th><th>Durum</th><th>Açıklama</th></tr></thead>
+                <tbody>
+                {% for personel in puantaj_personelleri %}
+                    {% set kayit = puantaj_kayitlari.get(personel.id) %}
+                    <tr>
+                        <td><strong>{{ personel.ad_soyad }}</strong><div class="small text-muted">{{ personel.kodu }}</div></td>
+                        <td>{{ personel.departman or '-' }}</td>
+                        <td>{{ personel.gorev or '-' }}</td>
+                        <td>
+                            {% if kayit %}<span class="badge {% if kayit.durum == 'Geldi' %}bg-success{% elif kayit.durum in ['Gelmedi', 'Devamsız'] %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ kayit.durum }}</span>
+                            {% else %}<span class="badge bg-secondary">Kayıt Yok</span>{% endif %}
+                        </td>
+                        <td>{{ kayit.aciklama if kayit and kayit.aciklama else '-' }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-5">Seçilen filtreye uygun puantaj kaydı bulunamadı.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
