@@ -446,11 +446,14 @@ def excel_onayla(request: Request, db: Session = Depends(get_db)):
         kullanilan_kodlar = {
             kod for (kod,) in db.query(Musteri.musteri_kodu).all() if kod
         }
+        musteri_haritasi = {m.firma_adi.casefold(): m for m in db.query(Musteri).all() if m.firma_adi}
         for satir in satirlar:
-            musteri = db.query(Musteri).filter(Musteri.firma_adi.ilike(satir["Firma Adı"])).first()
+            musteri_anahtari = satir["Firma Adı"].casefold()
+            musteri = musteri_haritasi.get(musteri_anahtari)
             if not musteri:
                 musteri = Musteri(musteri_kodu=sonraki_musteri_kodu(db, kullanilan_kodlar))
                 db.add(musteri)
+                musteri_haritasi[musteri_anahtari] = musteri
             musteri.firma_adi = satir["Firma Adı"]
             musteri.yetkili = satir["Yetkili"]
             musteri.telefon = satir["Telefon"]
@@ -460,49 +463,58 @@ def excel_onayla(request: Request, db: Session = Depends(get_db)):
             musteri.il, musteri.ilce = satir["İl"], satir["İlçe"]
             musteri.musteri_turu = satir["Müşteri Türü"]
             musteri.adres, musteri.aciklama = satir["Adres"], satir["Açıklama"]
+        urun_haritasi = {u.kodu: u for u in db.query(Urun).all()}
         for satir in urunler:
-            urun = db.query(Urun).filter(Urun.kodu == satir["kodu"]).first()
+            urun = urun_haritasi.get(satir["kodu"])
             if not urun:
                 urun = Urun(kodu=satir["kodu"])
                 db.add(urun)
+                urun_haritasi[satir["kodu"]] = urun
             for alan, deger in satir.items():
                 setattr(urun, alan, deger)
         kullanilan_personel_kodlari = {kod for (kod,) in db.query(Personel.kodu).all() if kod}
+        personel_haritasi = {p.ad_soyad.casefold(): p for p in db.query(Personel).all() if p.ad_soyad}
         for satir in personeller:
             ad_soyad = metin(satir["Ad Soyad"])
-            personel = db.query(Personel).filter(Personel.ad_soyad.ilike(ad_soyad)).first()
+            personel_anahtari = ad_soyad.casefold()
+            personel = personel_haritasi.get(personel_anahtari)
             if not personel:
                 personel = Personel(kodu=sonraki_personel_kodu(kullanilan_personel_kodlari))
+                db.add(personel)
+                personel_haritasi[personel_anahtari] = personel
             personel.ad_soyad = ad_soyad
             personel.departman = metin(satir["Departman"])
             personel.gorev = metin(satir["Görev"])
             personel.aktif = metin(satir["Durum"]) == "Aktif"
-            if personel not in db:
-                db.add(personel)
+        istasyon_haritasi = {i.kodu: i for i in db.query(Istasyon).all()}
         for satir in istasyonlar:
             kod = metin(satir["İstasyon Kodu"])
-            istasyon = db.query(Istasyon).filter(Istasyon.kodu == kod).first() or Istasyon(kodu=kod)
+            istasyon = istasyon_haritasi.get(kod)
+            if not istasyon:
+                istasyon = Istasyon(kodu=kod)
+                db.add(istasyon)
+                istasyon_haritasi[kod] = istasyon
             istasyon.adi = metin(satir["İstasyon Adı"])
             istasyon.bolum = metin(satir["Bölüm"])
             istasyon.aciklama = metin(satir["Açıklama"])
             istasyon.aktif = metin(satir["Durum"]) == "Aktif"
-            if istasyon not in db:
-                db.add(istasyon)
         db.flush()
-        istasyon_kodlari = {i.kodu: i for i in db.query(Istasyon).all()}
+        makine_haritasi = {m.kodu: m for m in db.query(Makine).all()}
         for satir in makineler:
             kod = metin(satir["Makine Kodu"])
-            istasyon = istasyon_kodlari.get(metin(satir["İstasyon Kodu"]))
+            istasyon = istasyon_haritasi.get(metin(satir["İstasyon Kodu"]))
             if not istasyon:
                 raise ValueError(f"{kod} makinesi için istasyon bulunamadı")
-            makine = db.query(Makine).filter(Makine.kodu == kod).first() or Makine(kodu=kod)
+            makine = makine_haritasi.get(kod)
+            if not makine:
+                makine = Makine(kodu=kod)
+                db.add(makine)
+                makine_haritasi[kod] = makine
             makine.adi = metin(satir["Makine Adı"])
             makine.istasyon_id = istasyon.id
             makine.model = metin(satir["Model"])
             makine.kapasite = metin(satir["Kapasite"])
             makine.aktif = metin(satir["Durum"]) == "Aktif"
-            if makine not in db:
-                db.add(makine)
         db.delete(taslak)
         request.session.pop("excel_onay_token", None)
         islem_logla(db, request, "Excel", "Excel aktarımı tamamlandı", f"Dosya: {dosya_adi}. {len(satirlar)} müşteri, {len(urunler)} stok ürünü, {len(personeller)} personel, {len(istasyonlar)} istasyon ve {len(makineler)} makine aktarıldı/güncellendi.")
