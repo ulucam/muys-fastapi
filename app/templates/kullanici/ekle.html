@@ -140,6 +140,12 @@ class="form-select">
 {% for istasyon in istasyonlar %}<option value="{{ istasyon.id }}">{{ istasyon.kodu }} · {{ istasyon.adi }}</option>{% endfor %}
 </select>
 <div class="form-text">İş emirleri operatöre bu istasyon üzerinden yönlendirilecektir.</div>
+<label class="mt-3">Kullanan Personel</label>
+<select name="personel_id" id="personelSecimi" class="form-select">
+<option value="">Personel seçin</option>
+{% for personel in personeller %}<option value="{{ personel.id }}">{{ personel.kodu }} · {{ personel.ad_soyad }}</option>{% endfor %}
+</select>
+<div class="form-text">Operatör dashboard’da yalnızca bu personelin puantajını görecektir.</div>
 </div>
 
 <hr>
@@ -176,11 +182,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const rol = document.getElementById("rolSecimi");
     const alan = document.getElementById("istasyonAlani");
     const istasyon = document.getElementById("istasyonSecimi");
+    const personel = document.getElementById("personelSecimi");
     function istasyonAlaniniGuncelle() {
         const operatorMu = rol.value === "Operatör";
         alan.style.display = operatorMu ? "block" : "none";
         istasyon.required = operatorMu;
-        if (!operatorMu) istasyon.value = "";
+        personel.required = operatorMu;
+        if (!operatorMu) { istasyon.value = ""; personel.value = ""; }
     }
     rol.addEventListener("change", istasyonAlaniniGuncelle);
     istasyonAlaniniGuncelle();
