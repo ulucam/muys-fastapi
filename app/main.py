@@ -45,6 +45,8 @@ with engine.begin() as connection:
     kullanici_sutunlari = {sutun["name"] for sutun in inspect(connection).get_columns("kullanicilar")}
     if "istasyon_id" not in kullanici_sutunlari:
         connection.execute(text("ALTER TABLE kullanicilar ADD COLUMN istasyon_id INTEGER REFERENCES istasyonlar(id)"))
+    if "personel_id" not in kullanici_sutunlari:
+        connection.execute(text("ALTER TABLE kullanicilar ADD COLUMN personel_id INTEGER REFERENCES personeller(id)"))
 
 
 # İlk kurulum
