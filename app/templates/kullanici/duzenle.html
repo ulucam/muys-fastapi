@@ -20,6 +20,8 @@
 
 <div class="card-body">
 
+{% if hata %}<div class="alert alert-danger">{{ hata }}</div>{% endif %}
+
 <form
 action="/kullanicilar/duzenle/{{ kullanici.id }}"
 method="POST">
@@ -102,7 +104,8 @@ value="{{ kullanici.email or '' }}">
 
 <select
 name="rol"
-class="form-select">
+class="form-select"
+id="rolSecimi">
 
 <option value="Admin" {% if kullanici.rol=="Admin" %}selected{% endif %}>Admin</option>
 
@@ -136,6 +139,15 @@ class="form-select">
 
 </div>
 
+<div class="mb-3" id="istasyonAlani" {% if kullanici.rol != 'Operatör' %}style="display:none"{% endif %}>
+<label>Operatör İstasyonu</label>
+<select name="istasyon_id" id="istasyonSecimi" class="form-select" {% if kullanici.rol == 'Operatör' %}required{% endif %}>
+<option value="">İstasyon seçin</option>
+{% for istasyon in istasyonlar %}<option value="{{ istasyon.id }}" {% if kullanici.istasyon_id == istasyon.id %}selected{% endif %}>{{ istasyon.kodu }} · {{ istasyon.adi }}</option>{% endfor %}
+</select>
+<div class="form-text">İş emirleri operatöre bu istasyon üzerinden yönlendirilecektir.</div>
+</div>
+
 <hr>
 
 <div class="d-flex justify-content-between">
@@ -166,4 +178,19 @@ class="btn btn-success">
 
 </div>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const rol = document.getElementById("rolSecimi");
+    const alan = document.getElementById("istasyonAlani");
+    const istasyon = document.getElementById("istasyonSecimi");
+    function istasyonAlaniniGuncelle() {
+        const operatorMu = rol.value === "Operatör";
+        alan.style.display = operatorMu ? "block" : "none";
+        istasyon.required = operatorMu;
+        if (!operatorMu) istasyon.value = "";
+    }
+    rol.addEventListener("change", istasyonAlaniniGuncelle);
+    istasyonAlaniniGuncelle();
+});
+</script>
 {% endblock %}
