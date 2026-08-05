@@ -47,7 +47,7 @@ def ekran_verisi(db: Session, **ek) -> dict:
         "pasif_istasyon_sayisi": db.query(Istasyon).filter(Istasyon.aktif.is_(False)).count(),
         "pasif_makine_sayisi": db.query(Makine).filter(Makine.aktif.is_(False)).count(),
         "urun_sinifi_sayisi": db.query(UrunSinifi).filter(UrunSinifi.aktif.is_(True)).count(),
-        "operasyon_sayisi": db.query(UrunSinifOperasyon).filter(UrunSinifOperasyon.aktif.is_(True)).count(),
+        "operasyon_sayisi": db.query(UrunSinifOperasyon.urun_sinifi_id).filter(UrunSinifOperasyon.aktif.is_(True)).distinct().count(),
         "urun_sayisi": db.query(Urun).filter(Urun.aktif.is_(True)).count(),
         "recete_bileseni_sayisi": db.query(ReceteKalem).filter(ReceteKalem.aktif.is_(True)).count(),
         "istasyonlar": db.query(Istasyon).order_by(Istasyon.kodu).all(),
@@ -119,11 +119,94 @@ def tanim_listesi(db: Session, goster: str):
         "istasyonlar_pasif": ("Pasif İstasyonlar", db.query(Istasyon).filter(Istasyon.aktif.is_(False)).order_by(Istasyon.kodu).all()),
         "makineler_pasif": ("Pasif Makineler", db.query(Makine).filter(Makine.aktif.is_(False)).order_by(Makine.kodu).all()),
         "urun_siniflari": ("Aktif Ürün Sınıfları", db.query(UrunSinifi).filter(UrunSinifi.aktif.is_(True)).order_by(UrunSinifi.kodu).all()),
-        "operasyonlar": ("Sınıf Reçetesi Operasyonları", db.query(UrunSinifOperasyon).order_by(UrunSinifOperasyon.urun_sinifi_id, UrunSinifOperasyon.sira_no).all()),
+        "operasyonlar": ("Sınıf Reçeteleri", sinif_recetelerini_listele(db)),
         "urunler": ("Ürün Kartları", db.query(Urun).order_by(Urun.kodu).all()),
         "recete_bilesenleri": ("Ürün Reçetesi Bileşenleri", db.query(ReceteKalem).order_by(ReceteKalem.recete_id, ReceteKalem.sira_no).all()),
     }
     return listeler.get(goster, (None, []))
+
+
+def sinif_recetelerini_listele(db: Session) -> list[dict]:
+    """Operasyon satırlarını, kullanıcı arayüzü için ürün sınıfı bazında tek zincirde toplar."""
+    siniflar = {sinif.id: sinif for sinif in db.query(UrunSinifi).order_by(UrunSinifi.kodu).all()}
+    zincirler = {}
+    for operasyon in db.query(UrunSinifOperasyon).order_by(UrunSinifOperasyon.urun_sinifi_id, UrunSinifOperasyon.sira_no).all():
+        zincir = zincirler.setdefault(
+            operasyon.urun_sinifi_id,
+            {"sinif": siniflar.get(operasyon.urun_sinifi_id), "operasyonlar": []},
+        )
+        zincir["operasyonlar"].append(operasyon)
+    return list(zincirler.values())
+
+
+def sinif_recetesi_getir(db: Session, sinif_id: int):
+    sinif = db.query(UrunSinifi).filter(UrunSinifi.id == sinif_id).first()
+    operasyonlar = (
+        db.query(UrunSinifOperasyon)
+        .filter(UrunSinifOperasyon.urun_sinifi_id == sinif_id)
+        .order_by(UrunSinifOperasyon.sira_no)
+        .all()
+        if sinif else []
+    )
+    makine_kodlari = {}
+    for operasyon in operasyonlar:
+        makine_kodlari[operasyon.id] = [
+            makine.kodu
+            for makine in (
+                db.query(Makine)
+                .join(UrunSinifOperasyonMakine, UrunSinifOperasyonMakine.makine_id == Makine.id)
+                .filter(UrunSinifOperasyonMakine.operasyon_id == operasyon.id)
+                .all()
+            )
+        ]
+    return sinif, operasyonlar, makine_kodlari
+
+
+def sinif_recetesi_guncelle(db: Session, sinif_id: int, form) -> bool:
+    """Bir ürün sınıfının tüm operasyon zincirini tek işlemde günceller."""
+    try:
+        sinif = db.query(UrunSinifi).filter(UrunSinifi.id == sinif_id).first()
+        operasyon_sayisi = sayi(form.get("operasyon_sayisi"), "Operasyon sayısı", tam_sayi=True)
+        if not sinif or not 1 <= operasyon_sayisi <= 50:
+            raise ValueError("Geçerli bir sınıf ve 1-50 arası operasyon sayısı zorunlu")
+
+        yeni_satirlar = []
+        for sira in range(1, operasyon_sayisi + 1):
+            istasyon = db.query(Istasyon).filter(Istasyon.kodu == metin(form.get(f"istasyon_kodu_{sira}"))).first()
+            operasyon_adi = metin(form.get(f"operasyon_adi_{sira}"))
+            makine_kodlari = [metin(kod) for kod in form.getlist(f"makine_kodlari_{sira}") if metin(kod)]
+            makineler = db.query(Makine).filter(Makine.kodu.in_(makine_kodlari)).all() if makine_kodlari else []
+            if not istasyon or not operasyon_adi:
+                raise ValueError(f"{sira}. sıra için istasyon ve operasyon adı zorunlu")
+            if len(makineler) != len(set(makine_kodlari)) or any(makine.istasyon_id != istasyon.id for makine in makineler):
+                raise ValueError(f"{sira}. sıradaki makineler seçilen istasyona bağlı olmalı")
+            yeni_satirlar.append((sira, istasyon, operasyon_adi, makineler, metin(form.get(f"kontrol_noktasi_{sira}"))))
+
+        mevcutlar = {
+            operasyon.sira_no: operasyon
+            for operasyon in db.query(UrunSinifOperasyon).filter(UrunSinifOperasyon.urun_sinifi_id == sinif.id).all()
+        }
+        for sira, istasyon, operasyon_adi, makineler, kontrol_noktasi in yeni_satirlar:
+            operasyon = mevcutlar.pop(sira, None) or UrunSinifOperasyon(urun_sinifi_id=sinif.id, sira_no=sira)
+            operasyon.istasyon_id = istasyon.id
+            operasyon.makine_id = makineler[0].id if makineler else None
+            operasyon.operasyon_adi = operasyon_adi
+            operasyon.kontrol_noktasi = kontrol_noktasi
+            operasyon.aktif = True
+            db.add(operasyon)
+            db.flush()
+            db.query(UrunSinifOperasyonMakine).filter(UrunSinifOperasyonMakine.operasyon_id == operasyon.id).delete()
+            for makine in makineler:
+                db.add(UrunSinifOperasyonMakine(operasyon_id=operasyon.id, makine_id=makine.id))
+
+        for operasyon in mevcutlar.values():
+            db.query(UrunSinifOperasyonMakine).filter(UrunSinifOperasyonMakine.operasyon_id == operasyon.id).delete()
+            db.delete(operasyon)
+        db.commit()
+        return True
+    except Exception:
+        db.rollback()
+        return False
 
 
 def personel_puantaji(db: Session, personel_id: int):
