@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
+from app.models.istasyon import Istasyon
 from app.context import template_data
 from app.security import yetki_kontrol
 from app.password import sifre_olustur
@@ -39,6 +40,7 @@ def liste(
 
     data = template_data(request)
     data["kullanicilar"] = kullanicilar
+    data["istasyonlar"] = db.query(Istasyon).order_by(Istasyon.kodu).all()
     data["liste_basligi"] = None
 
     if filtre == "toplam":
@@ -63,11 +65,12 @@ def liste(
 @router.get("/ekle", response_class=HTMLResponse)
 def ekle_form(
     request: Request,
+    db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(ADMIN))
 ):
     return templates.TemplateResponse(
         "kullanici/ekle.html",
-        template_data(request)
+        {**template_data(request), "istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.kodu).all()}
     )
 
 
@@ -83,6 +86,7 @@ def ekle(
     telefon: str = Form(""),
     email: str = Form(""),
     rol: str = Form(...),
+    istasyon_id: int | None = Form(None),
     aktif: bool = Form(True),
     sifre: str = Form(...),
 
@@ -91,6 +95,11 @@ def ekle(
     db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(ADMIN))
 ):
+    istasyon = db.query(Istasyon).filter(Istasyon.id == istasyon_id, Istasyon.aktif.is_(True)).first() if istasyon_id else None
+    if rol == "Operatör" and not istasyon:
+        data = template_data(request)
+        data.update({"hata": "Operatör rolü için aktif bir istasyon seçilmelidir.", "istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.kodu).all()})
+        return templates.TemplateResponse("kullanici/ekle.html", data, status_code=400)
     # Aynı kullanıcı adı var mı?
     var_mi = (
         db.query(User)
@@ -101,6 +110,7 @@ def ekle(
     if var_mi:
         data = template_data(request)
         data["hata"] = "Bu kullanıcı adı zaten kayıtlı."
+        data["istasyonlar"] = db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.kodu).all()
 
         return templates.TemplateResponse(
             "kullanici/ekle.html",
@@ -113,6 +123,7 @@ def ekle(
     telefon=telefon,
     email=email,
     rol=rol,
+    istasyon_id=istasyon.id if rol == "Operatör" else None,
     aktif=aktif,
     sifre=sifre_olustur(sifre)
     )
@@ -150,6 +161,7 @@ def duzenle_form(
 
     data = template_data(request)
     data["kullanici"] = kullanici
+    data["istasyonlar"] = db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.kodu).all()
 
     return templates.TemplateResponse(
         "kullanici/duzenle.html",
@@ -164,11 +176,13 @@ def duzenle_form(
 @router.post("/duzenle/{id}")
 def duzenle(
     id: int,
+    request: Request,
     kullanici_adi: str = Form(...),
     ad_soyad: str = Form(""),
     telefon: str = Form(""),
     email: str = Form(""),
     rol: str = Form(...),
+    istasyon_id: int | None = Form(None),
     aktif: bool = Form(True),
     sifre: str = Form(""),  
     db: Session = Depends(get_db),
@@ -186,11 +200,18 @@ def duzenle(
             status_code=303
         )
 
+    istasyon = db.query(Istasyon).filter(Istasyon.id == istasyon_id, Istasyon.aktif.is_(True)).first() if istasyon_id else None
+    if rol == "Operatör" and not istasyon:
+        data = template_data(request)
+        data.update({"hata": "Operatör rolü için aktif bir istasyon seçilmelidir.", "kullanici": kullanici, "istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.kodu).all()})
+        return templates.TemplateResponse("kullanici/duzenle.html", data, status_code=400)
+
     kullanici.kullanici_adi = kullanici_adi
     kullanici.ad_soyad = ad_soyad
     kullanici.telefon = telefon
     kullanici.email = email
     kullanici.rol = rol
+    kullanici.istasyon_id = istasyon.id if rol == "Operatör" else None
     kullanici.aktif = aktif
 
     if sifre.strip():
