@@ -60,6 +60,11 @@ class ReceteKalem(Base):
         default=0
     )
 
+    hedef_cevrim_suresi = Column(
+        Float,
+        default=0
+    )
+
 
     # Aktif/Pasif
     aktif = Column(
