@@ -82,3 +82,10 @@ class User(Base):
         ForeignKey("istasyonlar.id"),
         nullable=True
     )
+
+    personel_id = Column(
+        Integer,
+        ForeignKey("personeller.id"),
+        nullable=True,
+        index=True
+    )
