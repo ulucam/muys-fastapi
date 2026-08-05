@@ -1,7 +1,10 @@
+from datetime import datetime, timedelta
+
 from fastapi import Request
 from sqlalchemy.orm import Session
 
 from app.models.islem_logu import IslemLogu
+from app.models.user import User
 
 
 def islem_logla(db: Session, request: Request, modul: str, islem: str, detay: str = "", commit: bool = False):
@@ -34,3 +37,30 @@ def islem_logla_veri(
     ))
     if commit:
         db.commit()
+
+
+def son_kullanici_hareketleri(db: Session, saniye: int = 60, limit: int = 8) -> list[dict]:
+    """Son süre içindeki yetkili kullanıcı hareketlerini başlık bildirimi için döndürür."""
+    baslangic = datetime.utcnow() - timedelta(seconds=saniye)
+    kayitlar = (
+        db.query(IslemLogu, User.rol)
+        .join(User, User.kullanici_adi == IslemLogu.kullanici_adi)
+        .filter(
+            User.rol.in_(["Admin", "Yönetici", "Operatör"]),
+            IslemLogu.created_at >= baslangic,
+        )
+        .order_by(IslemLogu.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        {
+            "kullanici_adi": log.kullanici_adi,
+            "rol": rol,
+            "modul": log.modul,
+            "islem": log.islem,
+            "zaman": log.created_at.strftime("%H:%M:%S"),
+        }
+        for log, rol in kayitlar
+    ]
