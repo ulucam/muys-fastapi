@@ -17,6 +17,7 @@ from app.services.ayarlar_service import (
     excel_sablon_verileri,
     firma_bilgilerini_kaydet,
     firma_getir,
+    firma_ozeti_getir,
     loglari_listele,
     son_excel_aktarimi,
 )
@@ -154,6 +155,7 @@ async def loglar(
 async def firma(request: Request, db: Session = Depends(get_db)):
     data = template_data(request)
     data["firma"] = firma_getir(db)
+    data["firma_logo_yolu"] = firma_ozeti_getir(db)[1]
 
     return templates.TemplateResponse("ayarlar/firma.html", data)
 
@@ -183,10 +185,18 @@ async def firma_kaydet(
         )
     except ValueError as hata:
         data = template_data(request)
-        data.update({"firma": firma_getir(db), "hata": str(hata)})
+        data.update({"firma": firma_getir(db), "firma_logo_yolu": firma_ozeti_getir(db)[1], "hata": str(hata)})
         return templates.TemplateResponse("ayarlar/firma.html", data, status_code=400)
 
     return RedirectResponse("/ayarlar/firma", status_code=303)
+
+
+@router.get("/firma-logo")
+def firma_logo(db: Session = Depends(get_db)):
+    firma = firma_getir(db)
+    if not firma or not firma.logo_verisi:
+        return Response(status_code=404)
+    return Response(firma.logo_verisi, media_type=firma.logo_mime_turu or "application/octet-stream", headers={"Cache-Control": "public, max-age=3600"})
 
 
 @router.get("/ayarlar/sistem", response_class=HTMLResponse)
