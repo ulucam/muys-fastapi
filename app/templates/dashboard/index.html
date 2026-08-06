@@ -47,6 +47,63 @@
         </div>
     </div>
 
+    <section id="uretim-paneli" class="mb-4">
+        {% set operator_mu = kullanici_rol in ['Operatör', 'OperatÃ¶r'] %}
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div>
+                <h4 class="mb-1"><i class="bi bi-activity text-primary me-2"></i>{% if operator_mu %}Atanmış İşlerim{% else %}Canlı Üretim Takibi{% endif %}</h4>
+                <div class="text-muted small">{% if operator_mu %}Yalnızca atandığınız istasyonlardaki işleri görürsünüz.{% else %}Operatörlerin başlattığı işler 10 saniyede bir yenilenir.{% endif %}</div>
+            </div>
+            {% if not operator_mu %}<span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle"><span class="live-dot"></span> Canlı</span>{% endif %}
+        </div>
+
+        {% if operator_mu %}
+        <div class="production-card-grid">
+            {% for emir in uretim_emirleri %}
+            {% set urun = urunler.get(emir.urun_id) %}
+            {% set istasyon = istasyonlar.get(emir.istasyon_id) %}
+            {% set aktif_kayit = aktif_uretim_kayitlari.get(emir.id) %}
+            <article class="card border-0 shadow-sm production-job-card {% if aktif_kayit %}is-active{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between gap-2 mb-3">
+                        <div><div class="small text-muted">{{ emir.emir_no }}</div><h5 class="mb-0">{{ urun.adi if urun else '-' }}</h5></div>
+                        <span class="badge {% if aktif_kayit %}bg-success{% elif emir.durum == 'Tamamlandı' %}bg-secondary{% else %}bg-primary-subtle text-primary{% endif %}">{{ 'Devam Ediyor' if aktif_kayit else emir.durum }}</span>
+                    </div>
+                    <div class="production-meta">
+                        <div><i class="bi bi-geo-alt"></i><span><small>İstasyon</small>{{ istasyon.adi if istasyon else '-' }}</span></div>
+                        <div><i class="bi bi-bullseye"></i><span><small>Hedef</small>{{ '%g'|format(emir.miktar) }} {{ urun.birim if urun else '' }}</span></div>
+                    </div>
+                    {% if aktif_kayit %}
+                    <div class="active-timer my-3" data-start="{{ aktif_kayit.baslangic.isoformat() }}"><small>Başlangıç {{ aktif_kayit.baslangic.strftime('%H:%M') }}</small><strong class="elapsed-time">00:00:00</strong></div>
+                    <form method="post" action="/uretim/{{ aktif_kayit.id }}/bitir" class="row g-2">
+                        <div class="col-6"><label class="form-label small">Üretilen</label><input class="form-control" type="number" name="uretilen_miktar" min="0" step="0.01" required></div>
+                        <div class="col-6"><label class="form-label small">Fire</label><input class="form-control" type="number" name="fire_miktari" min="0" step="0.01" value="0"></div>
+                        <div class="col-12"><input class="form-control" name="aciklama" maxlength="500" placeholder="Açıklama (isteğe bağlı)"></div>
+                        <div class="col-12"><button class="btn btn-danger w-100" type="submit"><i class="bi bi-stop-circle me-1"></i> İşi Bitir ve Kaydet</button></div>
+                    </form>
+                    {% elif emir.durum != 'Tamamlandı' %}
+                    <form method="post" action="/uretim/{{ emir.id }}/baslat"><button class="btn btn-primary w-100 mt-3" type="submit"><i class="bi bi-play-circle me-1"></i> İşe Başla</button></form>
+                    {% endif %}
+                </div>
+            </article>
+            {% else %}
+            <div class="card border-0 shadow-sm"><div class="card-body text-center text-muted py-5"><i class="bi bi-inboxes fs-1 d-block mb-2"></i>İstasyonunuza atanmış aktif iş bulunmuyor.</div></div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white py-3"><strong>Üretim Emirlerini İstasyona Ata</strong></div>
+            <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Emir</th><th>Ürün</th><th>Hedef</th><th>Durum</th><th>İstasyon</th></tr></thead><tbody>
+                {% for emir in uretim_emirleri %}<tr><td><strong>{{ emir.emir_no }}</strong></td><td>{{ urunler.get(emir.urun_id).adi if urunler.get(emir.urun_id) else '-' }}</td><td>{{ '%g'|format(emir.miktar) }}</td><td>{{ emir.durum }}</td><td><form class="d-flex gap-2" method="post" action="/uretim/{{ emir.id }}/istasyon"><select class="form-select form-select-sm" name="istasyon_id" required><option value="">Seçin</option>{% for id, istasyon in istasyonlar.items() %}<option value="{{ id }}" {% if emir.istasyon_id == id %}selected{% endif %}>{{ istasyon.adi }}</option>{% endfor %}</select><button class="btn btn-sm btn-outline-primary" type="submit">Ata</button></form></td></tr>{% else %}<tr><td colspan="5" class="text-center text-muted py-4">Aktif üretim emri bulunmuyor.</td></tr>{% endfor %}
+            </tbody></table></div>
+        </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between"><strong>Operatör Hareketleri</strong><span id="uretim-son-guncelleme" class="small text-muted"></span></div>
+            <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Durum</th><th>Operatör</th><th>İstasyon</th><th>İş / Ürün</th><th>Başlangıç</th><th>Süre</th><th>Üretim / Fire</th></tr></thead><tbody id="canli-uretim-body"><tr><td colspan="7" class="text-center text-muted py-4">Veriler yükleniyor...</td></tr></tbody></table></div>
+        </div>
+        {% endif %}
+    </section>
+
     <div id="siparisler" class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3"><strong><i class="bi bi-list-check me-2"></i>Sipariş Tabloları</strong><div class="small text-muted">Başlığa tıklayarak tabloları açıp kapatabilirsiniz.</div></div>
         <div class="accordion accordion-flush" id="siparisAccordion">
@@ -64,4 +121,5 @@
         </div>
     </div>
 </div>
+<script src="/static/js/production-dashboard.js?v=1"></script>
 {% endblock %}
