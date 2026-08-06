@@ -11,14 +11,7 @@ from sqlalchemy.orm import Session
 ILLER_DOSYASI = Path(__file__).resolve().parent.parent / "data" / "iller.js"
 MUSTERI_SUTUNLARI = ["Firma Adı", "Yetkili", "Telefon", "E-Posta", "Vergi Dairesi", "Vergi No", "İl", "İlçe", "Müşteri Türü", "Adres", "Açıklama", "Durum"]
 TURLER = ["Alıcı", "Tedarikçi", "Satıcı"]
-URUN_SUTUNLARI = ["Ürün Kodu", "Ürün Adı", "Ürün Türü", "Ürün Sınıfı", "Ürün Cinsi", "Birim", "Mevcut Stok", "Min. Stok", "Max. Stok", "Maliyet", "Satış Fiyatı", "Açıklama", "Durum"]
-URUN_TURLERI = ["Hammadde", "Ticari Ürün"]
-URUN_TIP_KODLARI = {
-    "Hammadde": "Hammadde", "Yarı Mamul": "YariMamul", "YariMamul": "YariMamul",
-    "Mamul": "Mamul", "Ticari Mamul": "TicariMamul", "TicariMamul": "TicariMamul",
-    "Ticari Ürün": "TicariMamul",
-}
-URUN_TIP_ETIKETLERI = {kod: etiket for etiket, kod in URUN_TIP_KODLARI.items() if etiket not in ("YariMamul", "TicariMamul")}
+URUN_SUTUNLARI = ["Ürün Kodu", "Ürün Adı", "Marka", "Model", "Ürün Türü", "Ürün Sınıfı", "Ürün Cinsi", "Birim", "Mevcut Stok", "Min. Stok", "Max. Stok", "Maliyet", "Satış Fiyatı", "Açıklama", "Durum"]
 PERSONEL_SUTUNLARI = ["Ad Soyad", "İstasyon Kodları", "Görev", "Durum"]
 ISTASYON_SUTUNLARI = ["İstasyon Kodu", "İstasyon Adı", "Bölüm", "Açıklama", "Durum"]
 MAKINE_SUTUNLARI = ["Makine Kodu", "Makine Adı", "İstasyon Kodu", "Model", "Kapasite", "Durum"]
@@ -127,19 +120,20 @@ def excel_satirlarini_oku(dosya_icerigi):
                 veri = dict(zip(URUN_SUTUNLARI, satir))
                 satir_hatalari = []
                 kod, ad = metin(veri["Ürün Kodu"]), metin(veri["Ürün Adı"])
-                urun_turu, birim = URUN_TIP_KODLARI.get(metin(veri["Ürün Türü"])), metin(veri["Birim"])
+                urun_turu, birim = metin(veri["Ürün Türü"]), metin(veri["Birim"])
                 if not kod:
                     satir_hatalari.append("Ürün kodu zorunlu")
                 if not ad:
                     satir_hatalari.append("Ürün adı zorunlu")
                 if not urun_turu:
-                    satir_hatalari.append("Ürün türü Hammadde veya Ticari Ürün olmalı")
+                    satir_hatalari.append("Ürün türü zorunlu")
                 if metin(veri["Durum"]) not in ("Aktif", "Pasif"):
                     satir_hatalari.append("Durum Aktif veya Pasif olmalı")
                 try:
                     urun = {
-                    "kodu": kod, "adi": ad, "urun_tipi": urun_turu,
-                        "urun_sinifi_kodu": metin(veri["Ürün Sınıfı"]), "urun_cinsi": metin(veri["Ürün Cinsi"]),
+                    "kodu": kod, "adi": ad, "marka": metin(veri["Marka"]), "model": metin(veri["Model"]), "urun_tipi": "Hammadde",
+                        "stok_turu_adi": urun_turu, "stok_sinifi_adi": metin(veri["Ürün Sınıfı"]),
+                        "urun_cinsi": metin(veri["Ürün Cinsi"]),
                         "birim": birim or "Adet",
                         "mevcut_stok": sayi(veri["Mevcut Stok"], "Mevcut stok"),
                         "min_stok": sayi(veri["Min. Stok"], "Min. stok"),
@@ -205,7 +199,8 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
     mevcut_personeller = sablon_verisi["personeller"]
     mevcut_istasyonlar = sablon_verisi["istasyonlar"]
     mevcut_makineler = sablon_verisi["makineler"]
-    mevcut_siniflar = sablon_verisi["siniflar"]
+    mevcut_stok_turleri = sablon_verisi.get("stok_turleri", [])
+    mevcut_stok_siniflari = sablon_verisi.get("stok_siniflari", [])
     kitap = openpyxl.Workbook()
     sistem = kitap.active
     sistem.title = "Sistem Bilgileri"
@@ -262,39 +257,41 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
         for index, genislik in enumerate(genislikler, start=1):
             sayfa.column_dimensions[openpyxl.utils.get_column_letter(index)].width = genislik
 
-    sinif_kodlari = {sinif.id: sinif.kodu for sinif in mevcut_siniflar}
+    stok_tur_adlari = {tur.id: tur.adi for tur in mevcut_stok_turleri}
+    stok_sinif_adlari = {sinif.id: sinif.adi for sinif in mevcut_stok_siniflari}
     aktarilacak_urunler = [u for u in mevcut_urunler if u.urun_tipi in ("Hammadde", "TicariMamul")]
     stok = kitap.create_sheet("Hammadde ve Ticari Ürünler")
     stok.append(URUN_SUTUNLARI)
     for urun in aktarilacak_urunler:
         stok.append([
-            urun.kodu, urun.adi, "Ticari Ürün" if urun.urun_tipi == "TicariMamul" else "Hammadde",
-            sinif_kodlari.get(urun.urun_sinifi_id, ""), urun.urun_cinsi or "", urun.birim or "Adet",
+            urun.kodu, urun.adi, urun.marka or "", urun.model or "", stok_tur_adlari.get(urun.stok_urun_turu_id, "Hammadde"),
+            stok_sinif_adlari.get(urun.stok_urun_sinifi_id, ""), urun.urun_cinsi or "", urun.birim or "Adet",
             urun.mevcut_stok or 0, urun.min_stok or 0, urun.max_stok or 0,
             urun.maliyet or 0, urun.satis_fiyati or 0, urun.aciklama or "",
             "Aktif" if urun.aktif else "Pasif",
         ])
     stok.freeze_panes = "A2"
     stok_son_satir = max(501, len(aktarilacak_urunler) + 1)
-    stok.auto_filter.ref = f"A1:M{stok_son_satir}"
+    stok.auto_filter.ref = f"A1:O{stok_son_satir}"
     for hucre in stok[1]:
         hucre.font = openpyxl.styles.Font(bold=True, color="FFFFFF")
         hucre.fill = openpyxl.styles.PatternFill("solid", fgColor="1F4E78")
-    for sutun, genislik in zip("ABCDEFGHIJKLM", [18, 32, 18, 20, 22, 14, 16, 16, 16, 14, 16, 36, 12]):
+    for sutun, genislik in zip("ABCDEFGHIJKLMNO", [18, 32, 20, 20, 20, 22, 22, 14, 16, 16, 16, 14, 16, 36, 12]):
         stok.column_dimensions[sutun].width = genislik
 
     listeler = kitap.create_sheet("Listeler")
     listeler.append(["İller", "İlçeler", "Müşteri Türleri", "Ürün Türleri", "Ürün Sınıfları", "Durumlar", "İstasyon Kodları"])
     tum_ilceler = sorted({ilce for ilceler in iller.values() for ilce in ilceler})
     durumlar = ["Aktif", "Pasif"]
-    sinif_listesi = [sinif.kodu for sinif in mevcut_siniflar]
+    tur_listesi = [tur.adi for tur in mevcut_stok_turleri]
+    sinif_listesi = [sinif.adi for sinif in mevcut_stok_siniflari]
     istasyon_listesi = [istasyon.kodu for istasyon in mevcut_istasyonlar]
-    for sira in range(max(len(iller), len(tum_ilceler), len(TURLER), len(URUN_TURLERI), len(sinif_listesi), len(durumlar), len(istasyon_listesi))):
+    for sira in range(max(len(iller), len(tum_ilceler), len(TURLER), len(tur_listesi), len(sinif_listesi), len(durumlar), len(istasyon_listesi))):
         listeler.append([
             sorted(iller)[sira] if sira < len(iller) else None,
             tum_ilceler[sira] if sira < len(tum_ilceler) else None,
             TURLER[sira] if sira < len(TURLER) else None,
-            URUN_TURLERI[sira] if sira < len(URUN_TURLERI) else None,
+            tur_listesi[sira] if sira < len(tur_listesi) else None,
             sinif_listesi[sira] if sira < len(sinif_listesi) else None,
             durumlar[sira] if sira < len(durumlar) else None,
             istasyon_listesi[sira] if sira < len(istasyon_listesi) else None,
@@ -306,9 +303,9 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
         dogrulama.add(alan)
 
     for formül, alan, bos_birakilabilir in [
-        ("'Listeler'!$D$2:$D$3", f"C2:C{stok_son_satir}", False),
-        (f"'Listeler'!$E$2:$E${max(2, len(sinif_listesi) + 1)}", f"D2:D{stok_son_satir}", True),
-        ("'Listeler'!$F$2:$F$3", f"M2:M{stok_son_satir}", False),
+        (f"'Listeler'!$D$2:$D${max(2, len(tur_listesi) + 1)}", f"E2:E{stok_son_satir}", False),
+        (f"'Listeler'!$E$2:$E${max(2, len(sinif_listesi) + 1)}", f"F2:F{stok_son_satir}", True),
+        ("'Listeler'!$F$2:$F$3", f"O2:O{stok_son_satir}", False),
     ]:
         dogrulama = DataValidation(type="list", formula1=formül, allow_blank=bos_birakilabilir)
         stok.add_data_validation(dogrulama)
