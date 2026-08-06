@@ -183,6 +183,40 @@ def puantaj_listesi_verisi(db: Session, tarih, sadece_gelmeyen: bool = False) ->
     }
 
 
+def puantaj_kayitlarini_guncelle(db: Session, tarih, form) -> int:
+    """Personeller ekranında gönderilen puantaj satırlarını günceller."""
+    gecerli_durumlar = ("Geldi", "Gelmedi", "İzinli", "Raporlu")
+    personel_idleri = {
+        int(deger)
+        for deger in form.getlist("personel_idleri")
+        if str(deger).isdigit()
+    }
+    aktif_idler = {
+        personel_id
+        for (personel_id,) in db.query(Personel.id).filter(
+            Personel.id.in_(personel_idleri),
+            Personel.aktif.is_(True),
+        ).all()
+    }
+    mevcutlar = {
+        kayit.personel_id: kayit
+        for kayit in db.query(Puantaj).filter(
+            Puantaj.tarih == tarih,
+            Puantaj.personel_id.in_(aktif_idler),
+        ).all()
+    }
+    for personel_id in aktif_idler:
+        durum = str(form.get(f"durum_{personel_id}") or "Geldi")
+        durum = durum if durum in gecerli_durumlar else "Geldi"
+        kayit = mevcutlar.get(personel_id)
+        if not kayit:
+            kayit = Puantaj(personel_id=personel_id, tarih=tarih)
+            db.add(kayit)
+        kayit.durum = durum
+        kayit.aciklama = str(form.get(f"aciklama_{personel_id}") or "").strip()
+    return len(aktif_idler)
+
+
 def tanim_listesi(db: Session, goster: str):
     listeler = {
         "personeller": ("Aktif Personeller", db.query(Personel).filter(Personel.aktif.is_(True)).order_by(Personel.kodu).all()),
