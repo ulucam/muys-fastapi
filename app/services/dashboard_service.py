@@ -7,8 +7,8 @@ from app.models.personel import Personel
 from app.models.puantaj import Puantaj
 from app.models.siparis import Siparis
 from app.models.user import User
+from app.services.puantaj_service import puantajlari_kaydet
 
-PUANTAJ_DURUMLARI = ("Geldi", "Gelmedi", "İzinli", "Raporlu")
 SIPARIS_DURUMLARI = ("Beklemede", "Üretimde", "Sevke Hazır")
 
 
@@ -41,14 +41,4 @@ def dashboard_verisi(db: Session, secili_tarih: date, rol: str | None, kullanici
 
 def puantaj_kaydet(db: Session, secili_tarih: date, form, rol: str | None, kullanici_id: int | None) -> int:
     personeller = _gorulebilir_personeller(db, rol, kullanici_id)
-    mevcutlar = {p.personel_id: p for p in db.query(Puantaj).filter(Puantaj.tarih == secili_tarih).all()}
-    for personel in personeller:
-        durum = str(form.get(f"durum_{personel.id}") or "Geldi")
-        durum = durum if durum in PUANTAJ_DURUMLARI else "Geldi"
-        kayit = mevcutlar.get(personel.id)
-        if not kayit:
-            kayit = Puantaj(personel_id=personel.id, tarih=secili_tarih)
-            db.add(kayit)
-        kayit.durum = durum
-        kayit.aciklama = str(form.get(f"aciklama_{personel.id}") or "").strip()
-    return len(personeller)
+    return puantajlari_kaydet(db, secili_tarih, personeller, form)
