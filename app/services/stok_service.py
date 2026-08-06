@@ -11,14 +11,38 @@ def stok_urunlerini_listele(db: Session):
 
 
 def hammaddeleri_listele(db: Session):
-    return db.query(Urun).order_by(Urun.kodu).all()
+    return (
+        db.query(Urun)
+        .join(StokUrunTuru, StokUrunTuru.id == Urun.stok_urun_turu_id)
+        .filter(StokUrunTuru.uretilen.is_(False))
+        .order_by(Urun.kodu)
+        .all()
+    )
 
 
 def stok_tanimlari(db: Session):
     return (
-        db.query(StokUrunTuru).order_by(StokUrunTuru.adi).all(),
+        db.query(StokUrunTuru).filter(StokUrunTuru.uretilen.is_(False)).order_by(StokUrunTuru.adi).all(),
         db.query(StokUrunSinifi).order_by(StokUrunSinifi.adi).all(),
     )
+
+
+def stok_kurulum_durumu(db: Session) -> dict:
+    tur_sayisi = db.query(StokUrunTuru).filter(StokUrunTuru.aktif.is_(True), StokUrunTuru.uretilen.is_(False)).count()
+    sinif_sayisi = db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).count()
+    hammadde_sayisi = (
+        db.query(Urun)
+        .join(StokUrunTuru, StokUrunTuru.id == Urun.stok_urun_turu_id)
+        .filter(Urun.aktif.is_(True), StokUrunTuru.uretilen.is_(False))
+        .count()
+    )
+    return {
+        "turler_hazir": tur_sayisi > 0,
+        "siniflar_hazir": sinif_sayisi > 0,
+        "hammadde_hazir": hammadde_sayisi > 0,
+        "hammadde_eklenebilir": tur_sayisi > 0 and sinif_sayisi > 0,
+        "yari_mamul_eklenebilir": hammadde_sayisi > 0,
+    }
 
 
 def stok_urunu_kaydet(
@@ -26,8 +50,10 @@ def stok_urunu_kaydet(
     birim: str, marka: str = "", model: str = "", mevcut_stok: float = 0,
     min_stok: float = 0, urun_id: int | None = None,
 ):
-    tur = db.query(StokUrunTuru).filter(StokUrunTuru.id == tur_id, StokUrunTuru.aktif.is_(True)).first()
+    tur = db.query(StokUrunTuru).filter(StokUrunTuru.id == tur_id, StokUrunTuru.aktif.is_(True), StokUrunTuru.uretilen.is_(False)).first()
     sinif = db.query(StokUrunSinifi).filter(StokUrunSinifi.id == sinif_id, StokUrunSinifi.aktif.is_(True)).first() if sinif_id else None
+    if db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).count() == 0:
+        raise ValueError("Hammadde kartından önce en az bir takip sınıfı tanımlanmalıdır")
     if not kodu.strip() or not adi.strip() or not tur or (sinif_id and not sinif):
         raise ValueError("Ürün kodu, adı ve geçerli tür zorunludur")
     urun = db.query(Urun).filter(Urun.id == urun_id).first() if urun_id else None
@@ -46,7 +72,7 @@ def stok_urunu_kaydet(
 
 def stok_turu_kaydet(db: Session, adi: str, tur_id: int | None = None):
     temiz_ad = adi.strip()
-    tur = db.query(StokUrunTuru).filter(StokUrunTuru.id == tur_id).first() if tur_id else None
+    tur = db.query(StokUrunTuru).filter(StokUrunTuru.id == tur_id, StokUrunTuru.uretilen.is_(False)).first() if tur_id else None
     cakisan = db.query(StokUrunTuru).filter(StokUrunTuru.adi == temiz_ad, StokUrunTuru.id != (tur.id if tur else 0)).first()
     if not temiz_ad or cakisan:
         raise ValueError("Tür adı zorunludur ve benzersiz olmalıdır")
