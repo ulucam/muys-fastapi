@@ -109,7 +109,11 @@ id="rolSecimi">
 
 <option value="Admin" {% if kullanici.rol=="Admin" %}selected{% endif %}>Admin</option>
 
+<option value="Patron" {% if kullanici.rol=="Patron" %}selected{% endif %}>Patron (Onay ve İzleme)</option>
+
 <option value="Yönetici" {% if kullanici.rol=="Yönetici" %}selected{% endif %}>Yönetici</option>
+
+<option value="Üretim" {% if kullanici.rol=="Üretim" %}selected{% endif %}>Üretim Yöneticisi</option>
 
 <option value="Satış" {% if kullanici.rol=="Satış" %}selected{% endif %}>Satış</option>
 
