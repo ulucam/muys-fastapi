@@ -10,7 +10,8 @@ from app.models.musteri import Musteri
 from app.models.personel import Personel
 from app.models.personel_istasyon import PersonelIstasyon
 from app.models.urun import Urun
-from app.models.urun_sinifi import UrunSinifi
+from app.models.stok_urun_sinifi import StokUrunSinifi
+from app.models.stok_urun_turu import StokUrunTuru
 from app.services.islem_log_service import islem_logla_veri
 
 
@@ -48,6 +49,18 @@ def onizleme_hazirla(
         kod = _metin(makine["İstasyon Kodu"])
         if kod not in mevcut_istasyonlar | aktarilan_istasyonlar:
             hatalar.append(f"Makineler satır {sira}: '{kod}' istasyon kodu bulunamadı")
+
+    stok_turleri = {tur.adi.casefold() for tur in db.query(StokUrunTuru).filter(StokUrunTuru.aktif.is_(True), StokUrunTuru.uretilen.is_(False)).all()}
+    stok_siniflari = {sinif.adi.casefold() for sinif in db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).all()}
+    if urunler and (not stok_turleri or not stok_siniflari):
+        hatalar.append("Hammadde aktarımından önce sistemde hammadde türleri ve sınıfları tanımlanmalıdır.")
+    for sira, urun in enumerate(urunler, start=2):
+        tur_adi = _metin(urun.get("stok_turu_adi"))
+        sinif_adi = _metin(urun.get("stok_sinifi_adi"))
+        if tur_adi.casefold() not in stok_turleri:
+            hatalar.append(f"Hammaddeler satır {sira}: '{tur_adi}' türü sistemde tanımlı değil")
+        if sinif_adi and sinif_adi.casefold() not in stok_siniflari:
+            hatalar.append(f"Hammaddeler satır {sira}: '{sinif_adi}' sınıfı sistemde tanımlı değil")
 
     mevcut_musteriler = {m.firma_adi.casefold() for m in db.query(Musteri).all()}
     eklenecek, guncellenecek = [], []
@@ -150,14 +163,19 @@ def aktarimi_onayla(db: Session, token: str | None, kullanici_adi: str, ip_adres
             makine.aktif = _metin(satir["Durum"]) == "Aktif"
 
         urun_haritasi = {u.kodu: u for u in db.query(Urun).all()}
-        sinif_haritasi = {s.kodu: s for s in db.query(UrunSinifi).all()}
+        stok_turu_haritasi = {tur.adi.casefold(): tur for tur in db.query(StokUrunTuru).filter(StokUrunTuru.aktif.is_(True), StokUrunTuru.uretilen.is_(False)).all()}
+        stok_sinifi_haritasi = {sinif.adi.casefold(): sinif for sinif in db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).all()}
         for veri in urunler:
             satir = dict(veri)
             urun = urun_haritasi.get(satir["kodu"])
             if not urun:
                 urun = Urun(kodu=satir["kodu"]); db.add(urun); urun_haritasi[satir["kodu"]] = urun
-            sinif_kodu = satir.pop("urun_sinifi_kodu", "")
-            urun.urun_sinifi_id = sinif_haritasi[sinif_kodu].id if sinif_kodu in sinif_haritasi else None
+            tur_adi = _metin(satir.pop("stok_turu_adi", "")).casefold()
+            sinif_adi = _metin(satir.pop("stok_sinifi_adi", "")).casefold()
+            if tur_adi not in stok_turu_haritasi or (sinif_adi and sinif_adi not in stok_sinifi_haritasi):
+                raise ValueError(f"{urun.kodu} için hammadde türü veya sınıfı bulunamadı")
+            urun.stok_urun_turu_id = stok_turu_haritasi[tur_adi].id
+            urun.stok_urun_sinifi_id = stok_sinifi_haritasi[sinif_adi].id if sinif_adi else None
             for alan, deger in satir.items(): setattr(urun, alan, deger)
         db.delete(taslak)
         islem_logla_veri(db, kullanici_adi, ip_adresi, "Excel", "Excel aktarımı tamamlandı",
