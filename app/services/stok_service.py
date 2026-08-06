@@ -27,6 +27,13 @@ def stok_tanimlari(db: Session):
     )
 
 
+def stok_tum_tanimlari(db: Session):
+    return (
+        db.query(StokUrunTuru).order_by(StokUrunTuru.adi).all(),
+        db.query(StokUrunSinifi).order_by(StokUrunSinifi.adi).all(),
+    )
+
+
 def stok_kurulum_durumu(db: Session) -> dict:
     tur_sayisi = db.query(StokUrunTuru).filter(StokUrunTuru.aktif.is_(True), StokUrunTuru.uretilen.is_(False)).count()
     sinif_sayisi = db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).count()
