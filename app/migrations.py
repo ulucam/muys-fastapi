@@ -27,3 +27,17 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
             for sutun_adi, sql in sutun_migrationlari:
                 if sutun_adi not in mevcut_sutunlar:
                     connection.execute(text(sql))
+
+        # Eski operatörlerin tekil istasyon bilgisini yeni çoklu ilişki tablosuna taşır.
+        tablolar = set(denetleyici.get_table_names())
+        if {"kullanicilar", "personel_istasyon_atamalari"}.issubset(tablolar):
+            connection.execute(text("""
+                INSERT INTO personel_istasyon_atamalari (personel_id, istasyon_id, aktif, created_at, updated_at)
+                SELECT k.personel_id, k.istasyon_id, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                FROM kullanicilar k
+                WHERE k.personel_id IS NOT NULL AND k.istasyon_id IS NOT NULL
+                  AND NOT EXISTS (
+                    SELECT 1 FROM personel_istasyon_atamalari pi
+                    WHERE pi.personel_id = k.personel_id AND pi.istasyon_id = k.istasyon_id
+                  )
+            """))
