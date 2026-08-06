@@ -9,6 +9,8 @@
 
     {% if hata %}<div class="alert alert-danger">{{ hata }}</div>{% endif %}
 
+    <div class="card border-0 shadow-sm mb-4"><div class="card-body"><div class="d-flex flex-wrap align-items-center gap-2"><strong class="me-2">Kurulum Sırası:</strong><span class="badge {{ 'bg-success' if kurulum.turler_hazir else 'bg-secondary' }}">1. Türler</span><i class="bi bi-arrow-right text-muted"></i><span class="badge {{ 'bg-success' if kurulum.siniflar_hazir else 'bg-secondary' }}">2. Sınıflar</span><i class="bi bi-arrow-right text-muted"></i><span class="badge {{ 'bg-success' if kurulum.hammadde_hazir else 'bg-secondary' }}">3. Hammaddeler</span><i class="bi bi-arrow-right text-muted"></i><span class="badge bg-secondary">4. Yarı Mamuller</span><i class="bi bi-arrow-right text-muted"></i><span class="badge bg-secondary">5. Mamuller</span></div>{% if not kurulum.hammadde_eklenebilir %}<div class="alert alert-warning mt-3 mb-0">Hammadde kartı açılmadan önce en az bir hammadde türü ve takip sınıfı tanımlayın.</div>{% endif %}</div></div>
+
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <strong><i class="bi bi-tags me-1"></i> Tür ve Sınıf Tanımları</strong>
@@ -34,7 +36,8 @@
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white"><strong><i class="bi bi-plus-circle me-1"></i> Yeni Hammadde / Stok Kartı</strong></div>
-        <div class="card-body"><form method="post" action="/urunler" class="row g-3">
+        <div class="card-body"><form method="post" action="/urunler">
+            <fieldset class="row g-3 border-0 p-0 m-0" {% if not kurulum.hammadde_eklenebilir %}disabled{% endif %}>
             <div class="col-12 col-md-3"><label class="form-label">Stok Kodu</label><input class="form-control" name="kodu" required></div>
             <div class="col-12 col-md-5"><label class="form-label">Ürün Adı</label><input class="form-control" name="adi" required></div>
             <div class="col-6 col-md-2"><label class="form-label">Marka</label><input class="form-control" name="marka"></div>
@@ -44,7 +47,7 @@
             <div class="col-4 col-md-2"><label class="form-label">Birim</label><input class="form-control" name="birim" value="Adet"></div>
             <div class="col-4 col-md-2"><label class="form-label">Mevcut Stok</label><input class="form-control" name="mevcut_stok" type="number" step="0.001" value="0"></div>
             <div class="col-4 col-md-2"><label class="form-label">Min. Stok</label><input class="form-control" name="min_stok" type="number" step="0.001" value="0"></div>
-            <div class="col-12 text-end"><button class="btn btn-success" type="submit"><i class="bi bi-check2-circle me-1"></i> Kartı Kaydet</button></div>
+            <div class="col-12 text-end"><button class="btn btn-success" type="submit"><i class="bi bi-check2-circle me-1"></i> Kartı Kaydet</button></div></fieldset>
         </form></div>
     </div>
 
