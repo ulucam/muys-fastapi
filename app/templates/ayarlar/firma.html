@@ -93,7 +93,7 @@
 
                     <div class="col-md-6">
                         <label class="form-label">Firma Logosu</label>
-                        {% if firma and firma.logo_yolu %}<div class="mb-2"><img src="{{ firma.logo_yolu }}" alt="{{ firma.firma_adi }} logosu" class="img-thumbnail" style="max-height: 96px; max-width: 220px;"></div>{% endif %}
+                        {% if firma_logo_yolu %}<div class="mb-2"><img src="{{ firma_logo_yolu }}" alt="{{ firma.firma_adi }} logosu" class="img-thumbnail" style="max-height: 96px; max-width: 220px;"></div>{% endif %}
                         <input class="form-control"
                                type="file"
                                name="logo"
