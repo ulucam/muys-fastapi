@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text
 
 from app.database import Base
 
@@ -17,5 +17,7 @@ class FirmaAyarlari(Base):
     web_sitesi = Column(String(200), default="")
     adres = Column(Text, default="")
     logo_yolu = Column(String(300), default="")
+    logo_verisi = Column(LargeBinary, nullable=True)
+    logo_mime_turu = Column(String(100), default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
