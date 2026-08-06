@@ -150,7 +150,18 @@
 .activity-empty{ padding:28px 15px; color:#94a3b8; text-align:center; font-size:13px; }
 
 @media (max-width: 767.98px){
-    .live-activity{ display:none !important; }
+    .top-navbar{ padding:0 10px; }
+    .user-area{ gap:6px; }
+    .live-activity{
+        display:flex;
+        max-width:120px;
+        height:34px;
+        padding:0 8px;
+    }
+    .live-activity-label{ font-size:11px; }
+    .live-activity-text{ display:none; }
+    .activity-button{ width:36px; height:36px; }
+    .user-button{ padding:8px 9px; max-width:125px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 }
 
 
