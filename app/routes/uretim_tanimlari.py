@@ -23,15 +23,13 @@ from app.services.uretim_tanimlari_service import (
     personel_listesi_verisi,
     personel_istasyon_idleri,
     personel_makine_idleri,
-    personel_puantaji,
-    puantaj_kayitlarini_guncelle,
     sinif_recetesi_getir,
     sinif_recetesi_guncelle,
-    puantaj_listesi_verisi,
     tanim_listesi,
     tanim_sil as tanim_sil_service,
 )
 from app.services.islem_log_service import islem_logla
+from app.services.puantaj_service import personel_puantaji, puantaj_kayitlarini_guncelle, puantaj_listesi_verisi
 
 router = APIRouter(tags=["Üretim Tanımları"])
 templates = Jinja2Templates(directory="app/templates")
