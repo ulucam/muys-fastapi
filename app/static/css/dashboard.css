@@ -148,3 +148,16 @@ table tr.collapse.show{
 #siparisler{
     scroll-margin-top:90px;
 }
+
+#uretim-paneli{scroll-margin-top:90px}
+.production-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.production-job-card{border-left:4px solid #0d6efd!important}
+.production-job-card.is-active{border-left-color:#198754!important}
+.production-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.production-meta>div{display:flex;align-items:center;gap:10px;background:#f8f9fa;border-radius:10px;padding:10px}
+.production-meta i{font-size:1.25rem;color:#6c757d}.production-meta small{display:block;color:#6c757d}.production-meta span{font-weight:600}
+.active-timer{display:flex;justify-content:space-between;align-items:center;background:#e8f5ee;color:#146c43;border-radius:10px;padding:12px}
+.active-timer strong{font-variant-numeric:tabular-nums;font-size:1.15rem}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#198754;margin-right:4px;animation:live-pulse 1.5s infinite}
+@keyframes live-pulse{50%{opacity:.35;transform:scale(.8)}}
+@media(max-width:576px){.production-card-grid{grid-template-columns:1fr}.production-meta{grid-template-columns:1fr}}
