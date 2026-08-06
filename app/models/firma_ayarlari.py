@@ -16,5 +16,6 @@ class FirmaAyarlari(Base):
     email = Column(String(120), default="")
     web_sitesi = Column(String(200), default="")
     adres = Column(Text, default="")
+    logo_yolu = Column(String(300), default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
