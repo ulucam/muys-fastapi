@@ -22,14 +22,14 @@
             </a>
         </li>
 
-        <li>
+        {% if kullanici_rol != "Patron" %}<li>
             <a href="/siparisler">
                 <i class="bi bi-receipt"></i>
                 <span>Siparişler</span>
             </a>
-        </li>
+        </li>{% endif %}
 
-        {% if kullanici_rol != "Operatör" %}
+        {% if kullanici_rol not in ["Operatör", "Patron"] %}
         <li>
 
             <a class="menu-toggle"
@@ -84,7 +84,7 @@
 
         {% endif %}
 
-        {% if kullanici_rol != "Operatör" %}
+        {% if kullanici_rol not in ["Operatör", "Patron"] %}
         <li>
             <a href="/personeller">
                 <i class="bi bi-person-badge"></i>
@@ -94,7 +94,7 @@
         {% endif %}
 
 
-        {% if kullanici_rol != "Operatör" %}
+        {% if kullanici_rol not in ["Operatör", "Patron"] %}
         <li>
             <a href="/musteriler">
                 <i class="bi bi-people"></i>
@@ -126,7 +126,7 @@
 
 
 
-        {% if kullanici_rol != "Operatör" %}
+        {% if kullanici_rol not in ["Operatör", "Patron"] %}
 
 
         <li>
