@@ -51,17 +51,30 @@
             </form>
         </div>
         <div class="table-responsive"><table class="table table-hover align-middle mb-0">
-            <thead><tr><th>Personel</th><th>Departman</th><th>Görev</th><th>Yetkili İstasyonlar</th><th>Makineler</th>{% if kullanici_rol in ['Admin', 'Yönetici'] %}<th></th>{% endif %}</tr></thead>
+            <thead><tr><th>Personel</th><th class="text-end">Durum</th></tr></thead>
             <tbody>
             {% for personel in personeller %}
                 <tr>
-                    <td><strong>{{ personel.ad_soyad }}</strong></td>
-                    <td>{{ personel.departman or '-' }}</td><td>{{ personel.gorev or '-' }}</td>
-                    <td>{% for istasyon in personel_istasyonlari.get(personel.id, []) %}<span class="badge text-bg-light border me-1 mb-1">{{ istasyon.kodu }} · {{ istasyon.adi }}</span>{% else %}<span class="text-muted">Atama yok</span>{% endfor %}</td>
-                    <td>{% for iliski in iliskiler.get(personel.id, []) %}<span class="badge text-bg-light border me-1 mb-1">{{ iliski.makine.adi if iliski.makine else '-' }}</span>{% else %}<span class="text-muted">Atama yok</span>{% endfor %}</td>
-                    {% if kullanici_rol in ['Admin', 'Yönetici'] %}<td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/uretim-tanimlari/duzenle/personel/{{ personel.kodu }}"><i class="bi bi-pencil"></i> Düzenle</a></td>{% endif %}
+                    <td><button class="btn btn-link text-start text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#personelDetay{{ personel.id }}" aria-expanded="false"><strong>{{ personel.ad_soyad }}</strong><span class="d-block small text-muted">{{ personel.kodu }} · Ayrıntılar için dokunun</span></button></td>
+                    <td class="text-end"><span class="badge bg-success">Aktif</span></td>
                 </tr>
-            {% else %}<tr><td colspan="6" class="text-center text-muted py-5">Filtreye uygun aktif personel bulunamadı.</td></tr>{% endfor %}
+                <tr class="collapse bg-light" id="personelDetay{{ personel.id }}"><td colspan="2" class="p-0"><div class="p-3 p-md-4">
+                    <div class="row g-3">
+                        <div class="col-6 col-md-3"><small class="text-muted d-block">Personel Kodu</small><strong>{{ personel.kodu }}</strong></div>
+                        <div class="col-6 col-md-3"><small class="text-muted d-block">Departman</small><strong>{{ personel.departman or '-' }}</strong></div>
+                        <div class="col-6 col-md-3"><small class="text-muted d-block">Görev</small><strong>{{ personel.gorev or '-' }}</strong></div>
+                        {% set kullanici = kullanici_haritasi.get(personel.id) %}
+                        <div class="col-6 col-md-3"><small class="text-muted d-block">Kullanıcı Hesabı</small><strong>{% if kullanici %}{{ kullanici.kullanici_adi }} · {{ kullanici.rol }}{% else %}Bağlı değil{% endif %}</strong></div>
+                        <div class="col-6 col-md-3"><small class="text-muted d-block">Telefon</small><strong>{{ kullanici.telefon if kullanici and kullanici.telefon else '-' }}</strong></div>
+                        <div class="col-6 col-md-3"><small class="text-muted d-block">E-posta</small><strong>{{ kullanici.email if kullanici and kullanici.email else '-' }}</strong></div>
+                        <div class="col-6 col-md-3"><small class="text-muted d-block">Kayıt Tarihi</small><strong>{{ personel.created_at.strftime('%d.%m.%Y') if personel.created_at else '-' }}</strong></div>
+                        <div class="col-6 col-md-3"><small class="text-muted d-block">Son Güncelleme</small><strong>{{ personel.updated_at.strftime('%d.%m.%Y') if personel.updated_at else '-' }}</strong></div>
+                        <div class="col-12 col-lg-6"><div class="border rounded bg-white p-3 h-100"><h6><i class="bi bi-diagram-3 me-1"></i> Yetkili İstasyonlar</h6>{% for istasyon in personel_istasyonlari.get(personel.id, []) %}<span class="badge text-bg-light border me-1 mb-1">{{ istasyon.kodu }} · {{ istasyon.adi }}</span>{% else %}<span class="text-muted">Atama yok</span>{% endfor %}</div></div>
+                        <div class="col-12 col-lg-6"><div class="border rounded bg-white p-3 h-100"><h6><i class="bi bi-gear me-1"></i> Makine İlişkileri</h6>{% for iliski in iliskiler.get(personel.id, []) %}<div class="mb-2"><span class="badge text-bg-light border">{{ iliski.makine.kodu if iliski.makine else '-' }} · {{ iliski.makine.adi if iliski.makine else '-' }}</span><small class="text-muted ms-1">{{ iliski.atama.rol }} · Hedef %{{ iliski.atama.hedef_performans or 0 }}</small></div>{% else %}<span class="text-muted">Atama yok</span>{% endfor %}</div></div>
+                    </div>
+                    {% if kullanici_rol in ['Admin', 'Yönetici'] %}<div class="text-end mt-3"><a class="btn btn-sm btn-outline-primary" href="/uretim-tanimlari/duzenle/personel/{{ personel.kodu }}"><i class="bi bi-pencil"></i> Personeli Düzenle</a></div>{% endif %}
+                </div></td></tr>
+            {% else %}<tr><td colspan="2" class="text-center text-muted py-5">Filtreye uygun aktif personel bulunamadı.</td></tr>{% endfor %}
             </tbody>
         </table></div>
     </div>
@@ -90,26 +103,30 @@
         {% if kullanici_rol in ['Admin', 'Yönetici'] %}<form method="post" action="/personeller/puantaj/kaydet"><input type="hidden" name="tarih" value="{{ puantaj_tarihi.isoformat() }}">{% endif %}
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead><tr><th>Personel</th><th>Departman</th><th>Görev</th><th>Durum</th><th>Açıklama</th></tr></thead>
+                <thead><tr><th>Personel</th><th class="text-end">Seçili Gün</th></tr></thead>
                 <tbody>
                 {% for personel in puantaj_personelleri %}
                     {% set kayit = puantaj_kayitlari.get(personel.id) %}
+                    {% set ozet = puantaj_ozetleri.get(personel.id) %}
                     <tr>
-                        <td>{% if kullanici_rol in ['Admin', 'Yönetici'] %}<input type="hidden" name="personel_idleri" value="{{ personel.id }}">{% endif %}<strong>{{ personel.ad_soyad }}</strong><div class="small text-muted">{{ personel.kodu }}</div></td>
-                        <td>{{ personel.departman or '-' }}</td>
-                        <td>{{ personel.gorev or '-' }}</td>
-                        <td>
-                            {% if kullanici_rol in ['Admin', 'Yönetici'] %}
-                            <select class="form-select form-select-sm" name="durum_{{ personel.id }}">
-                                {% for durum in ['Geldi', 'Gelmedi', 'İzinli', 'Raporlu'] %}<option value="{{ durum }}" {% if (kayit and kayit.durum == durum) or (not kayit and durum == 'Geldi') %}selected{% endif %}>{{ durum }}</option>{% endfor %}
-                            </select>
-                            {% elif kayit %}<span class="badge {% if kayit.durum == 'Geldi' %}bg-success{% elif kayit.durum in ['Gelmedi', 'Devamsız'] %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ kayit.durum }}</span>
-                            {% else %}<span class="badge bg-secondary">Kayıt Yok</span>{% endif %}
-                        </td>
-                        <td>{% if kullanici_rol in ['Admin', 'Yönetici'] %}<input class="form-control form-control-sm" name="aciklama_{{ personel.id }}" value="{{ kayit.aciklama if kayit and kayit.aciklama else '' }}" placeholder="Açıklama">{% else %}{{ kayit.aciklama if kayit and kayit.aciklama else '-' }}{% endif %}</td>
+                        <td><button class="btn btn-link text-start text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#puantajDetay{{ personel.id }}" aria-expanded="false"><strong>{{ personel.ad_soyad }}</strong><span class="d-block small text-muted">{{ personel.kodu }} · Haftalık ve aylık ayrıntı</span></button></td>
+                        <td class="text-end">{% if kayit %}<span class="badge {% if kayit.durum == 'Geldi' %}bg-success{% elif kayit.durum in ['Gelmedi', 'Devamsız'] %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ kayit.durum }}</span>{% else %}<span class="badge bg-secondary">Kayıt Yok</span>{% endif %}</td>
                     </tr>
+                    <tr class="collapse bg-light" id="puantajDetay{{ personel.id }}"><td colspan="2" class="p-0"><div class="p-3 p-md-4">
+                        {% if kullanici_rol in ['Admin', 'Yönetici'] %}<input type="hidden" name="personel_idleri" value="{{ personel.id }}">{% endif %}
+                        <div class="row g-3 mb-3">
+                            <div class="col-6 col-md-3"><small class="text-muted d-block">Departman</small><strong>{{ personel.departman or '-' }}</strong></div>
+                            <div class="col-6 col-md-3"><small class="text-muted d-block">Görev</small><strong>{{ personel.gorev or '-' }}</strong></div>
+                            <div class="col-12 col-md-6"><small class="text-muted d-block">Seçili Gün Açıklaması</small><span>{{ kayit.aciklama if kayit and kayit.aciklama else '-' }}</span></div>
+                        </div>
+                        {% if kullanici_rol in ['Admin', 'Yönetici'] %}<div class="border rounded bg-white p-3 mb-3"><div class="row g-2"><div class="col-md-4"><label class="form-label small">{{ puantaj_tarihi.strftime('%d.%m.%Y') }} Durumu</label><select class="form-select form-select-sm" name="durum_{{ personel.id }}">{% for durum in ['Geldi', 'Gelmedi', 'İzinli', 'Raporlu'] %}<option value="{{ durum }}" {% if (kayit and kayit.durum == durum) or (not kayit and durum == 'Geldi') %}selected{% endif %}>{{ durum }}</option>{% endfor %}</select></div><div class="col-md-8"><label class="form-label small">Açıklama</label><input class="form-control form-control-sm" name="aciklama_{{ personel.id }}" value="{{ kayit.aciklama if kayit and kayit.aciklama else '' }}" placeholder="Açıklama"></div></div></div>{% endif %}
+                        {% if ozet %}<div class="row g-3">
+                            <div class="col-12 col-xl-8"><div class="border rounded bg-white p-3 h-100"><h6 class="mb-3"><i class="bi bi-calendar-week me-1"></i> Haftalık Puantaj <small class="text-muted">{{ ozet.hafta_baslangici.strftime('%d.%m') }} - {{ ozet.hafta_bitisi.strftime('%d.%m.%Y') }}</small></h6><div class="row row-cols-2 row-cols-sm-4 row-cols-lg-7 g-2">{% for gun in ozet.hafta_gunleri %}<div class="col"><div class="border rounded text-center p-2 h-100"><small class="text-muted d-block">{{ gun.gun }} {{ gun.tarih.strftime('%d.%m') }}</small>{% if gun.kayit %}<span class="badge mt-1 {% if gun.kayit.durum == 'Geldi' %}bg-success{% elif gun.kayit.durum in ['Gelmedi', 'Devamsız'] %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ gun.kayit.durum }}</span>{% else %}<span class="badge bg-secondary mt-1">Yok</span>{% endif %}</div></div>{% endfor %}</div></div></div>
+                            <div class="col-12 col-xl-4"><div class="border rounded bg-white p-3 h-100"><h6><i class="bi bi-calendar-month me-1"></i> Aylık Özet <small class="text-muted">{{ ozet.ay_adi }}</small></h6><div class="d-flex flex-wrap gap-2 mt-3">{% for durum, sayi in ozet.aylik_sayilar.items() %}<span class="badge {% if durum == 'Geldi' %}bg-success{% elif durum == 'Gelmedi' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ durum }}: {{ sayi }}</span>{% endfor %}<span class="badge bg-secondary">Toplam: {{ ozet.aylik_toplam }}</span></div></div></div>
+                        </div>{% endif %}
+                    </div></td></tr>
                 {% else %}
-                    <tr><td colspan="5" class="text-center text-muted py-5">Seçilen filtreye uygun puantaj kaydı bulunamadı.</td></tr>
+                    <tr><td colspan="2" class="text-center text-muted py-5">Seçilen filtreye uygun puantaj kaydı bulunamadı.</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
