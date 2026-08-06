@@ -11,6 +11,10 @@
     <div class="user-area">
 
         {% if kullanici_rol == "Admin" %}
+        <div id="liveActivity" class="live-activity d-none" aria-live="polite">
+            <span class="live-activity-label"><span class="live-activity-dot"></span> Canlı</span>
+            <span id="liveActivityText" class="live-activity-text"></span>
+        </div>
         <div class="dropdown activity-area">
 
             <button class="activity-button"
@@ -25,9 +29,10 @@
             <div class="dropdown-menu dropdown-menu-end activity-panel p-0">
                 <div class="activity-panel-header">
                     <strong>Son Hareketler</strong>
-                    <small>Son 60 saniye</small>
+                    <small>Son 5 hareket</small>
                 </div>
                 <div id="activityFeed" class="activity-feed"></div>
+                <a class="activity-history-link" href="/ayarlar/loglar"><i class="bi bi-clock-history me-1"></i> Tüm Log Geçmişi</a>
             </div>
 
         </div>
