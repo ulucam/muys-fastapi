@@ -4,6 +4,7 @@ from app.models.istasyon import Istasyon
 from app.models.makine import Makine
 from app.models.personel import Personel
 from app.models.personel_makine import PersonelMakine
+from app.models.personel_istasyon import PersonelIstasyon
 from app.models.puantaj import Puantaj
 from app.models.recete import Recete
 from app.models.recete_kalem import ReceteKalem
@@ -36,6 +37,12 @@ def ekran_verisi(db: Session, **ek) -> dict:
     personel_atamalari = {}
     for atama in atamalar:
         personel_atamalari.setdefault(atama.personel_id, []).append((atama, makine_haritasi.get(atama.makine_id)))
+    istasyon_haritasi = {istasyon.id: istasyon for istasyon in db.query(Istasyon).all()}
+    personel_istasyonlari = {}
+    for atama in db.query(PersonelIstasyon).filter(PersonelIstasyon.aktif.is_(True)).all():
+        istasyon = istasyon_haritasi.get(atama.istasyon_id)
+        if istasyon:
+            personel_istasyonlari.setdefault(atama.personel_id, []).append(istasyon)
     personel_puantajlari = {}
     for puantaj in db.query(Puantaj).order_by(Puantaj.tarih.desc()).limit(500).all():
         if len(personel_puantajlari.setdefault(puantaj.personel_id, [])) < 10:
@@ -57,6 +64,7 @@ def ekran_verisi(db: Session, **ek) -> dict:
         "urunler": db.query(Urun).order_by(Urun.kodu).all(),
         "receteler": {r.id: r for r in db.query(Recete).all()},
         "personel_atamalari": personel_atamalari,
+        "personel_istasyonlari": personel_istasyonlari,
         "personel_puantajlari": personel_puantajlari,
     }
     data.update(ek)
@@ -73,6 +81,7 @@ def personel_listesi_verisi(db: Session, q: str, departman: str, gorev: str, ist
     if istasyon_id:
         makine_idleri = [m.id for m in db.query(Makine).filter(Makine.istasyon_id == istasyon_id).all()]
         personel_idleri = [a.personel_id for a in db.query(PersonelMakine).filter(PersonelMakine.makine_id.in_(makine_idleri), PersonelMakine.aktif.is_(True)).all()]
+        personel_idleri.extend(a.personel_id for a in db.query(PersonelIstasyon).filter(PersonelIstasyon.istasyon_id == istasyon_id, PersonelIstasyon.aktif.is_(True)).all())
         sorgu = sorgu.filter(Personel.id.in_(personel_idleri))
     makine_haritasi = {m.id: m for m in db.query(Makine).all()}
     istasyon_haritasi = {i.id: i for i in db.query(Istasyon).all()}
@@ -80,16 +89,50 @@ def personel_listesi_verisi(db: Session, q: str, departman: str, gorev: str, ist
     for atama in db.query(PersonelMakine).filter(PersonelMakine.aktif.is_(True)).all():
         makine = makine_haritasi.get(atama.makine_id)
         iliskiler.setdefault(atama.personel_id, []).append({"atama": atama, "makine": makine, "istasyon": istasyon_haritasi.get(makine.istasyon_id) if makine else None})
+    personel_istasyonlari = {}
+    for atama in db.query(PersonelIstasyon).filter(PersonelIstasyon.aktif.is_(True)).all():
+        istasyon = istasyon_haritasi.get(atama.istasyon_id)
+        if istasyon:
+            personel_istasyonlari.setdefault(atama.personel_id, []).append(istasyon)
     return {
         "personeller": sorgu.order_by(Personel.ad_soyad).all(),
         "departmanlar": sorted({d for (d,) in db.query(Personel.departman).filter(Personel.departman != "").distinct().all()}),
         "gorevler": sorted({g for (g,) in db.query(Personel.gorev).filter(Personel.gorev != "").distinct().all()}),
         "istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.kodu).all(),
         "iliskiler": iliskiler,
+        "personel_istasyonlari": personel_istasyonlari,
         "kullanici_haritasi": {u.personel_id: u for u in db.query(User).filter(User.personel_id.isnot(None)).all()},
         "istasyon_haritasi": istasyon_haritasi,
         "q": q, "departman": departman, "gorev": gorev, "istasyon_id": istasyon_id,
     }
+
+
+def personel_istasyon_idleri(db: Session, personel_id: int) -> set[int]:
+    return {
+        atama.istasyon_id
+        for atama in db.query(PersonelIstasyon).filter(
+            PersonelIstasyon.personel_id == personel_id,
+            PersonelIstasyon.aktif.is_(True),
+        ).all()
+    }
+
+
+def personel_istasyonlarini_guncelle(db: Session, personel_id: int, istasyon_idleri) -> None:
+    secilen_idler = {int(istasyon_id) for istasyon_id in istasyon_idleri if str(istasyon_id).isdigit()}
+    gecerli_idler = {
+        istasyon.id
+        for istasyon in db.query(Istasyon).filter(Istasyon.id.in_(secilen_idler), Istasyon.aktif.is_(True)).all()
+    } if secilen_idler else set()
+    if gecerli_idler != secilen_idler:
+        raise ValueError("Seçilen istasyonlardan biri geçerli veya aktif değil")
+    mevcutlar = {
+        atama.istasyon_id: atama
+        for atama in db.query(PersonelIstasyon).filter(PersonelIstasyon.personel_id == personel_id).all()
+    }
+    for istasyon_id, atama in mevcutlar.items():
+        atama.aktif = istasyon_id in secilen_idler
+    for istasyon_id in secilen_idler - set(mevcutlar):
+        db.add(PersonelIstasyon(personel_id=personel_id, istasyon_id=istasyon_id, aktif=True))
 
 
 def puantaj_listesi_verisi(db: Session, tarih, sadece_gelmeyen: bool = False) -> dict:
@@ -314,6 +357,10 @@ def manuel_tanim_kaydet(
             if not kod or not metin(form.get("ad_soyad")):
                 raise ValueError("Personel kodu ve ad soyad zorunlu")
             nesne.ad_soyad, nesne.departman, nesne.gorev, nesne.aktif = metin(form.get("ad_soyad")), metin(form.get("departman")), metin(form.get("gorev")), aktif
+            db.add(nesne)
+            db.flush()
+            if "istasyon_idleri" in form:
+                personel_istasyonlarini_guncelle(db, nesne.id, form.getlist("istasyon_idleri"))
         elif tip == "istasyon":
             kod = metin(form.get("kodu"))
             nesne = db.query(Istasyon).filter(Istasyon.kodu == kod).first() or Istasyon(kodu=kod)
