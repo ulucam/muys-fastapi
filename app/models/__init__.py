@@ -11,6 +11,7 @@ from app.models.personel import Personel
 from app.models.istasyon import Istasyon
 from app.models.makine import Makine
 from app.models.personel_makine import PersonelMakine
+from app.models.personel_istasyon import PersonelIstasyon
 from app.models.puantaj import Puantaj
 from app.models.urun_sinifi import UrunSinifi
 from app.models.urun_sinif_operasyon import UrunSinifOperasyon
