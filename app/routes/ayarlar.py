@@ -10,7 +10,7 @@ from app.utils.excel import (
 
 from app.context import template_data
 from app.database import get_db
-from app.roles import ADMIN
+from app.roles import ADMIN, YONETIM
 from app.security import yetki_kontrol
 from app.services.ayarlar_service import (
     excel_indirme_logu,
@@ -39,7 +39,7 @@ templates = Jinja2Templates(
 @router.get("/api/islem-loglari/son")
 def son_islem_hareketleri(
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(ADMIN)),
+    yetki=Depends(yetki_kontrol(YONETIM)),
 ):
     return JSONResponse({"hareketler": son_kullanici_hareketleri(db)})
 
@@ -143,7 +143,7 @@ async def yedek(request: Request):
 async def loglar(
     request: Request,
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(ADMIN)),
+    yetki=Depends(yetki_kontrol(YONETIM)),
 ):
     data = template_data(request)
     data["loglar"] = loglari_listele(db)
