@@ -30,7 +30,8 @@
 
         <div class="card-body">
 
-            <form method="post" action="/ayarlar/firma">
+            {% if hata %}<div class="alert alert-danger">{{ hata }}</div>{% endif %}
+            <form method="post" action="/ayarlar/firma" enctype="multipart/form-data">
 
                 <div class="row g-3">
 
@@ -92,9 +93,12 @@
 
                     <div class="col-md-6">
                         <label class="form-label">Firma Logosu</label>
+                        {% if firma and firma.logo_yolu %}<div class="mb-2"><img src="{{ firma.logo_yolu }}" alt="{{ firma.firma_adi }} logosu" class="img-thumbnail" style="max-height: 96px; max-width: 220px;"></div>{% endif %}
                         <input class="form-control"
                                type="file"
+                               name="logo"
                                accept="image/*">
+                        <div class="form-text">PNG, JPG, GIF veya WEBP; en fazla 3 MB.</div>
                     </div>
 
                 </div>
