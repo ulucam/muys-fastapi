@@ -122,40 +122,13 @@
 
                 <div class="card-body">
 
-                    <table class="table table-borderless">
-
+                    <table class="table table-borderless mb-0">
+                        {% for baslik, deger in sistem_bilgileri %}
                         <tr>
-
-                            <td>Program</td>
-
-                            <td>MÜYS</td>
-
+                            <td class="text-muted">{{ baslik }}</td>
+                            <td class="text-end fw-semibold">{{ deger }}</td>
                         </tr>
-
-                        <tr>
-
-                            <td>Sürüm</td>
-
-                            <td>v0.1.1</td>
-
-                        </tr>
-
-                        <tr>
-
-                            <td>Veritabanı</td>
-
-                            <td>SQLite</td>
-
-                        </tr>
-
-                        <tr>
-
-                            <td>Framework</td>
-
-                            <td>Flask</td>
-
-                        </tr>
-
+                        {% endfor %}
                     </table>
 
                 </div>
