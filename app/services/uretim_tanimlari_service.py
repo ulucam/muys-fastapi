@@ -99,6 +99,7 @@ def personel_listesi_verisi(db: Session, q: str, departman: str, gorev: str, ist
         "departmanlar": sorted({d for (d,) in db.query(Personel.departman).filter(Personel.departman != "").distinct().all()}),
         "gorevler": sorted({g for (g,) in db.query(Personel.gorev).filter(Personel.gorev != "").distinct().all()}),
         "istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.kodu).all(),
+        "makineler": db.query(Makine).filter(Makine.aktif.is_(True)).order_by(Makine.kodu).all(),
         "iliskiler": iliskiler,
         "personel_istasyonlari": personel_istasyonlari,
         "kullanici_haritasi": {u.personel_id: u for u in db.query(User).filter(User.personel_id.isnot(None)).all()},
@@ -133,6 +134,34 @@ def personel_istasyonlarini_guncelle(db: Session, personel_id: int, istasyon_idl
         atama.aktif = istasyon_id in secilen_idler
     for istasyon_id in secilen_idler - set(mevcutlar):
         db.add(PersonelIstasyon(personel_id=personel_id, istasyon_id=istasyon_id, aktif=True))
+
+
+def personel_makine_idleri(db: Session, personel_id: int) -> set[int]:
+    return {
+        atama.makine_id
+        for atama in db.query(PersonelMakine).filter(
+            PersonelMakine.personel_id == personel_id,
+            PersonelMakine.aktif.is_(True),
+        ).all()
+    }
+
+
+def personel_makinelerini_guncelle(db: Session, personel_id: int, makine_idleri) -> None:
+    secilen_idler = {int(makine_id) for makine_id in makine_idleri if str(makine_id).isdigit()}
+    gecerli_idler = {
+        makine.id
+        for makine in db.query(Makine).filter(Makine.id.in_(secilen_idler), Makine.aktif.is_(True)).all()
+    } if secilen_idler else set()
+    if gecerli_idler != secilen_idler:
+        raise ValueError("Seçilen makinelerden biri geçerli veya aktif değil")
+    mevcutlar = {
+        atama.makine_id: atama
+        for atama in db.query(PersonelMakine).filter(PersonelMakine.personel_id == personel_id).all()
+    }
+    for makine_id, atama in mevcutlar.items():
+        atama.aktif = makine_id in secilen_idler
+    for makine_id in secilen_idler - set(mevcutlar):
+        db.add(PersonelMakine(personel_id=personel_id, makine_id=makine_id, rol="Operatör", aktif=True))
 
 
 def puantaj_listesi_verisi(db: Session, tarih, sadece_gelmeyen: bool = False) -> dict:
@@ -361,6 +390,8 @@ def manuel_tanim_kaydet(
             db.flush()
             if "istasyon_idleri" in form:
                 personel_istasyonlarini_guncelle(db, nesne.id, form.getlist("istasyon_idleri"))
+            if "makine_idleri" in form:
+                personel_makinelerini_guncelle(db, nesne.id, form.getlist("makine_idleri"))
         elif tip == "istasyon":
             kod = metin(form.get("kodu"))
             nesne = db.query(Istasyon).filter(Istasyon.kodu == kod).first() or Istasyon(kodu=kod)
