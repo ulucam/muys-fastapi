@@ -142,11 +142,12 @@ async def yedek(request: Request):
 @router.get("/ayarlar/loglar", response_class=HTMLResponse)
 async def loglar(
     request: Request,
+    sayfa: int = 1,
     db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(YONETIM)),
 ):
     data = template_data(request)
-    data["loglar"] = loglari_listele(db)
+    data.update(loglari_listele(db, sayfa=sayfa))
 
     return templates.TemplateResponse("ayarlar/loglar.html", data)
 
