@@ -20,6 +20,7 @@ def template_data(request: Request):
         ),
 
         "firma_adi": getattr(request.state, "firma_adi", "MÜYS"),
+        "firma_logo_yolu": getattr(request.state, "firma_logo_yolu", ""),
         "uygulama_surumu": guncel_surumu_al(),
 
     }
