@@ -39,7 +39,7 @@ templates = Jinja2Templates(
 @router.get("/api/islem-loglari/son")
 def son_islem_hareketleri(
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(YONETIM)),
+    yetki=Depends(yetki_kontrol(ADMIN)),
 ):
     return JSONResponse({"hareketler": son_kullanici_hareketleri(db)})
 
@@ -144,7 +144,7 @@ async def loglar(
     request: Request,
     sayfa: int = 1,
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(YONETIM)),
+    yetki=Depends(yetki_kontrol(ADMIN)),
 ):
     data = template_data(request)
     data.update(loglari_listele(db, sayfa=sayfa))
