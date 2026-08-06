@@ -31,6 +31,7 @@
             <div class="col-md-5"><label class="form-label">Ad Soyad</label><input class="form-control" name="ad_soyad" required></div>
             <div class="col-md-2"><label class="form-label">Departman</label><input class="form-control" name="departman"></div>
             <div class="col-md-2"><label class="form-label">Görev</label><input class="form-control" name="gorev"></div>
+            <div class="col-12"><details class="border rounded p-3"><summary class="fw-semibold"><i class="bi bi-diagram-3 me-1"></i> Yetkili İstasyonlar</summary><div class="form-text mb-2">Operatör hesabı bu personelin seçili istasyonlarındaki iş emirlerini görür.</div><div class="d-flex flex-wrap gap-2">{% for istasyon in istasyonlar %}<label class="btn btn-sm btn-outline-secondary"><input class="form-check-input me-1" type="checkbox" name="istasyon_idleri" value="{{ istasyon.id }}">{{ istasyon.kodu }} · {{ istasyon.adi }}</label>{% else %}<span class="text-muted">Aktif istasyon bulunmuyor.</span>{% endfor %}</div></details></div>
             <input type="hidden" name="aktif" value="true">
             <div class="col-12 text-end"><button class="btn btn-success" type="submit"><i class="bi bi-check2-circle"></i> Kaydet</button></div>
         </form>
@@ -49,21 +50,17 @@
             </form>
         </div>
         <div class="table-responsive"><table class="table table-hover align-middle mb-0">
-            <thead><tr><th>Personel</th><th>Departman</th><th>Görev</th></tr></thead>
+            <thead><tr><th>Personel</th><th>Departman</th><th>Görev</th><th>Yetkili İstasyonlar</th><th>Makineler</th>{% if kullanici_rol in ['Admin', 'Yönetici'] %}<th></th>{% endif %}</tr></thead>
             <tbody>
             {% for personel in personeller %}
                 <tr>
-                    <td><button class="btn btn-link p-0 text-start text-decoration-none fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#personelDetay{{ personel.id }}" aria-expanded="false"><i class="bi bi-chevron-down me-1"></i>{{ personel.ad_soyad }}</button><div class="small text-muted">{{ personel.kodu }}</div></td>
+                    <td><strong>{{ personel.ad_soyad }}</strong></td>
                     <td>{{ personel.departman or '-' }}</td><td>{{ personel.gorev or '-' }}</td>
+                    <td>{% for istasyon in personel_istasyonlari.get(personel.id, []) %}<span class="badge text-bg-light border me-1 mb-1">{{ istasyon.kodu }} · {{ istasyon.adi }}</span>{% else %}<span class="text-muted">Atama yok</span>{% endfor %}</td>
+                    <td>{% for iliski in iliskiler.get(personel.id, []) %}<span class="badge text-bg-light border me-1 mb-1">{{ iliski.makine.adi if iliski.makine else '-' }}</span>{% else %}<span class="text-muted">Atama yok</span>{% endfor %}</td>
+                    {% if kullanici_rol in ['Admin', 'Yönetici'] %}<td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/uretim-tanimlari/duzenle/personel/{{ personel.kodu }}"><i class="bi bi-pencil"></i> Düzenle</a></td>{% endif %}
                 </tr>
-                <tr class="bg-light">
-                    <td colspan="3" class="p-0 border-0"><div class="collapse p-3" id="personelDetay{{ personel.id }}"><div class="row g-3">
-                        <div class="col-12 col-md-5"><div class="small text-muted mb-1">Operatör Hesabı</div>{% set hesap = kullanici_haritasi.get(personel.id) %}{% if hesap %}<span class="badge bg-primary">{{ hesap.kullanici_adi }}</span>{% set hesap_istasyonu = istasyon_haritasi.get(hesap.istasyon_id) %}{% if hesap_istasyonu %}<div class="small mt-1">{{ hesap_istasyonu.kodu }} · {{ hesap_istasyonu.adi }}</div>{% endif %}{% else %}<span class="text-muted">Hesap bağlı değil</span>{% endif %}</div>
-                        <div class="col-12 col-md-5"><div class="small text-muted mb-1">Makine / İstasyon İlişkileri</div>{% for iliski in iliskiler.get(personel.id, []) %}<span class="badge text-bg-light border me-1 mb-1">{{ iliski.makine.adi if iliski.makine else '-' }} · {{ iliski.istasyon.adi if iliski.istasyon else '-' }}</span>{% else %}<span class="text-muted">Atama yok</span>{% endfor %}</div>
-                        {% if kullanici_rol in ['Admin', 'Yönetici'] %}<div class="col-12 col-md-2 d-flex align-items-end"><a class="btn btn-sm btn-outline-primary w-100" href="/uretim-tanimlari/duzenle/personel/{{ personel.kodu }}"><i class="bi bi-pencil"></i> Düzenle</a></div>{% endif %}
-                    </div></div></td>
-                </tr>
-            {% else %}<tr><td colspan="3" class="text-center text-muted py-5">Filtreye uygun aktif personel bulunamadı.</td></tr>{% endfor %}
+            {% else %}<tr><td colspan="6" class="text-center text-muted py-5">Filtreye uygun aktif personel bulunamadı.</td></tr>{% endfor %}
             </tbody>
         </table></div>
     </div>
