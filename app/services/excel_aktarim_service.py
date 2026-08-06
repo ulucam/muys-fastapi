@@ -8,6 +8,7 @@ from app.models.istasyon import Istasyon
 from app.models.makine import Makine
 from app.models.musteri import Musteri
 from app.models.personel import Personel
+from app.models.personel_istasyon import PersonelIstasyon
 from app.models.urun import Urun
 from app.models.urun_sinifi import UrunSinifi
 from app.services.islem_log_service import islem_logla_veri
@@ -15,6 +16,10 @@ from app.services.islem_log_service import islem_logla_veri
 
 def _metin(deger):
     return str(deger or "").strip()
+
+
+def _istasyon_kodlarini_ayir(deger) -> list[str]:
+    return list(dict.fromkeys(kod.strip() for kod in _metin(deger).replace(";", ",").split(",") if kod.strip()))
 
 
 def _sirali_kod(kullanilan: set[str], onek: str) -> str:
@@ -35,6 +40,10 @@ def onizleme_hazirla(
 ) -> dict:
     mevcut_istasyonlar = {i.kodu for i in db.query(Istasyon).all()}
     aktarilan_istasyonlar = {_metin(i["İstasyon Kodu"]) for i in istasyonlar}
+    for sira, personel in enumerate(personeller, start=2):
+        for kod in _istasyon_kodlarini_ayir(personel.get("İstasyon Kodları")):
+            if kod not in mevcut_istasyonlar | aktarilan_istasyonlar:
+                hatalar.append(f"Personeller satır {sira}: '{kod}' istasyon kodu bulunamadı")
     for sira, makine in enumerate(makineler, start=2):
         kod = _metin(makine["İstasyon Kodu"])
         if kod not in mevcut_istasyonlar | aktarilan_istasyonlar:
@@ -103,7 +112,7 @@ def aktarimi_onayla(db: Session, token: str | None, kullanici_adi: str, ip_adres
             ad = _metin(satir["Ad Soyad"]); anahtar = ad.casefold(); personel = harita.get(anahtar)
             if not personel:
                 personel = Personel(kodu=_sirali_kod(kullanilan, "P")); db.add(personel); harita[anahtar] = personel
-            personel.ad_soyad, personel.departman, personel.gorev = ad, _metin(satir["Departman"]), _metin(satir["Görev"])
+            personel.ad_soyad, personel.gorev = ad, _metin(satir["Görev"])
             personel.aktif = _metin(satir["Durum"]) == "Aktif"
 
         istasyon_haritasi = {i.kodu: i for i in db.query(Istasyon).all()}
@@ -114,6 +123,19 @@ def aktarimi_onayla(db: Session, token: str | None, kullanici_adi: str, ip_adres
             istasyon.adi, istasyon.bolum = _metin(satir["İstasyon Adı"]), _metin(satir["Bölüm"])
             istasyon.aciklama, istasyon.aktif = _metin(satir["Açıklama"]), _metin(satir["Durum"]) == "Aktif"
         db.flush()
+
+        for satir in personeller:
+            personel = harita.get(_metin(satir["Ad Soyad"]).casefold())
+            secili_kodlar = _istasyon_kodlarini_ayir(satir.get("İstasyon Kodları"))
+            secili_idler = {istasyon_haritasi[kod].id for kod in secili_kodlar if kod in istasyon_haritasi}
+            mevcut_atamalar = {
+                atama.istasyon_id: atama
+                for atama in db.query(PersonelIstasyon).filter(PersonelIstasyon.personel_id == personel.id).all()
+            }
+            for istasyon_id, atama in mevcut_atamalar.items():
+                atama.aktif = istasyon_id in secili_idler
+            for istasyon_id in secili_idler - set(mevcut_atamalar):
+                db.add(PersonelIstasyon(personel_id=personel.id, istasyon_id=istasyon_id, aktif=True))
 
         makine_haritasi = {m.kodu: m for m in db.query(Makine).all()}
         for satir in makineler:
