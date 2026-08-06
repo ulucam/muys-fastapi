@@ -1,5 +1,4 @@
 from pathlib import Path
-from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
@@ -35,10 +34,13 @@ def firma_ozeti_getir(db: Session) -> tuple[str, str]:
     firma = firma_getir(db)
     if not firma:
         return "MÜYS", ""
+    if firma.logo_verisi:
+        zaman = int(firma.updated_at.timestamp()) if firma.updated_at else 0
+        return firma.firma_adi or "MÜYS", f"/firma-logo?v={zaman}"
     return firma.firma_adi or "MÜYS", firma.logo_yolu or ""
 
 
-def _logo_dosyasini_kaydet(logo_dosyasi: tuple[str, bytes]) -> str:
+def _logo_dosyasini_dogrula(logo_dosyasi: tuple[str, bytes]) -> str:
     dosya_adi, icerik = logo_dosyasi
     if not icerik:
         raise ValueError("Logo dosyası boş olamaz")
@@ -56,11 +58,12 @@ def _logo_dosyasini_kaydet(logo_dosyasi: tuple[str, bytes]) -> str:
         gercek_uzanti = ".webp"
     if not gercek_uzanti or uzanti not in {".png", ".jpg", ".jpeg", ".gif", ".webp"}:
         raise ValueError("Logo yalnızca PNG, JPG, GIF veya WEBP biçiminde olmalıdır")
-    klasor = Path("app/static/uploads/logolar")
-    klasor.mkdir(parents=True, exist_ok=True)
-    kayit_adi = f"firma-logo-{uuid4().hex}{gercek_uzanti}"
-    (klasor / kayit_adi).write_bytes(icerik)
-    return f"/static/uploads/logolar/{kayit_adi}"
+    return {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+    }[gercek_uzanti]
 
 
 def firma_bilgilerini_kaydet(db: Session, kullanici_adi: str, ip_adresi: str, logo_dosyasi: tuple[str, bytes] | None = None, **alanlar):
@@ -71,7 +74,9 @@ def firma_bilgilerini_kaydet(db: Session, kullanici_adi: str, ip_adresi: str, lo
     for alan, deger in alanlar.items():
         setattr(firma, alan, deger)
     if logo_dosyasi:
-        firma.logo_yolu = _logo_dosyasini_kaydet(logo_dosyasi)
+        firma.logo_mime_turu = _logo_dosyasini_dogrula(logo_dosyasi)
+        firma.logo_verisi = logo_dosyasi[1]
+        firma.logo_yolu = ""
     islem_logla_veri(db, kullanici_adi, ip_adresi, "Ayarlar", "Firma bilgileri güncellendi", alanlar.get("firma_adi", ""))
     db.commit()
     return firma
