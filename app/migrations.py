@@ -25,6 +25,9 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
                 ("istasyon_id", "ALTER TABLE kullanicilar ADD COLUMN istasyon_id INTEGER REFERENCES istasyonlar(id)"),
                 ("personel_id", "ALTER TABLE kullanicilar ADD COLUMN personel_id INTEGER REFERENCES personeller(id)"),
             ],
+            "uretim_emirleri": [
+                ("istasyon_id", "ALTER TABLE uretim_emirleri ADD COLUMN istasyon_id INTEGER REFERENCES istasyonlar(id)"),
+            ],
             "firma_ayarlari": [
                 ("logo_yolu", "ALTER TABLE firma_ayarlari ADD COLUMN logo_yolu VARCHAR(300) DEFAULT ''"),
             ],
