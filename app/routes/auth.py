@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services.auth_service import kullanici_dogrula
+from app.models.rol_sinifi import RolSinifi
 
 
 router = APIRouter()
@@ -81,6 +82,9 @@ async def login(
         request.session["kullanici_adi"] = user.kullanici_adi
 
         request.session["rol"] = user.rol
+
+        rol_sinifi = db.query(RolSinifi).filter(RolSinifi.adi == user.rol).first()
+        request.session["kullanici_ekleyebilir"] = bool(user.rol == "Admin" or (rol_sinifi and rol_sinifi.kullanici_ekleyebilir))
 
 
 
