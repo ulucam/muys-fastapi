@@ -36,7 +36,7 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
         if {"kullanicilar", "personel_istasyon_atamalari"}.issubset(tablolar):
             connection.execute(text("""
                 INSERT INTO personel_istasyon_atamalari (personel_id, istasyon_id, aktif, created_at, updated_at)
-                SELECT k.personel_id, k.istasyon_id, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                SELECT k.personel_id, k.istasyon_id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                 FROM kullanicilar k
                 WHERE k.personel_id IS NOT NULL AND k.istasyon_id IS NOT NULL
                   AND NOT EXISTS (
