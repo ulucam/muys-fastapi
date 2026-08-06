@@ -31,6 +31,14 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
                 if sutun_adi not in mevcut_sutunlar:
                     connection.execute(text(sql))
 
+        if "firma_ayarlari" in denetleyici.get_table_names():
+            firma_sutunlari = {sutun["name"] for sutun in denetleyici.get_columns("firma_ayarlari")}
+            ikili_tur = "BYTEA" if engine.dialect.name == "postgresql" else "BLOB"
+            if "logo_verisi" not in firma_sutunlari:
+                connection.execute(text(f"ALTER TABLE firma_ayarlari ADD COLUMN logo_verisi {ikili_tur}"))
+            if "logo_mime_turu" not in firma_sutunlari:
+                connection.execute(text("ALTER TABLE firma_ayarlari ADD COLUMN logo_mime_turu VARCHAR(100) DEFAULT ''"))
+
         # Eski operatörlerin tekil istasyon bilgisini yeni çoklu ilişki tablosuna taşır.
         tablolar = set(denetleyici.get_table_names())
         if {"kullanicilar", "personel_istasyon_atamalari"}.issubset(tablolar):
