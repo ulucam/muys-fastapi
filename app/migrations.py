@@ -13,6 +13,8 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
             "urunler": [
                 ("urun_sinifi_id", "ALTER TABLE urunler ADD COLUMN urun_sinifi_id INTEGER"),
                 ("urun_cinsi", "ALTER TABLE urunler ADD COLUMN urun_cinsi VARCHAR(100)"),
+                ("stok_urun_turu_id", "ALTER TABLE urunler ADD COLUMN stok_urun_turu_id INTEGER REFERENCES stok_urun_turleri(id)"),
+                ("stok_urun_sinifi_id", "ALTER TABLE urunler ADD COLUMN stok_urun_sinifi_id INTEGER REFERENCES stok_urun_siniflari(id)"),
             ],
             "recete_kalemleri": [
                 ("hedef_cevrim_suresi", "ALTER TABLE recete_kalemleri ADD COLUMN hedef_cevrim_suresi FLOAT DEFAULT 0"),
