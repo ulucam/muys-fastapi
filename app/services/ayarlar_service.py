@@ -11,6 +11,8 @@ from app.models.personel import Personel
 from app.models.personel_istasyon import PersonelIstasyon
 from app.models.urun import Urun
 from app.models.urun_sinifi import UrunSinifi
+from app.models.stok_urun_sinifi import StokUrunSinifi
+from app.models.stok_urun_turu import StokUrunTuru
 from app.services.islem_log_service import islem_logla_veri
 
 
@@ -113,6 +115,8 @@ def excel_sablon_verileri(db: Session):
         "istasyonlar": db.query(Istasyon).order_by(Istasyon.kodu).all(),
         "makineler": db.query(Makine).order_by(Makine.kodu).all(),
         "siniflar": db.query(UrunSinifi).order_by(UrunSinifi.kodu).all(),
+        "stok_turleri": db.query(StokUrunTuru).filter(StokUrunTuru.aktif.is_(True), StokUrunTuru.uretilen.is_(False)).order_by(StokUrunTuru.adi).all(),
+        "stok_siniflari": db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).order_by(StokUrunSinifi.adi).all(),
         "personel_istasyon_kodlari": personel_istasyon_kodlari,
     }
 
