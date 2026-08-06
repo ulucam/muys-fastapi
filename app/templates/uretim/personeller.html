@@ -86,6 +86,8 @@
                 </div>
             </form>
         </div>
+        {% if request.query_params.get('kaydedildi') %}<div class="alert alert-success m-3 mb-0"><i class="bi bi-check-circle me-1"></i> Puantaj kayıtları güncellendi.</div>{% endif %}
+        {% if kullanici_rol in ['Admin', 'Yönetici'] %}<form method="post" action="/personeller/puantaj/kaydet"><input type="hidden" name="tarih" value="{{ puantaj_tarihi.isoformat() }}">{% endif %}
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead><tr><th>Personel</th><th>Departman</th><th>Görev</th><th>Durum</th><th>Açıklama</th></tr></thead>
@@ -93,14 +95,18 @@
                 {% for personel in puantaj_personelleri %}
                     {% set kayit = puantaj_kayitlari.get(personel.id) %}
                     <tr>
-                        <td><strong>{{ personel.ad_soyad }}</strong><div class="small text-muted">{{ personel.kodu }}</div></td>
+                        <td>{% if kullanici_rol in ['Admin', 'Yönetici'] %}<input type="hidden" name="personel_idleri" value="{{ personel.id }}">{% endif %}<strong>{{ personel.ad_soyad }}</strong><div class="small text-muted">{{ personel.kodu }}</div></td>
                         <td>{{ personel.departman or '-' }}</td>
                         <td>{{ personel.gorev or '-' }}</td>
                         <td>
-                            {% if kayit %}<span class="badge {% if kayit.durum == 'Geldi' %}bg-success{% elif kayit.durum in ['Gelmedi', 'Devamsız'] %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ kayit.durum }}</span>
+                            {% if kullanici_rol in ['Admin', 'Yönetici'] %}
+                            <select class="form-select form-select-sm" name="durum_{{ personel.id }}">
+                                {% for durum in ['Geldi', 'Gelmedi', 'İzinli', 'Raporlu'] %}<option value="{{ durum }}" {% if (kayit and kayit.durum == durum) or (not kayit and durum == 'Geldi') %}selected{% endif %}>{{ durum }}</option>{% endfor %}
+                            </select>
+                            {% elif kayit %}<span class="badge {% if kayit.durum == 'Geldi' %}bg-success{% elif kayit.durum in ['Gelmedi', 'Devamsız'] %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ kayit.durum }}</span>
                             {% else %}<span class="badge bg-secondary">Kayıt Yok</span>{% endif %}
                         </td>
-                        <td>{{ kayit.aciklama if kayit and kayit.aciklama else '-' }}</td>
+                        <td>{% if kullanici_rol in ['Admin', 'Yönetici'] %}<input class="form-control form-control-sm" name="aciklama_{{ personel.id }}" value="{{ kayit.aciklama if kayit and kayit.aciklama else '' }}" placeholder="Açıklama">{% else %}{{ kayit.aciklama if kayit and kayit.aciklama else '-' }}{% endif %}</td>
                     </tr>
                 {% else %}
                     <tr><td colspan="5" class="text-center text-muted py-5">Seçilen filtreye uygun puantaj kaydı bulunamadı.</td></tr>
@@ -108,6 +114,7 @@
                 </tbody>
             </table>
         </div>
+        {% if kullanici_rol in ['Admin', 'Yönetici'] %}<div class="card-footer bg-white text-end py-3"><button class="btn btn-success" type="submit"><i class="bi bi-check2-circle me-1"></i> Puantajı Kaydet</button></div></form>{% endif %}
     </div>
     {% endif %}
 </div>
