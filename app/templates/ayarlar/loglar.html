@@ -118,6 +118,23 @@
 
             </div>
 
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-3">
+                <small class="text-muted">Toplam {{ log_toplam_kayit }} kayıt · Sayfa {{ log_sayfasi }} / {{ log_sayfa_sayisi }}</small>
+                {% if log_sayfa_sayisi > 1 %}
+                <nav aria-label="Log geçmişi sayfaları">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item {% if log_sayfasi <= 1 %}disabled{% endif %}"><a class="page-link" href="/ayarlar/loglar?sayfa={{ log_sayfasi - 1 }}">Önceki</a></li>
+                        {% set baslangic = [1, log_sayfasi - 2]|max %}
+                        {% set bitis = [log_sayfa_sayisi, log_sayfasi + 2]|min %}
+                        {% for sayfa_no in range(baslangic, bitis + 1) %}
+                        <li class="page-item {% if sayfa_no == log_sayfasi %}active{% endif %}"><a class="page-link" href="/ayarlar/loglar?sayfa={{ sayfa_no }}">{{ sayfa_no }}</a></li>
+                        {% endfor %}
+                        <li class="page-item {% if log_sayfasi >= log_sayfa_sayisi %}disabled{% endif %}"><a class="page-link" href="/ayarlar/loglar?sayfa={{ log_sayfasi + 1 }}">Sonraki</a></li>
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+
         </div>
 
     </div>
