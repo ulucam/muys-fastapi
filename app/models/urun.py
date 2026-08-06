@@ -120,3 +120,6 @@ class Urun(Base):
         default="",
         nullable=True,
     )
+
+    stok_urun_turu_id = Column(Integer, ForeignKey("stok_urun_turleri.id"), nullable=True, index=True)
+    stok_urun_sinifi_id = Column(Integer, ForeignKey("stok_urun_siniflari.id"), nullable=True, index=True)
