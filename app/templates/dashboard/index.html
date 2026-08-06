@@ -47,8 +47,23 @@
         </div>
     </div>
 
+    {% if kullanici_rol in ['Patron', 'Admin'] %}
+    <section id="siparis-onay" class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3"><strong><i class="bi bi-check2-square text-primary me-2"></i>Sipariş Onayı ve Öncelik Sırası</strong><div class="small text-muted">Onaylanan siparişler ilgili yöneticilerin iş akışına aktarılır. Burada üretime müdahale edilmez.</div></div>
+        <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Sıra</th><th>Sipariş</th><th>Müşteri</th><th>Teslim</th><th>Onay Durumu</th><th class="text-end">Karar</th></tr></thead><tbody>
+            {% for grup in siparisler_duruma_gore.values() %}{% for siparis in grup %}<tr>
+                <td><form class="d-flex gap-1" method="post" action="/siparis/{{ siparis.id }}/oncelik"><input class="form-control form-control-sm priority-input" type="number" name="oncelik" min="1" max="999" value="{{ siparis.oncelik or 100 }}"><button class="btn btn-sm btn-outline-secondary" title="Sırayı kaydet"><i class="bi bi-arrow-down-up"></i></button></form></td>
+                <td><strong>{{ siparis.siparis_no }}</strong></td><td>{{ musteriler.get(siparis.musteri_id).firma_adi if musteriler.get(siparis.musteri_id) else '-' }}</td><td>{{ siparis.teslim_tarihi.strftime('%d.%m.%Y') if siparis.teslim_tarihi else '-' }}</td>
+                <td><span class="badge {% if siparis.onay_durumu == 'Onaylandı' %}bg-success{% elif siparis.onay_durumu == 'Reddedildi' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ siparis.onay_durumu or 'Onay Bekliyor' }}</span></td>
+                <td class="text-end"><form class="d-inline-flex gap-1" method="post" action="/siparis/{{ siparis.id }}/onay"><button class="btn btn-sm btn-success" name="karar" value="Onaylandı"><i class="bi bi-check-lg"></i> Onayla</button><button class="btn btn-sm btn-outline-danger" name="karar" value="Reddedildi"><i class="bi bi-x-lg"></i></button></form></td>
+            </tr>{% endfor %}{% else %}<tr><td colspan="6" class="text-center text-muted py-4">Onaylanacak sipariş bulunmuyor.</td></tr>{% endfor %}
+        </tbody></table></div>
+    </section>
+    {% endif %}
+
     <section id="uretim-paneli" class="mb-4">
         {% set operator_mu = kullanici_rol in ['Operatör', 'OperatÃ¶r'] %}
+        {% set uretim_yonetebilir = kullanici_rol in ['Admin', 'Üretim', 'Ãœretim'] %}
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <div>
                 <h4 class="mb-1"><i class="bi bi-activity text-primary me-2"></i>{% if operator_mu %}Atanmış İşlerim{% else %}Canlı Üretim Takibi{% endif %}</h4>
@@ -91,12 +106,12 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="card border-0 shadow-sm mb-3">
+        {% if uretim_yonetebilir %}<div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-3"><strong>Üretim Emirlerini İstasyona Ata</strong></div>
             <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Emir</th><th>Ürün</th><th>Hedef</th><th>Durum</th><th>İstasyon</th></tr></thead><tbody>
                 {% for emir in uretim_emirleri %}<tr><td><strong>{{ emir.emir_no }}</strong></td><td>{{ urunler.get(emir.urun_id).adi if urunler.get(emir.urun_id) else '-' }}</td><td>{{ '%g'|format(emir.miktar) }}</td><td>{{ emir.durum }}</td><td><form class="d-flex gap-2" method="post" action="/uretim/{{ emir.id }}/istasyon"><select class="form-select form-select-sm" name="istasyon_id" required><option value="">Seçin</option>{% for id, istasyon in istasyonlar.items() %}<option value="{{ id }}" {% if emir.istasyon_id == id %}selected{% endif %}>{{ istasyon.adi }}</option>{% endfor %}</select><button class="btn btn-sm btn-outline-primary" type="submit">Ata</button></form></td></tr>{% else %}<tr><td colspan="5" class="text-center text-muted py-4">Aktif üretim emri bulunmuyor.</td></tr>{% endfor %}
             </tbody></table></div>
-        </div>
+        </div>{% endif %}
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between"><strong>Operatör Hareketleri</strong><span id="uretim-son-guncelleme" class="small text-muted"></span></div>
             <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Durum</th><th>Operatör</th><th>İstasyon</th><th>İş / Ürün</th><th>Başlangıç</th><th>Süre</th><th>Üretim / Fire</th></tr></thead><tbody id="canli-uretim-body"><tr><td colspan="7" class="text-center text-muted py-4">Veriler yükleniyor...</td></tr></tbody></table></div>
