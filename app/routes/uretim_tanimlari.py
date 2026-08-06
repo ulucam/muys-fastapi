@@ -22,6 +22,7 @@ from app.services.uretim_tanimlari_service import (
     manuel_tanim_kaydet,
     personel_listesi_verisi,
     personel_istasyon_idleri,
+    personel_makine_idleri,
     personel_puantaji,
     sinif_recetesi_getir,
     sinif_recetesi_guncelle,
@@ -93,6 +94,7 @@ def duzenle_form(tip: str, kod: str, request: Request, db: Session = Depends(get
     data.update({"duzenle_tipi": tip, "kayit": kayit})
     if tip == "personel":
         data["secili_istasyon_idleri"] = personel_istasyon_idleri(db, kayit.id)
+        data["secili_makine_idleri"] = personel_makine_idleri(db, kayit.id)
     return templates.TemplateResponse("uretim/duzenle.html", data)
 
 
