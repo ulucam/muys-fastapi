@@ -30,7 +30,7 @@ def dashboard_verisi(db: Session, secili_tarih: date, rol: str | None, kullanici
     personel_idleri = [personel.id for personel in personeller]
     puantaj = {p.personel_id: p for p in db.query(Puantaj).filter(Puantaj.tarih == secili_tarih, Puantaj.personel_id.in_(personel_idleri)).all()}
     musteriler = {m.id: m for m in db.query(Musteri).all()}
-    siparisler = db.query(Siparis).filter(Siparis.aktif.is_(True)).order_by(Siparis.teslim_tarihi.asc(), Siparis.created_at.desc()).all()
+    siparisler = db.query(Siparis).filter(Siparis.aktif.is_(True)).order_by(Siparis.oncelik.asc(), Siparis.teslim_tarihi.asc(), Siparis.created_at.desc()).all()
     gruplar = {durum: [s for s in siparisler if s.durum == durum] for durum in SIPARIS_DURUMLARI}
     devamsiz_izinli_personeller = [
         {"personel": personel, "kayit": puantaj[personel.id]}
