@@ -26,6 +26,7 @@ from app.services.excel_aktarim_service import (
     onizleme_hazirla,
 )
 from app.services.islem_log_service import son_kullanici_hareketleri
+from app.services.sistem_service import sistem_bilgileri
 
 router = APIRouter()
 
@@ -162,29 +163,34 @@ async def firma_kaydet(
     request: Request,
     firma_adi: str = Form(""), vergi_no: str = Form(""),
     vergi_dairesi: str = Form(""), telefon: str = Form(""),
-    email: str = Form(""), web_sitesi: str = Form(""), adres: str = Form(""),
+    email: str = Form(""), web_sitesi: str = Form(""), adres: str = Form(""), logo: UploadFile | None = File(None),
     db: Session = Depends(get_db),
 ):
-    firma_bilgilerini_kaydet(
-        db,
-        request.session.get("kullanici_adi", "Sistem"),
-        request.client.host if request.client else "",
-        firma_adi=firma_adi,
-        vergi_no=vergi_no,
-        vergi_dairesi=vergi_dairesi,
-        telefon=telefon,
-        email=email,
-        web_sitesi=web_sitesi,
-        adres=adres,
-    )
+    try:
+        logo_dosyasi = ((logo.filename or "logo"), await logo.read()) if logo and logo.filename else None
+        firma_bilgilerini_kaydet(
+            db,
+            request.session.get("kullanici_adi", "Sistem"),
+            request.client.host if request.client else "",
+            logo_dosyasi=logo_dosyasi,
+            firma_adi=firma_adi,
+            vergi_no=vergi_no,
+            vergi_dairesi=vergi_dairesi,
+            telefon=telefon,
+            email=email,
+            web_sitesi=web_sitesi,
+            adres=adres,
+        )
+    except ValueError as hata:
+        data = template_data(request)
+        data.update({"firma": firma_getir(db), "hata": str(hata)})
+        return templates.TemplateResponse("ayarlar/firma.html", data, status_code=400)
 
     return RedirectResponse("/ayarlar/firma", status_code=303)
 
 
 @router.get("/ayarlar/sistem", response_class=HTMLResponse)
 async def sistem(request: Request):
-
-    return templates.TemplateResponse(
-        "ayarlar/sistem.html",
-        template_data(request)
-    )
+    data = template_data(request)
+    data["sistem_bilgileri"] = sistem_bilgileri()
+    return templates.TemplateResponse("ayarlar/sistem.html", data)
