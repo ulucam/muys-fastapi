@@ -1,10 +1,11 @@
 <nav id="sidebar" class="sidebar">
 
     <div class="sidebar-header">
+        {% if firma_logo_yolu %}
+        <img class="sidebar-logo" src="{{ firma_logo_yolu }}" alt="{{ firma_adi }} logosu">
+        {% endif %}
 
-        <h4>
-            MÜYS
-        </h4>
+        <h4>{{ firma_adi }}</h4>
 
         <small>
             {{ uygulama_surumu }}
