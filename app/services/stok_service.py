@@ -15,20 +15,57 @@ def hammaddeleri_listele(db: Session):
 
 
 def stok_tanimlari(db: Session):
-    return (db.query(StokUrunTuru).filter(StokUrunTuru.aktif.is_(True)).order_by(StokUrunTuru.adi).all(),
-            db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).order_by(StokUrunSinifi.adi).all())
+    return (
+        db.query(StokUrunTuru).order_by(StokUrunTuru.adi).all(),
+        db.query(StokUrunSinifi).order_by(StokUrunSinifi.adi).all(),
+    )
 
 
-def stok_urunu_kaydet(db: Session, kodu: str, adi: str, tur_id: int, sinif_id: int | None, birim: str):
+def stok_urunu_kaydet(
+    db: Session, kodu: str, adi: str, tur_id: int, sinif_id: int | None,
+    birim: str, marka: str = "", model: str = "", mevcut_stok: float = 0,
+    min_stok: float = 0, urun_id: int | None = None,
+):
     tur = db.query(StokUrunTuru).filter(StokUrunTuru.id == tur_id, StokUrunTuru.aktif.is_(True)).first()
     sinif = db.query(StokUrunSinifi).filter(StokUrunSinifi.id == sinif_id, StokUrunSinifi.aktif.is_(True)).first() if sinif_id else None
     if not kodu.strip() or not adi.strip() or not tur or (sinif_id and not sinif):
         raise ValueError("Ürün kodu, adı ve geçerli tür zorunludur")
-    urun = db.query(Urun).filter(Urun.kodu == kodu.strip()).first() or Urun(kodu=kodu.strip())
+    urun = db.query(Urun).filter(Urun.id == urun_id).first() if urun_id else None
+    kod_cakismasi = db.query(Urun).filter(Urun.kodu == kodu.strip(), Urun.id != (urun.id if urun else 0)).first()
+    if kod_cakismasi:
+        raise ValueError("Bu stok kodu başka bir üründe kullanılıyor")
+    urun = urun or Urun(kodu=kodu.strip())
+    urun.kodu = kodu.strip()
     urun.adi, urun.stok_urun_turu_id, urun.stok_urun_sinifi_id = adi.strip(), tur.id, sinif.id if sinif else None
-    urun.urun_tipi, urun.birim, urun.aktif = ("Mamul" if tur.uretilen else "Hammadde"), birim.strip() or "Adet", True
+    urun.urun_tipi, urun.birim, urun.aktif = ("YariMamul" if tur.uretilen else "Hammadde"), birim.strip() or "Adet", True
+    urun.marka, urun.model = marka.strip(), model.strip()
+    urun.mevcut_stok, urun.min_stok = mevcut_stok, min_stok
     db.add(urun); db.commit()
     return urun
+
+
+def stok_turu_kaydet(db: Session, adi: str, tur_id: int | None = None):
+    temiz_ad = adi.strip()
+    tur = db.query(StokUrunTuru).filter(StokUrunTuru.id == tur_id).first() if tur_id else None
+    cakisan = db.query(StokUrunTuru).filter(StokUrunTuru.adi == temiz_ad, StokUrunTuru.id != (tur.id if tur else 0)).first()
+    if not temiz_ad or cakisan:
+        raise ValueError("Tür adı zorunludur ve benzersiz olmalıdır")
+    tur = tur or StokUrunTuru(uretilen=False)
+    tur.adi, tur.aktif = temiz_ad, True
+    db.add(tur); db.commit()
+    return tur
+
+
+def stok_sinifi_kaydet(db: Session, adi: str, sinif_id: int | None = None):
+    temiz_ad = adi.strip()
+    sinif = db.query(StokUrunSinifi).filter(StokUrunSinifi.id == sinif_id).first() if sinif_id else None
+    cakisan = db.query(StokUrunSinifi).filter(StokUrunSinifi.adi == temiz_ad, StokUrunSinifi.id != (sinif.id if sinif else 0)).first()
+    if not temiz_ad or cakisan:
+        raise ValueError("Sınıf adı zorunludur ve benzersiz olmalıdır")
+    sinif = sinif or StokUrunSinifi()
+    sinif.adi, sinif.aktif = temiz_ad, True
+    db.add(sinif); db.commit()
+    return sinif
 
 
 def receteleri_listele(db: Session):
