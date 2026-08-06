@@ -9,6 +9,7 @@ from app.roles import ADMIN, YONETIM
 from app.security import yetki_kontrol
 from app.services.kullanici_service import (
     form_secenekleri,
+    personel_istasyon_secenekleri,
     kullanici_getir,
     kullanici_guncelle,
     kullanici_olustur,
@@ -23,7 +24,7 @@ templates = Jinja2Templates(directory="app/templates")
 def kullanici_form_verisi(request: Request, db: Session, **ek):
     istasyonlar, personeller = form_secenekleri(db)
     data = template_data(request)
-    data.update({"istasyonlar": istasyonlar, "personeller": personeller, **ek})
+    data.update({"istasyonlar": istasyonlar, "personeller": personeller, "personel_istasyonlari": personel_istasyon_secenekleri(db), **ek})
     return data
 
 
