@@ -19,7 +19,7 @@ URUN_TIP_KODLARI = {
     "Ticari Ürün": "TicariMamul",
 }
 URUN_TIP_ETIKETLERI = {kod: etiket for etiket, kod in URUN_TIP_KODLARI.items() if etiket not in ("YariMamul", "TicariMamul")}
-PERSONEL_SUTUNLARI = ["Ad Soyad", "Departman", "Görev", "Durum"]
+PERSONEL_SUTUNLARI = ["Ad Soyad", "İstasyon Kodları", "Görev", "Durum"]
 ISTASYON_SUTUNLARI = ["İstasyon Kodu", "İstasyon Adı", "Bölüm", "Açıklama", "Durum"]
 MAKINE_SUTUNLARI = ["Makine Kodu", "Makine Adı", "İstasyon Kodu", "Model", "Kapasite", "Durum"]
 
@@ -211,7 +211,7 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
     sistem.title = "Sistem Bilgileri"
     sistem.append(["MÜYS Excel Aktarım ve Dışa Aktarma"])
     sistem.append(["Açıklama", "Firma, müşteri, stok ve üretim ana verileri ayrı sayfalarda yer alır."])
-    sistem.append(["Kurallar", "Zorunlu alanları doldurun; müşteri ve ürün türlerini açılır listelerden seçin."])
+    sistem.append(["Kurallar", "Personel Listesi'nde istasyon kodunu açılır listeden seçin. Birden fazla istasyon için kodları virgülle ayırın: KESIM, BUKUM."])
     sistem.append(["Dışa Aktarım Tarihi", datetime.now().strftime("%d.%m.%Y %H:%M")])
     sistem.append(["Sistem", "MÜYS v0.1.1 / FastAPI / SQLite"])
     sistem.append(["Kayıt Özeti", f"{len(mevcut_musteriler)} müşteri, {len(mevcut_urunler)} stok ürünü, {len(mevcut_personeller)} personel, {len(mevcut_istasyonlar)} istasyon, {len(mevcut_makineler)} makine"])
@@ -244,8 +244,9 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
         musteriler.column_dimensions[sutun].width = genislik
 
     istasyon_kodlari = {istasyon.id: istasyon.kodu for istasyon in mevcut_istasyonlar}
+    personel_istasyon_kodlari = sablon_verisi.get("personel_istasyon_kodlari", {})
     for sayfa_adi, basliklar, satirlar, genislikler in [
-        ("Personel Listesi", PERSONEL_SUTUNLARI, [[p.ad_soyad, p.departman, p.gorev, "Aktif" if p.aktif else "Pasif"] for p in mevcut_personeller], [30, 22, 22, 14]),
+        ("Personel Listesi", PERSONEL_SUTUNLARI, [[p.ad_soyad, ", ".join(personel_istasyon_kodlari.get(p.id, [])), p.gorev, "Aktif" if p.aktif else "Pasif"] for p in mevcut_personeller], [30, 28, 22, 14]),
         ("İstasyon Listesi", ["İstasyon Kodu", "İstasyon Adı", "Bölüm", "Açıklama", "Durum"], [[i.kodu, i.adi, i.bolum, i.aciklama, "Aktif" if i.aktif else "Pasif"] for i in mevcut_istasyonlar], [18, 30, 22, 36, 14]),
         ("Makine Listesi", ["Makine Kodu", "Makine Adı", "İstasyon Kodu", "Model", "Kapasite", "Durum"], [[m.kodu, m.adi, istasyon_kodlari.get(m.istasyon_id, ""), m.model, m.kapasite, "Aktif" if m.aktif else "Pasif"] for m in mevcut_makineler], [18, 30, 18, 22, 18, 14]),
     ]:
@@ -283,11 +284,12 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
         stok.column_dimensions[sutun].width = genislik
 
     listeler = kitap.create_sheet("Listeler")
-    listeler.append(["İller", "İlçeler", "Müşteri Türleri", "Ürün Türleri", "Ürün Sınıfları", "Durumlar"])
+    listeler.append(["İller", "İlçeler", "Müşteri Türleri", "Ürün Türleri", "Ürün Sınıfları", "Durumlar", "İstasyon Kodları"])
     tum_ilceler = sorted({ilce for ilceler in iller.values() for ilce in ilceler})
     durumlar = ["Aktif", "Pasif"]
     sinif_listesi = [sinif.kodu for sinif in mevcut_siniflar]
-    for sira in range(max(len(iller), len(tum_ilceler), len(TURLER), len(URUN_TURLERI), len(sinif_listesi), len(durumlar))):
+    istasyon_listesi = [istasyon.kodu for istasyon in mevcut_istasyonlar]
+    for sira in range(max(len(iller), len(tum_ilceler), len(TURLER), len(URUN_TURLERI), len(sinif_listesi), len(durumlar), len(istasyon_listesi))):
         listeler.append([
             sorted(iller)[sira] if sira < len(iller) else None,
             tum_ilceler[sira] if sira < len(tum_ilceler) else None,
@@ -295,6 +297,7 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
             URUN_TURLERI[sira] if sira < len(URUN_TURLERI) else None,
             sinif_listesi[sira] if sira < len(sinif_listesi) else None,
             durumlar[sira] if sira < len(durumlar) else None,
+            istasyon_listesi[sira] if sira < len(istasyon_listesi) else None,
         ])
     listeler.sheet_state = "hidden"
     for formül, alan in [("'Listeler'!$A$2:$A$82", f"G2:G{son_satir}"), (f"'Listeler'!$B$2:$B${len(tum_ilceler) + 1}", f"H2:H{son_satir}"), ("'Listeler'!$C$2:$C$4", f"I2:I{son_satir}")]:
@@ -318,6 +321,9 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
         dogrulama = DataValidation(type="list", formula1="'Listeler'!$F$2:$F$3", allow_blank=False)
         kitap[sayfa_adi].add_data_validation(dogrulama)
         dogrulama.add(alan)
+    istasyon_dogrulamasi = DataValidation(type="list", formula1=f"'Listeler'!$G$2:$G${max(2, len(istasyon_listesi) + 1)}", allow_blank=True)
+    kitap["Personel Listesi"].add_data_validation(istasyon_dogrulamasi)
+    istasyon_dogrulamasi.add("B2:B1000")
 
     # Gizli yardımcı liste sayfasından sonra da olsa ürün sayfasını çalışma
     # kitabındaki mutlak son sekme yap.
