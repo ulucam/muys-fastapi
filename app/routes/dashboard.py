@@ -19,6 +19,7 @@ from app.models.uretim_kaydi import UretimKaydi
 from app.models.urun import Urun
 from app.models.istasyon import Istasyon
 from app.models.personel import Personel
+from app.models.siparis import Siparis
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -117,8 +118,8 @@ async def uretim_bitir(kayit_id: int, request: Request, db: Session = Depends(ge
 
 @router.post("/uretim/{emir_id}/istasyon")
 async def uretim_istasyon_ata(emir_id: int, request: Request, db: Session = Depends(get_db)):
-    if request.session.get("rol") in ("Operatör", "OperatÃ¶r"):
-        raise HTTPException(status_code=403, detail="Yetkiniz yok.")
+    if request.session.get("rol") not in ("Admin", "Üretim", "Ãœretim"):
+        raise HTTPException(status_code=403, detail="İstasyon atamasını yalnızca üretim yönetimi yapabilir.")
     form = await request.form()
     emir = db.query(UretimEmri).filter(UretimEmri.id == emir_id).first()
     istasyon = db.query(Istasyon).filter(Istasyon.id == int(form.get("istasyon_id") or 0), Istasyon.aktif.is_(True)).first()
@@ -127,6 +128,41 @@ async def uretim_istasyon_ata(emir_id: int, request: Request, db: Session = Depe
     emir.istasyon_id = istasyon.id
     db.commit()
     return RedirectResponse("/?istasyon=atandi#uretim-paneli", status_code=303)
+
+
+@router.post("/siparis/{siparis_id}/onay")
+async def siparis_onayla(siparis_id: int, request: Request, db: Session = Depends(get_db)):
+    if request.session.get("rol") not in ("Admin", "Patron"):
+        raise HTTPException(status_code=403, detail="Sipariş onaylama yetkiniz yok.")
+    form = await request.form()
+    siparis = db.query(Siparis).filter(Siparis.id == siparis_id, Siparis.aktif.is_(True)).first()
+    if not siparis:
+        raise HTTPException(status_code=404, detail="Sipariş bulunamadı.")
+    karar = form.get("karar")
+    if karar not in ("Onaylandı", "Reddedildi"):
+        raise HTTPException(status_code=422, detail="Geçersiz onay kararı.")
+    siparis.onay_durumu = karar
+    siparis.onay_tarihi = datetime.now()
+    siparis.onaylayan_kullanici_id = request.session.get("user_id")
+    db.commit()
+    return RedirectResponse("/?siparis_onay=1#siparis-onay", status_code=303)
+
+
+@router.post("/siparis/{siparis_id}/oncelik")
+async def siparis_oncelik(siparis_id: int, request: Request, db: Session = Depends(get_db)):
+    if request.session.get("rol") not in ("Admin", "Patron"):
+        raise HTTPException(status_code=403, detail="Sipariş sıralama yetkiniz yok.")
+    form = await request.form()
+    siparis = db.query(Siparis).filter(Siparis.id == siparis_id, Siparis.aktif.is_(True)).first()
+    try:
+        oncelik = int(form.get("oncelik") or 100)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="Sıra sayı olmalıdır.")
+    if not siparis or not 1 <= oncelik <= 999:
+        raise HTTPException(status_code=422, detail="Sıra 1-999 arasında olmalıdır.")
+    siparis.oncelik = oncelik
+    db.commit()
+    return RedirectResponse("/?siparis_sira=1#siparis-onay", status_code=303)
 
 
 @router.get("/api/dashboard/uretim-durum", response_class=JSONResponse)
@@ -153,8 +189,8 @@ def uretim_durum(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/puantaj/kaydet")
 async def puantaj_kaydet(request: Request, db: Session = Depends(get_db)):
-    if request.session.get("rol") == "Operatör":
-        raise HTTPException(status_code=403, detail="Operatör puantaj kayıtlarını yalnızca görüntüleyebilir.")
+    if request.session.get("rol") in ("Operatör", "Patron"):
+        raise HTTPException(status_code=403, detail="Bu rol puantaj kayıtlarını yalnızca görüntüleyebilir.")
     form = await request.form()
     secili_tarih = tarihi_oku(form.get("tarih"))
     personel_sayisi = puantaj_kaydet_service(db, secili_tarih, form, request.session.get("rol"), request.session.get("user_id"))
