@@ -28,6 +28,12 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
             "uretim_emirleri": [
                 ("istasyon_id", "ALTER TABLE uretim_emirleri ADD COLUMN istasyon_id INTEGER REFERENCES istasyonlar(id)"),
             ],
+            "siparisler": [
+                ("onay_durumu", "ALTER TABLE siparisler ADD COLUMN onay_durumu VARCHAR(20) NOT NULL DEFAULT 'Onay Bekliyor'"),
+                ("oncelik", "ALTER TABLE siparisler ADD COLUMN oncelik INTEGER NOT NULL DEFAULT 100"),
+                ("onay_tarihi", "ALTER TABLE siparisler ADD COLUMN onay_tarihi TIMESTAMP"),
+                ("onaylayan_kullanici_id", "ALTER TABLE siparisler ADD COLUMN onaylayan_kullanici_id INTEGER REFERENCES kullanicilar(id)"),
+            ],
             "firma_ayarlari": [
                 ("logo_yolu", "ALTER TABLE firma_ayarlari ADD COLUMN logo_yolu VARCHAR(300) DEFAULT ''"),
             ],
