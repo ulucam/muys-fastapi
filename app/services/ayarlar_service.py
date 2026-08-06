@@ -18,8 +18,8 @@ def son_excel_aktarimi(db: Session):
     return db.query(IslemLogu).filter(IslemLogu.modul == "Excel").order_by(IslemLogu.created_at.desc()).first()
 
 
-def loglari_listele(db: Session, limit: int = 500):
-    return db.query(IslemLogu).order_by(IslemLogu.created_at.desc()).limit(limit).all()
+def loglari_listele(db: Session):
+    return db.query(IslemLogu).order_by(IslemLogu.created_at.desc()).all()
 
 
 def firma_getir(db: Session):
