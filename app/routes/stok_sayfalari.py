@@ -13,8 +13,10 @@ from app.services.stok_service import (
     stok_sinifi_kaydet,
     stok_kurulum_durumu,
     stok_tanimlari,
+    stok_tum_tanimlari,
     stok_turu_kaydet,
     stok_urunu_kaydet,
+    stok_urunlerini_listele,
 )
 
 router = APIRouter(tags=["Stok"])
@@ -24,11 +26,9 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/urunler", response_class=HTMLResponse)
 def urunler(request: Request, error: str | None = None, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
     data = template_data(request)
-    data["urunler"] = hammaddeleri_listele(db)
-    data["turler"], data["siniflar"] = stok_tanimlari(db)
-    data["kurulum"] = stok_kurulum_durumu(db)
-    data["hata"] = "Kayıt yapılamadı. Zorunlu alanları ve benzersiz ad/kod bilgisini kontrol edin." if error else None
-    return templates.TemplateResponse("stok/urunler.html", data)
+    data["urunler"] = stok_urunlerini_listele(db)
+    data["turler"], data["siniflar"] = stok_tum_tanimlari(db)
+    return templates.TemplateResponse("stok/urun_listesi.html", data)
 
 
 @router.post("/urunler")
@@ -42,8 +42,8 @@ def urun_kaydet(
     try:
         stok_urunu_kaydet(db, kodu, adi, stok_urun_turu_id, stok_urun_sinifi_id, birim, marka, model, mevcut_stok, min_stok, urun_id)
     except ValueError:
-        return RedirectResponse("/urunler?error=1", status_code=303)
-    return RedirectResponse("/urunler", status_code=303)
+        return RedirectResponse("/receteler?error=urun", status_code=303)
+    return RedirectResponse("/receteler", status_code=303)
 
 
 @router.post("/urunler/tur/kaydet")
@@ -51,8 +51,8 @@ def tur_kaydet(adi: str = Form(""), tur_id: int | None = Form(None), db: Session
     try:
         stok_turu_kaydet(db, adi, tur_id)
     except ValueError:
-        return RedirectResponse("/urunler?error=tur", status_code=303)
-    return RedirectResponse("/urunler", status_code=303)
+        return RedirectResponse("/receteler?error=tur", status_code=303)
+    return RedirectResponse("/receteler", status_code=303)
 
 
 @router.post("/urunler/sinif/kaydet")
@@ -60,12 +60,16 @@ def sinif_kaydet(adi: str = Form(""), sinif_id: int | None = Form(None), db: Ses
     try:
         stok_sinifi_kaydet(db, adi, sinif_id)
     except ValueError:
-        return RedirectResponse("/urunler?error=sinif", status_code=303)
-    return RedirectResponse("/urunler", status_code=303)
+        return RedirectResponse("/receteler?error=sinif", status_code=303)
+    return RedirectResponse("/receteler", status_code=303)
 
 
 @router.get("/receteler", response_class=HTMLResponse)
-def receteler(request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+def receteler(request: Request, error: str | None = None, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
     data = template_data(request)
     data["receteler"] = receteleri_listele(db)
-    return templates.TemplateResponse("stok/receteler.html", data)
+    data["urunler"] = hammaddeleri_listele(db)
+    data["turler"], data["siniflar"] = stok_tanimlari(db)
+    data["kurulum"] = stok_kurulum_durumu(db)
+    data["hata"] = "Kayıt yapılamadı. Zorunlu alanları ve benzersiz ad/kod bilgisini kontrol edin." if error else None
+    return templates.TemplateResponse("stok/urunler.html", data)
