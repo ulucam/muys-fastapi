@@ -24,12 +24,14 @@ from app.services.uretim_tanimlari_service import (
     personel_istasyon_idleri,
     personel_makine_idleri,
     personel_puantaji,
+    puantaj_kayitlarini_guncelle,
     sinif_recetesi_getir,
     sinif_recetesi_guncelle,
     puantaj_listesi_verisi,
     tanim_listesi,
     tanim_sil as tanim_sil_service,
 )
+from app.services.islem_log_service import islem_logla
 
 router = APIRouter(tags=["Üretim Tanımları"])
 templates = Jinja2Templates(directory="app/templates")
@@ -64,6 +66,28 @@ def personel_listesi(
     data.update(puantaj_listesi_verisi(db, secili_tarih, devamsiz))
     data["aktif_sekme"] = "puantaj" if sekme == "puantaj" else "personel"
     return templates.TemplateResponse("uretim/personeller.html", data)
+
+
+@router.post("/personeller/puantaj/kaydet")
+async def personel_puantaj_kaydet(
+    request: Request,
+    db: Session = Depends(get_db),
+    yetki=Depends(yetki_kontrol(YONETIM)),
+):
+    form = await request.form()
+    try:
+        secili_tarih = datetime.strptime(str(form.get("tarih") or ""), "%Y-%m-%d").date()
+    except ValueError:
+        secili_tarih = date.today()
+    kayit_sayisi = puantaj_kayitlarini_guncelle(db, secili_tarih, form)
+    islem_logla(
+        db, request, "Puantaj", "Personeller ekranında puantaj güncellendi",
+        f"Tarih: {secili_tarih.isoformat()}, personel: {kayit_sayisi}", commit=True,
+    )
+    return RedirectResponse(
+        f"/personeller?sekme=puantaj&tarih={secili_tarih.isoformat()}&kaydedildi=1",
+        status_code=303,
+    )
 
 
 @router.get("/uretim-tanimlari", response_class=HTMLResponse)
