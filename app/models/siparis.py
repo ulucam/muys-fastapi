@@ -76,3 +76,9 @@ class Siparis(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow
     )
+
+    # Patron onayı ve üretime aktarılacak iş sırası.
+    onay_durumu = Column(String(20), nullable=False, default="Onay Bekliyor")
+    oncelik = Column(Integer, nullable=False, default=100)
+    onay_tarihi = Column(DateTime, nullable=True)
+    onaylayan_kullanici_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
