@@ -60,9 +60,12 @@ def personel_listesi(
     except ValueError:
         secili_tarih = date.today()
     data = template_data(request)
-    data.update(personel_listesi_verisi(db, q, departman, gorev, istasyon_id))
-    data.update(puantaj_listesi_verisi(db, secili_tarih, devamsiz))
     data["aktif_sekme"] = "puantaj" if sekme == "puantaj" else "personel"
+    data["puantaj_tarihi"] = secili_tarih
+    if data["aktif_sekme"] == "puantaj":
+        data.update(puantaj_listesi_verisi(db, secili_tarih, devamsiz))
+    else:
+        data.update(personel_listesi_verisi(db, q, departman, gorev, istasyon_id))
     return templates.TemplateResponse("uretim/personeller.html", data)
 
 
