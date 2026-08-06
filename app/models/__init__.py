@@ -19,3 +19,5 @@ from app.models.urun_sinif_operasyon_makine import UrunSinifOperasyonMakine
 from app.models.firma_ayarlari import FirmaAyarlari
 from app.models.islem_logu import IslemLogu
 from app.models.excel_aktarim_taslagi import ExcelAktarimTaslagi
+from app.models.stok_urun_turu import StokUrunTuru
+from app.models.stok_urun_sinifi import StokUrunSinifi
