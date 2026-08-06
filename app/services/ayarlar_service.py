@@ -8,6 +8,7 @@ from app.models.istasyon import Istasyon
 from app.models.makine import Makine
 from app.models.musteri import Musteri
 from app.models.personel import Personel
+from app.models.personel_istasyon import PersonelIstasyon
 from app.models.urun import Urun
 from app.models.urun_sinifi import UrunSinifi
 from app.services.islem_log_service import islem_logla_veri
@@ -83,6 +84,12 @@ def firma_bilgilerini_kaydet(db: Session, kullanici_adi: str, ip_adresi: str, lo
 
 
 def excel_sablon_verileri(db: Session):
+    istasyon_kodlari = {istasyon.id: istasyon.kodu for istasyon in db.query(Istasyon).all()}
+    personel_istasyon_kodlari = {}
+    for atama in db.query(PersonelIstasyon).filter(PersonelIstasyon.aktif.is_(True)).all():
+        kod = istasyon_kodlari.get(atama.istasyon_id)
+        if kod:
+            personel_istasyon_kodlari.setdefault(atama.personel_id, []).append(kod)
     return {
         "firma": firma_getir(db),
         "musteriler": db.query(Musteri).order_by(Musteri.id).all(),
@@ -91,6 +98,7 @@ def excel_sablon_verileri(db: Session):
         "istasyonlar": db.query(Istasyon).order_by(Istasyon.kodu).all(),
         "makineler": db.query(Makine).order_by(Makine.kodu).all(),
         "siniflar": db.query(UrunSinifi).order_by(UrunSinifi.kodu).all(),
+        "personel_istasyon_kodlari": personel_istasyon_kodlari,
     }
 
 
