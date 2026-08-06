@@ -79,3 +79,12 @@ class UretimEmri(Base):
         DateTime,
         default=datetime.utcnow
     )
+
+    # Emrin yürütüleceği istasyon. Operatörler sadece kendi
+    # atandıkları istasyondaki emirleri görür.
+    istasyon_id = Column(
+        Integer,
+        ForeignKey("istasyonlar.id"),
+        nullable=True,
+        index=True,
+    )
