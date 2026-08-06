@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -12,6 +12,13 @@ from app.services.dashboard_service import (
     puantaj_kaydet as puantaj_kaydet_service,
 )
 from app.services.islem_log_service import islem_logla
+from app.models.user import User
+from app.models.personel_istasyon import PersonelIstasyon
+from app.models.uretim_emri import UretimEmri
+from app.models.uretim_kaydi import UretimKaydi
+from app.models.urun import Urun
+from app.models.istasyon import Istasyon
+from app.models.personel import Personel
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -22,6 +29,27 @@ def tarihi_oku(deger: str | None) -> date:
         return datetime.strptime(deger or "", "%Y-%m-%d").date()
     except ValueError:
         return date.today()
+
+
+def _operator_bilgisi(request: Request, db: Session) -> User:
+    kullanici = db.query(User).filter(User.id == request.session.get("user_id")).first()
+    if not kullanici or kullanici.rol not in ("Operatör", "OperatÃ¶r") or not kullanici.personel_id:
+        raise HTTPException(status_code=403, detail="Bu işlem yalnızca personele bağlı operatör hesabıyla yapılabilir.")
+    return kullanici
+
+
+def _emir_operator_icin_uygun(db: Session, personel_id: int, emir_id: int) -> UretimEmri:
+    emir = db.query(UretimEmri).filter(UretimEmri.id == emir_id, UretimEmri.aktif.is_(True)).first()
+    if not emir or not emir.istasyon_id:
+        raise HTTPException(status_code=404, detail="Atanmış üretim emri bulunamadı.")
+    atama = db.query(PersonelIstasyon).filter(
+        PersonelIstasyon.personel_id == personel_id,
+        PersonelIstasyon.istasyon_id == emir.istasyon_id,
+        PersonelIstasyon.aktif.is_(True),
+    ).first()
+    if not atama:
+        raise HTTPException(status_code=403, detail="Bu emir sizin istasyonunuza ait değil.")
+    return emir
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -35,6 +63,92 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
         **servis_verisi,
     })
     return templates.TemplateResponse("dashboard/index.html", data)
+
+
+@router.post("/uretim/{emir_id}/baslat")
+def uretim_baslat(emir_id: int, request: Request, db: Session = Depends(get_db)):
+    kullanici = _operator_bilgisi(request, db)
+    emir = _emir_operator_icin_uygun(db, kullanici.personel_id, emir_id)
+    devam_eden = db.query(UretimKaydi).filter(
+        UretimKaydi.personel_id == kullanici.personel_id,
+        UretimKaydi.durum == "Devam Ediyor",
+    ).first()
+    if devam_eden:
+        raise HTTPException(status_code=409, detail="Bitirilmemiş bir işiniz zaten var.")
+    db.add(UretimKaydi(
+        uretim_emri_id=emir.id, personel_id=kullanici.personel_id,
+        istasyon_id=emir.istasyon_id, baslangic=datetime.now(), durum="Devam Ediyor",
+    ))
+    emir.durum = "Üretimde"
+    if not emir.baslama_tarihi:
+        emir.baslama_tarihi = datetime.now()
+    db.commit()
+    return RedirectResponse("/?uretim=basladi#uretim-paneli", status_code=303)
+
+
+@router.post("/uretim/{kayit_id}/bitir")
+async def uretim_bitir(kayit_id: int, request: Request, db: Session = Depends(get_db)):
+    kullanici = _operator_bilgisi(request, db)
+    kayit = db.query(UretimKaydi).filter(
+        UretimKaydi.id == kayit_id, UretimKaydi.personel_id == kullanici.personel_id,
+        UretimKaydi.durum == "Devam Ediyor",
+    ).first()
+    if not kayit:
+        raise HTTPException(status_code=404, detail="Devam eden üretim kaydı bulunamadı.")
+    form = await request.form()
+    try:
+        miktar = float(form.get("uretilen_miktar") or 0)
+        fire = float(form.get("fire_miktari") or 0)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="Miktar alanları sayı olmalıdır.")
+    if miktar < 0 or fire < 0 or miktar + fire <= 0:
+        raise HTTPException(status_code=422, detail="Üretim veya fire miktarı girilmelidir.")
+    kayit.uretilen_miktar, kayit.fire_miktari = miktar, fire
+    kayit.aciklama = (form.get("aciklama") or "").strip()[:500]
+    kayit.bitis, kayit.durum = datetime.now(), "Tamamlandı"
+    emir = db.query(UretimEmri).filter(UretimEmri.id == kayit.uretim_emri_id).first()
+    if emir:
+        toplam = sum(k.uretilen_miktar or 0 for k in db.query(UretimKaydi).filter(UretimKaydi.uretim_emri_id == emir.id).all())
+        if toplam >= emir.miktar:
+            emir.durum, emir.bitis_tarihi = "Tamamlandı", datetime.now()
+    db.commit()
+    return RedirectResponse("/?uretim=tamamlandi#uretim-paneli", status_code=303)
+
+
+@router.post("/uretim/{emir_id}/istasyon")
+async def uretim_istasyon_ata(emir_id: int, request: Request, db: Session = Depends(get_db)):
+    if request.session.get("rol") in ("Operatör", "OperatÃ¶r"):
+        raise HTTPException(status_code=403, detail="Yetkiniz yok.")
+    form = await request.form()
+    emir = db.query(UretimEmri).filter(UretimEmri.id == emir_id).first()
+    istasyon = db.query(Istasyon).filter(Istasyon.id == int(form.get("istasyon_id") or 0), Istasyon.aktif.is_(True)).first()
+    if not emir or not istasyon:
+        raise HTTPException(status_code=404, detail="Emir veya istasyon bulunamadı.")
+    emir.istasyon_id = istasyon.id
+    db.commit()
+    return RedirectResponse("/?istasyon=atandi#uretim-paneli", status_code=303)
+
+
+@router.get("/api/dashboard/uretim-durum", response_class=JSONResponse)
+def uretim_durum(request: Request, db: Session = Depends(get_db)):
+    if not request.session.get("user_id"):
+        raise HTTPException(status_code=401, detail="Oturum gerekli.")
+    kayitlar = db.query(UretimKaydi).order_by(UretimKaydi.baslangic.desc()).limit(100).all()
+    emirler = {e.id: e for e in db.query(UretimEmri).filter(UretimEmri.id.in_([k.uretim_emri_id for k in kayitlar])).all()}
+    urunler = {u.id: u for u in db.query(Urun).filter(Urun.id.in_([e.urun_id for e in emirler.values()])).all()}
+    istasyonlar = {i.id: i for i in db.query(Istasyon).all()}
+    personeller = {p.id: p for p in db.query(Personel).all()}
+    simdi = datetime.now()
+    return [{
+        "id": k.id, "emir_no": emirler[k.uretim_emri_id].emir_no if k.uretim_emri_id in emirler else "-",
+        "urun": urunler[emirler[k.uretim_emri_id].urun_id].adi if k.uretim_emri_id in emirler and emirler[k.uretim_emri_id].urun_id in urunler else "-",
+        "operator": personeller[k.personel_id].ad_soyad if k.personel_id in personeller else "-",
+        "istasyon": istasyonlar[k.istasyon_id].adi if k.istasyon_id in istasyonlar else "-",
+        "durum": k.durum, "baslangic": k.baslangic.strftime("%d.%m.%Y %H:%M"),
+        "bitis": k.bitis.strftime("%d.%m.%Y %H:%M") if k.bitis else "-",
+        "sure_dakika": int(((k.bitis or simdi) - k.baslangic).total_seconds() / 60),
+        "uretilen_miktar": k.uretilen_miktar or 0, "fire_miktari": k.fire_miktari or 0,
+    } for k in kayitlar]
 
 
 @router.post("/puantaj/kaydet")
