@@ -10,7 +10,7 @@ from app.models.personel_istasyon import PersonelIstasyon
 from app.models.user import User
 from app.password import sifre_olustur
 
-ROLLER = {"Admin", "Yönetici", "Satış", "Depo", "Operatör"}
+ROLLER = {"Admin", "Patron", "Yönetici", "Satış", "Üretim", "Depo", "Operatör"}
 
 
 @dataclass(frozen=True)
