@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from fastapi import Request
 from sqlalchemy.orm import Session
@@ -39,15 +39,14 @@ def islem_logla_veri(
         db.commit()
 
 
-def son_kullanici_hareketleri(db: Session, saniye: int = 60, limit: int = 8) -> list[dict]:
-    """Son süre içindeki yetkili kullanıcı hareketlerini başlık bildirimi için döndürür."""
-    baslangic = datetime.utcnow() - timedelta(seconds=saniye)
+def son_kullanici_hareketleri(db: Session, limit: int = 5) -> list[dict]:
+    """Başlıktaki açılır liste için son kullanıcı hareketlerini döndürür."""
+    simdi = datetime.utcnow()
     kayitlar = (
         db.query(IslemLogu, User.rol)
         .join(User, User.kullanici_adi == IslemLogu.kullanici_adi)
         .filter(
             User.rol.in_(["Admin", "Yönetici", "Operatör"]),
-            IslemLogu.created_at >= baslangic,
         )
         .order_by(IslemLogu.created_at.desc())
         .limit(limit)
@@ -61,6 +60,7 @@ def son_kullanici_hareketleri(db: Session, saniye: int = 60, limit: int = 8) -> 
             "modul": log.modul,
             "islem": log.islem,
             "zaman": log.created_at.strftime("%H:%M:%S"),
+            "yas_saniye": max(0, int((simdi - log.created_at).total_seconds())),
         }
         for log, rol in kayitlar
     ]
