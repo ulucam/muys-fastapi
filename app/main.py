@@ -17,7 +17,7 @@ from app.routes import (
     stok_sayfalari,
     uretim_tanimlari,
 )
-from app.services.ayarlar_service import firma_adi_getir
+from app.services.ayarlar_service import firma_ozeti_getir
 from app.startup import uygulamayi_hazirla
 
 
@@ -40,7 +40,7 @@ app.add_middleware(SessionMiddleware, secret_key=Config.SECRET_KEY)
 async def firma_bilgisi_ekle(request, call_next):
     db = SessionLocal()
     try:
-        request.state.firma_adi = firma_adi_getir(db)
+        request.state.firma_adi, request.state.firma_logo_yolu = firma_ozeti_getir(db)
     finally:
         db.close()
     return await call_next(request)
