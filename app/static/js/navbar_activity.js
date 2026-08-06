@@ -40,16 +40,16 @@ document.addEventListener("DOMContentLoaded", function () {
         if (liveActivityTimer) window.clearTimeout(liveActivityTimer);
         const sonHareket = hareketler.length ? hareketler[0] : null;
         if (!sonHareket || Number(sonHareket.yas_saniye) >= 60) {
-            liveActivity.classList.add("d-none");
-            liveActivityText.textContent = "";
+            liveActivityText.textContent = "Yeni işlem bekleniyor";
+            liveActivity.title = liveActivityText.textContent;
             return;
         }
         liveActivityText.textContent = sonHareket.kullanici_adi + " · " + sonHareket.islem + " · " + sonHareket.zaman;
         liveActivity.title = liveActivityText.textContent;
         liveActivity.classList.remove("d-none");
         liveActivityTimer = window.setTimeout(function () {
-            liveActivity.classList.add("d-none");
-            liveActivityText.textContent = "";
+            liveActivityText.textContent = "Yeni işlem bekleniyor";
+            liveActivity.title = liveActivityText.textContent;
         }, Math.max(0, 60 - Number(sonHareket.yas_saniye)) * 1000);
     }
 
