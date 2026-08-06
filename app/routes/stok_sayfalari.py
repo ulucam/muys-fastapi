@@ -11,6 +11,7 @@ from app.services.stok_service import (
     hammaddeleri_listele,
     receteleri_listele,
     stok_sinifi_kaydet,
+    stok_kurulum_durumu,
     stok_tanimlari,
     stok_turu_kaydet,
     stok_urunu_kaydet,
@@ -25,6 +26,7 @@ def urunler(request: Request, error: str | None = None, db: Session = Depends(ge
     data = template_data(request)
     data["urunler"] = hammaddeleri_listele(db)
     data["turler"], data["siniflar"] = stok_tanimlari(db)
+    data["kurulum"] = stok_kurulum_durumu(db)
     data["hata"] = "Kayıt yapılamadı. Zorunlu alanları ve benzersiz ad/kod bilgisini kontrol edin." if error else None
     return templates.TemplateResponse("stok/urunler.html", data)
 
