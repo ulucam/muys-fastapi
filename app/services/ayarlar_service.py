@@ -18,8 +18,23 @@ def son_excel_aktarimi(db: Session):
     return db.query(IslemLogu).filter(IslemLogu.modul == "Excel").order_by(IslemLogu.created_at.desc()).first()
 
 
-def loglari_listele(db: Session):
-    return db.query(IslemLogu).order_by(IslemLogu.created_at.desc()).all()
+def loglari_listele(db: Session, sayfa: int = 1, sayfa_basina: int = 50) -> dict:
+    toplam_kayit = db.query(IslemLogu).count()
+    sayfa_sayisi = max(1, (toplam_kayit + sayfa_basina - 1) // sayfa_basina)
+    sayfa = min(max(1, sayfa), sayfa_sayisi)
+    loglar = (
+        db.query(IslemLogu)
+        .order_by(IslemLogu.created_at.desc())
+        .offset((sayfa - 1) * sayfa_basina)
+        .limit(sayfa_basina)
+        .all()
+    )
+    return {
+        "loglar": loglar,
+        "log_sayfasi": sayfa,
+        "log_sayfa_sayisi": sayfa_sayisi,
+        "log_toplam_kayit": toplam_kayit,
+    }
 
 
 def firma_getir(db: Session):
