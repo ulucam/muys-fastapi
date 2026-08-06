@@ -134,18 +134,12 @@ class="form-select">
 </div>
 
 <div class="mb-3" id="istasyonAlani" style="display:none">
-<label>Operatör İstasyonu</label>
-<select name="istasyon_id" id="istasyonSecimi" class="form-select">
-<option value="">İstasyon seçin</option>
-{% for istasyon in istasyonlar %}<option value="{{ istasyon.id }}">{{ istasyon.kodu }} · {{ istasyon.adi }}</option>{% endfor %}
-</select>
-<div class="form-text">İş emirleri operatöre bu istasyon üzerinden yönlendirilecektir.</div>
-<label class="mt-3">Kullanan Personel</label>
+<label>Operatör Personeli</label>
 <select name="personel_id" id="personelSecimi" class="form-select">
 <option value="">Personel seçin</option>
-{% for personel in personeller %}<option value="{{ personel.id }}">{{ personel.kodu }} · {{ personel.ad_soyad }}</option>{% endfor %}
+{% for personel in personeller %}<option value="{{ personel.id }}" data-istasyonlar="{{ personel_istasyonlari.get(personel.id, [])|join(', ') }}">{{ personel.kodu }} · {{ personel.ad_soyad }}</option>{% endfor %}
 </select>
-<div class="form-text">Operatör dashboard’da yalnızca bu personelin puantajını görecektir.</div>
+<div id="personelIstasyonOzeti" class="form-text">Personelin yetkili istasyonları seçildiğinde burada görünür.</div>
 </div>
 
 <hr>
@@ -181,16 +175,22 @@ class="btn btn-success">
 document.addEventListener("DOMContentLoaded", function () {
     const rol = document.getElementById("rolSecimi");
     const alan = document.getElementById("istasyonAlani");
-    const istasyon = document.getElementById("istasyonSecimi");
     const personel = document.getElementById("personelSecimi");
+    const ozet = document.getElementById("personelIstasyonOzeti");
+    function istasyonOzetiniGuncelle() {
+        const secili = personel.options[personel.selectedIndex];
+        const istasyonlar = secili ? secili.dataset.istasyonlar : "";
+        ozet.textContent = istasyonlar ? "Yetkili istasyonlar: " + istasyonlar : "Bu personele henüz yetkili istasyon atanmadı.";
+    }
     function istasyonAlaniniGuncelle() {
         const operatorMu = rol.value === "Operatör";
         alan.style.display = operatorMu ? "block" : "none";
-        istasyon.required = operatorMu;
         personel.required = operatorMu;
-        if (!operatorMu) { istasyon.value = ""; personel.value = ""; }
+        if (!operatorMu) { personel.value = ""; }
+        istasyonOzetiniGuncelle();
     }
     rol.addEventListener("change", istasyonAlaniniGuncelle);
+    personel.addEventListener("change", istasyonOzetiniGuncelle);
     istasyonAlaniniGuncelle();
 });
 </script>
