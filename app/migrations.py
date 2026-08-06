@@ -21,6 +21,9 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
                 ("istasyon_id", "ALTER TABLE kullanicilar ADD COLUMN istasyon_id INTEGER REFERENCES istasyonlar(id)"),
                 ("personel_id", "ALTER TABLE kullanicilar ADD COLUMN personel_id INTEGER REFERENCES personeller(id)"),
             ],
+            "firma_ayarlari": [
+                ("logo_yolu", "ALTER TABLE firma_ayarlari ADD COLUMN logo_yolu VARCHAR(300) DEFAULT ''"),
+            ],
         }
         for tablo, sutun_migrationlari in migrationlar.items():
             mevcut_sutunlar = {sutun["name"] for sutun in denetleyici.get_columns(tablo)}
