@@ -150,6 +150,7 @@ table tr.collapse.show{
 }
 
 #uretim-paneli{scroll-margin-top:90px}
+#siparis-onay{scroll-margin-top:90px}.priority-input{width:72px}
 .production-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
 .production-job-card{border-left:4px solid #0d6efd!important}
 .production-job-card.is-active{border-left-color:#198754!important}
