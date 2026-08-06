@@ -39,6 +39,16 @@
 
 }
 
+.sidebar-logo{
+    display:block;
+    width:auto;
+    max-width:170px;
+    height:58px;
+    margin:0 auto 12px;
+    object-fit:contain;
+    border-radius:8px;
+}
+
 
 
 .sidebar-header small{
