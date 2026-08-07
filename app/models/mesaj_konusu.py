@@ -35,3 +35,15 @@ class MesajAlici(Base):
     kullanici_id = Column(Integer, ForeignKey("kullanicilar.id", ondelete="CASCADE"), nullable=False, index=True)
     okundu = Column(Boolean, default=False, nullable=False, index=True)
     okunma_tarihi = Column(DateTime, nullable=True)
+
+
+class MesajSilme(Base):
+    """Konuşmayı kullanıcı ekranından gizler; asıl mesajlar denetim için korunur."""
+
+    __tablename__ = "mesaj_silmeleri"
+    __table_args__ = (UniqueConstraint("konusma_id", "kullanici_id", name="uq_mesaj_silme"),)
+
+    id = Column(Integer, primary_key=True)
+    konusma_id = Column(Integer, nullable=False, index=True)
+    kullanici_id = Column(Integer, ForeignKey("kullanicilar.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
