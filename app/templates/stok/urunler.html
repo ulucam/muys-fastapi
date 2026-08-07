@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/module_toolbar.html" import panel_button, link_button %}
+{% from "components/module_toolbar.html" import dock_toggle, panel_button, link_button %}
 {% block title %}Reçeteler ve Ürün Tanımları{% endblock %}
 {% block content %}
 <div class="container-fluid py-3 px-0">
@@ -13,12 +13,14 @@
     <div class="card border-0 shadow-sm mb-4"><div class="card-body"><div class="d-flex flex-wrap align-items-center gap-2"><strong class="me-2">Kurulum Sırası:</strong><span class="badge {{ 'bg-success' if kurulum.turler_hazir else 'bg-secondary' }}">1. Türler</span><i class="bi bi-arrow-right text-muted"></i><span class="badge {{ 'bg-success' if kurulum.siniflar_hazir else 'bg-secondary' }}">2. Sınıflar</span><i class="bi bi-arrow-right text-muted"></i><span class="badge {{ 'bg-success' if kurulum.hammadde_hazir else 'bg-secondary' }}">3. Hammaddeler</span><i class="bi bi-arrow-right text-muted"></i><span class="badge bg-secondary">4. Yarı Mamuller</span><i class="bi bi-arrow-right text-muted"></i><span class="badge bg-secondary">5. Mamuller</span></div>{% if not kurulum.hammadde_eklenebilir %}<div class="alert alert-warning mt-3 mb-0">Hammadde kartı açılmadan önce en az bir hammadde türü ve takip sınıfı tanımlayın.</div>{% endif %}</div></div>
 
     <div class="module-workspace" data-module-workspace>
-    <aside class="module-toolbar" aria-label="Stok bölümleri">
+    <aside class="module-toolbar production-toolbar" aria-label="Üretim bölümleri">
+        {{ dock_toggle('Üretim bölümleri') }}
+        {{ link_button('/receteler', 'Reçeteler', 'bi-journal-text', 'primary', none, true) }}
+        {% if kullanici_rol in ['Admin', 'Yönetici'] %}{{ link_button('/uretim-tanimlari', 'Üretim Tanımları', 'bi-gear-wide-connected', 'success') }}{% endif %}
         {{ panel_button('stoklar', 'Stok Kartları', 'bi-box-seam', 'primary', urunler|length, true) }}
         {{ panel_button('yeni-kart', 'Yeni Hammadde', 'bi-plus-lg', 'success') }}
         {{ panel_button('tanimlar', 'Tür ve Sınıflar', 'bi-tags', 'warning') }}
         {{ panel_button('uretim-receteleri', 'Yarı Mamul Üret', 'bi-diagram-3', 'info', uretim_receteleri|length) }}
-        {{ link_button('/urunler', 'Tüm Ürünler', 'bi-table', 'dark') }}
     </aside>
     <div class="module-panel-area">
 
