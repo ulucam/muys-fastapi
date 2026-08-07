@@ -1,9 +1,12 @@
 document.addEventListener("DOMContentLoaded", function () {
     const activityFeed = document.getElementById("activityFeed");
     const activityBadge = document.getElementById("activityBadge");
+    const activityButton = document.getElementById("activityButton");
     const liveActivity = document.getElementById("liveActivity");
     const liveActivityText = document.getElementById("liveActivityText");
     let liveActivityTimer = null;
+    const sonGorulenAnahtari = "muys-son-gorulen-log-id";
+    let sonHareketler = [];
 
     if (!activityFeed) return;
 
@@ -29,10 +32,36 @@ document.addEventListener("DOMContentLoaded", function () {
                 '</div></div>';
         }).join("");
 
-        if (activityBadge) {
-            activityBadge.textContent = hareketler.length;
-            activityBadge.classList.remove("d-none");
+        sonHareketler = hareketler;
+        const sonKimlik = Number(hareketler[0].id || 0);
+        const kayitliDeger = window.localStorage.getItem(sonGorulenAnahtari);
+        if (kayitliDeger === null) {
+            window.localStorage.setItem(sonGorulenAnahtari, String(sonKimlik));
+            if (activityBadge) activityBadge.classList.add("d-none");
+            return;
         }
+        const sonGorulen = Number(kayitliDeger || 0);
+        const yeniSayisi = hareketler.filter(function (hareket) {
+            return Number(hareket.id || 0) > sonGorulen;
+        }).length;
+        if (activityBadge) {
+            activityBadge.textContent = yeniSayisi > 9 ? "9+" : String(yeniSayisi);
+            activityBadge.classList.toggle("d-none", !yeniSayisi);
+        }
+    }
+
+    function hareketleriOkunduYap() {
+        if (sonHareketler.length) {
+            window.localStorage.setItem(sonGorulenAnahtari, String(sonHareketler[0].id || 0));
+        }
+        if (activityBadge) activityBadge.classList.add("d-none");
+    }
+
+    if (activityButton) {
+        activityButton.addEventListener("shown.bs.dropdown", hareketleriOkunduYap);
+        activityButton.addEventListener("click", function () {
+            window.setTimeout(hareketleriOkunduYap, 0);
+        });
     }
 
     function canliHareketiGoster(hareketler) {
