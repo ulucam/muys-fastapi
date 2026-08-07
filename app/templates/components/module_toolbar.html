@@ -7,9 +7,15 @@
 </button>
 {%- endmacro %}
 
-{% macro link_button(url, label, icon, color='primary', count=None) -%}
-<a class="module-tool" href="{{ url }}" data-label="{{ label }}" aria-label="{{ label }}" title="{{ label }}">
+{% macro link_button(url, label, icon, color='primary', count=None, active=False) -%}
+<a class="module-tool{% if active %} is-active{% endif %}" href="{{ url }}" data-label="{{ label }}" aria-label="{{ label }}" title="{{ label }}"{% if active %} aria-current="page"{% endif %}>
     <span class="module-tool-icon bg-{{ color }}"><i class="bi {{ icon }}"></i></span>
     {% if count is not none %}<span class="module-tool-count">{{ count }}</span>{% endif %}
 </a>
+{%- endmacro %}
+
+{% macro dock_toggle(label) -%}
+<button class="module-dock-toggle" type="button" data-module-dock-toggle aria-expanded="false" aria-label="{{ label }} menüsünü aç">
+    <i class="bi bi-chevron-left"></i>
+</button>
 {%- endmacro %}
