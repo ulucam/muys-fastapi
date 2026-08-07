@@ -1,9 +1,17 @@
 {% extends "base.html" %}
+{% from "components/module_toolbar.html" import dock_toggle, link_button %}
 
 {% block title %}Üretim Tanımları{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-3">
+    <div class="module-workspace" data-module-workspace>
+        <aside class="module-toolbar production-toolbar" aria-label="Üretim bölümleri">
+            {{ dock_toggle('Üretim bölümleri') }}
+            {{ link_button('/receteler', 'Reçeteler', 'bi-journal-text', 'primary') }}
+            {{ link_button('/uretim-tanimlari', 'Üretim Tanımları', 'bi-gear-wide-connected', 'success', none, true) }}
+        </aside>
+        <div class="module-panel-area">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold mb-1"><i class="bi bi-diagram-3"></i> Üretim Tanımları</h3>
@@ -114,6 +122,8 @@
         {% endif %}
     </div>
     {% endif %}
+        </div>
+    </div>
 </div>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
