@@ -22,8 +22,13 @@ from app.services.stok_service import (
     stok_urunlerini_listele,
 )
 from app.services.uretim_plan_service import (
+    asama_malzemesi_sil,
     asama_malzemesi_kaydet,
+    recete_asamasi_guncelle,
+    recete_asamasi_sil,
     recete_asamasi_kaydet,
+    recete_duzenleme_verisi,
+    recete_guncelle,
     recete_kaydet,
     uretim_tanim_verisi,
 )
@@ -139,6 +144,25 @@ def uretim_recetesi_kaydet(urun_id: int = Form(...), tahmini_uretim_suresi: floa
     return RedirectResponse("/receteler#module-uretim-receteleri", status_code=303)
 
 
+@router.get("/receteler/{recete_id}/duzenle", response_class=HTMLResponse)
+def uretim_recetesi_duzenle(recete_id: int, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+    data = recete_duzenleme_verisi(db, recete_id)
+    if not data:
+        return RedirectResponse("/receteler#module-uretim-receteleri", status_code=303)
+    data.update(template_data(request))
+    return templates.TemplateResponse("stok/recete_duzenle.html", data)
+
+
+@router.post("/receteler/{recete_id}/guncelle")
+def uretim_recetesi_guncelle(recete_id: int, urun_id: int = Form(...), tahmini_uretim_suresi: float = Form(0), aciklama: str = Form(""),
+    db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+    try:
+        recete_guncelle(db, recete_id, urun_id, tahmini_uretim_suresi, aciklama)
+    except ValueError:
+        return RedirectResponse(f"/receteler/{recete_id}/duzenle?error=recete", status_code=303)
+    return RedirectResponse(f"/receteler/{recete_id}/duzenle?kaydedildi=1", status_code=303)
+
+
 @router.post("/receteler/{recete_id}/asama")
 def uretim_recetesi_asama_kaydet(recete_id: int, sira_no: int = Form(...), istasyon_id: int = Form(...),
     operasyon_adi: str = Form(""), hedef_cevrim_suresi: float = Form(0), aciklama: str = Form(""),
@@ -150,12 +174,45 @@ def uretim_recetesi_asama_kaydet(recete_id: int, sira_no: int = Form(...), istas
     return RedirectResponse("/receteler#module-uretim-receteleri", status_code=303)
 
 
+@router.post("/receteler/{recete_id}/asama/{asama_id}/guncelle")
+def uretim_recetesi_asama_guncelle(recete_id: int, asama_id: int, sira_no: int = Form(...), istasyon_id: int = Form(...),
+    operasyon_adi: str = Form(""), hedef_cevrim_suresi: float = Form(0), aciklama: str = Form(""),
+    db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+    try:
+        recete_asamasi_guncelle(db, recete_id, asama_id, sira_no, istasyon_id, operasyon_adi, hedef_cevrim_suresi, aciklama)
+    except ValueError:
+        return RedirectResponse(f"/receteler/{recete_id}/duzenle?error=asama", status_code=303)
+    return RedirectResponse(f"/receteler/{recete_id}/duzenle?kaydedildi=1", status_code=303)
+
+
+@router.post("/receteler/{recete_id}/asama/{asama_id}/sil")
+def uretim_recetesi_asama_sil(recete_id: int, asama_id: int, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+    try:
+        recete_asamasi_sil(db, recete_id, asama_id)
+    except ValueError:
+        return RedirectResponse(f"/receteler/{recete_id}/duzenle?error=asama", status_code=303)
+    return RedirectResponse(f"/receteler/{recete_id}/duzenle?kaydedildi=1", status_code=303)
+
+
 @router.post("/receteler/asama/{asama_id}/malzeme")
 def uretim_asama_malzeme_kaydet(asama_id: int, malzeme_id: int = Form(...), miktar: float = Form(...),
-    birim: str = Form("Adet"), fire_orani: float = Form(0), db: Session = Depends(get_db),
+    birim: str = Form("Adet"), fire_orani: float = Form(0), donus_recete_id: int | None = Form(None), db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(STOK))):
     try:
         asama_malzemesi_kaydet(db, asama_id, malzeme_id, miktar, birim, fire_orani)
     except ValueError:
+        if donus_recete_id:
+            return RedirectResponse(f"/receteler/{donus_recete_id}/duzenle?error=malzeme", status_code=303)
         return RedirectResponse("/receteler?error=malzeme#module-uretim-receteleri", status_code=303)
+    if donus_recete_id:
+        return RedirectResponse(f"/receteler/{donus_recete_id}/duzenle?kaydedildi=1", status_code=303)
     return RedirectResponse("/receteler#module-uretim-receteleri", status_code=303)
+
+
+@router.post("/receteler/{recete_id}/asama/{asama_id}/malzeme/{malzeme_id}/sil")
+def uretim_asama_malzeme_sil(recete_id: int, asama_id: int, malzeme_id: int, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+    try:
+        asama_malzemesi_sil(db, asama_id, malzeme_id)
+    except ValueError:
+        return RedirectResponse(f"/receteler/{recete_id}/duzenle?error=malzeme", status_code=303)
+    return RedirectResponse(f"/receteler/{recete_id}/duzenle?kaydedildi=1", status_code=303)
