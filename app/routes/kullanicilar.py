@@ -49,7 +49,7 @@ def ekle(request: Request, kullanici_adi: str = Form(...), sifre: str = Form(...
     if sonuc.hata:
         return templates.TemplateResponse("kullanici/ekle.html", _form_verisi(request, db, hata=sonuc.hata), status_code=sonuc.durum_kodu)
     islem_logla(db, request, "Kullanıcılar", "Kullanıcı oluşturuldu", f"{kullanici_adi} · {rol}", commit=True)
-    return RedirectResponse("/kullanicilar", status_code=303)
+    return RedirectResponse("/kullanicilar#module-kullanicilar", status_code=303)
 
 
 @router.get("/duzenle/{id}", response_class=HTMLResponse)
@@ -98,7 +98,7 @@ def rol_kaydet(request: Request, adi: str = Form(...), seviye: int = Form(...), 
     except IntegrityError:
         db.rollback(); raise HTTPException(400, "Bu rol adı zaten kullanılıyor.")
     islem_logla(db, request, "Kullanıcılar", "Rol sınıfı kaydedildi", f"{adi} · seviye {seviye}", commit=True)
-    return RedirectResponse("/kullanicilar", status_code=303)
+    return RedirectResponse("/kullanicilar#module-roller", status_code=303)
 
 
 @router.post("/sil/{id}")
