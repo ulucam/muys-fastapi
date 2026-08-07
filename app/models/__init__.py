@@ -27,4 +27,5 @@ from app.models.bildirim import Bildirim
 from app.models.mesaj import Mesaj
 from app.models.push_aboneligi import PushAboneligi
 from app.models.mesaj_konusu import MesajAlici, MesajKonusu, MesajKonusuYetkili, MesajSilme
+from app.models.vapid_ayari import VapidAyari
 from app.models.rol_sinifi import RolSinifi
