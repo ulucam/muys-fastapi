@@ -149,12 +149,15 @@ def mesaji_okundu_yap(db: Session, mesaj_id: int, kullanici_id: int) -> int | No
     konusma_id = mesaj.konusma_id or mesaj.id
     okunmamislar = db.query(Mesaj).filter(Mesaj.konusma_id == konusma_id, Mesaj.alici_id == kullanici_id, Mesaj.okundu.is_(False)).all()
     alici_kayitlari = db.query(MesajAlici).filter(MesajAlici.kullanici_id == kullanici_id, MesajAlici.mesaj_id.in_([m.id for m in db.query(Mesaj).filter(Mesaj.konusma_id == konusma_id).all()]), MesajAlici.okundu.is_(False)).all()
-    if okunmamislar or alici_kayitlari:
+    bildirimler = db.query(Bildirim).filter(Bildirim.kullanici_id == kullanici_id, Bildirim.baglanti == f"/mesajlar#konusma-{konusma_id}", Bildirim.okundu.is_(False)).all()
+    if okunmamislar or alici_kayitlari or bildirimler:
         simdi = datetime.utcnow()
         for kayit in okunmamislar:
             kayit.okundu, kayit.okunma_tarihi = True, simdi
         for kayit in alici_kayitlari:
             kayit.okundu, kayit.okunma_tarihi = True, simdi
+        for bildirim in bildirimler:
+            bildirim.okundu, bildirim.okunma_tarihi = True, simdi
         db.commit()
     return konusma_id
 
@@ -166,6 +169,16 @@ def bildirimleri_okundu_yap(db: Session, kullanici_id: int) -> int:
         bildirim.okundu, bildirim.okunma_tarihi = True, simdi
     db.commit()
     return len(bildirimler)
+
+
+def bildirimi_okundu_yap(db: Session, bildirim_id: int, kullanici_id: int) -> bool:
+    bildirim = db.query(Bildirim).filter(Bildirim.id == bildirim_id, Bildirim.kullanici_id == kullanici_id).first()
+    if not bildirim:
+        return False
+    if not bildirim.okundu:
+        bildirim.okundu, bildirim.okunma_tarihi = True, datetime.utcnow()
+        db.commit()
+    return True
 
 
 def iletisim_ozeti(db: Session, kullanici_id: int) -> dict:
