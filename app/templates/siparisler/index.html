@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/module_toolbar.html" import panel_button, link_button %}
+{% from "components/module_toolbar.html" import panel_button, link_button, dock_toggle %}
 {% block title %}Siparişler{% endblock %}
 {% block content %}
 <div class="container-fluid py-3 px-0">
@@ -11,6 +11,7 @@
 
     <div class="module-workspace" data-module-workspace>
         <aside class="module-toolbar" aria-label="Sipariş bölümleri">
+            {{ dock_toggle('Sipariş bölümleri') }}
             {% for durum_adi in durumlar %}
                 {{ panel_button('durum-' ~ loop.index, durum_adi, 'bi-list-check' if loop.first else ('bi-gear' if loop.index == 2 else 'bi-truck'), 'primary' if loop.first else ('success' if loop.index == 2 else 'warning'), siparisler_duruma_gore[durum_adi]|length, loop.first) }}
             {% endfor %}
