@@ -79,6 +79,12 @@ def excel_satirlarini_oku(dosya_icerigi):
             module=r"openpyxl\\.worksheet\\._reader",
         )
         kitap = openpyxl.load_workbook(io.BytesIO(dosya_icerigi), data_only=True)
+    referans_zamani = ""
+    if "Sistem Bilgileri" in kitap.sheetnames:
+        for satir in kitap["Sistem Bilgileri"].iter_rows(min_col=1, max_col=2, values_only=True):
+            if metin(satir[0]) == "Aktarım Referansı (UTC)":
+                referans_zamani = metin(satir[1])
+                break
     if "Müşteriler" not in kitap.sheetnames:
         return [], [], ["'Müşteriler' sayfası bulunamadı."]
     sayfa = kitap["Müşteriler"]
@@ -106,6 +112,7 @@ def excel_satirlarini_oku(dosya_icerigi):
         if satir_hatalari:
             hatalar.append(f"Satır {sira}: {', '.join(satir_hatalari)}")
         else:
+            veri["_excel_referans_zamani"] = referans_zamani
             satirlar.append(veri)
     urunler = []
     urun_sayfa_adi = next((ad for ad in ("Hammadde ve Ticari Ürünler", "Stok Ürünleri") if ad in kitap.sheetnames), None)
@@ -146,6 +153,7 @@ def excel_satirlarini_oku(dosya_icerigi):
                         "satis_fiyati": sayi(veri["Satış Fiyatı"], "Satış fiyatı"),
                         "aciklama": metin(veri["Açıklama"]),
                         "aktif": metin(veri["Durum"]) == "Aktif",
+                        "_excel_referans_zamani": referans_zamani,
                     }
                 except ValueError as hata:
                     satir_hatalari.append(str(hata))
@@ -178,6 +186,7 @@ def excel_satirlarini_oku(dosya_icerigi):
             if satir_hatalari:
                 hatalar.append(f"{etiket} satır {sira}: {', '.join(satir_hatalari)}")
             else:
+                veri["_excel_referans_zamani"] = referans_zamani
                 sonuc.append(veri)
         return sonuc
 
@@ -213,6 +222,7 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
     sistem.append(["Açıklama", "Firma, müşteri, stok ve üretim ana verileri ayrı sayfalarda yer alır."])
     sistem.append(["Kurallar", "Personel ve hammadde sayfalarında birden fazla istasyon kodunu virgülle ayırın: KESIM, BUKUM."])
     sistem.append(["Dışa Aktarım Tarihi", datetime.now().strftime("%d.%m.%Y %H:%M")])
+    sistem.append(["Aktarım Referansı (UTC)", datetime.utcnow().isoformat(timespec="microseconds")])
     sistem.append(["Sistem", "MÜYS v0.1.1 / FastAPI / SQLite"])
     sistem.append(["Kayıt Özeti", f"{len(mevcut_musteriler)} müşteri, {len(mevcut_urunler)} stok ürünü, {len(mevcut_personeller)} personel, {len(mevcut_istasyonlar)} istasyon, {len(mevcut_makineler)} makine"])
     sistem.append([])
