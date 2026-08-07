@@ -14,6 +14,7 @@ from app.models.urun import Urun
 from app.models.stok_urun_turu import StokUrunTuru
 from app.models.urun_sinifi import UrunSinifi
 from app.models.urun_istasyon import UrunIstasyon
+from app.product_types import urun_turunu_normalize_et
 from app.services.islem_log_service import islem_logla_veri
 
 
@@ -74,7 +75,6 @@ def onizleme_hazirla(
         if kod not in mevcut_istasyonlar | aktarilan_istasyonlar:
             hatalar.append(f"Makineler satır {sira}: '{kod}' istasyon kodu bulunamadı")
 
-    stok_turleri = {tur.adi.casefold() for tur in db.query(StokUrunTuru).filter(StokUrunTuru.aktif.is_(True), StokUrunTuru.uretilen.is_(False)).all()}
     urun_siniflari = db.query(UrunSinifi).filter(UrunSinifi.aktif.is_(True)).all()
     urun_sinifi_anahtarlari = {
         anahtar.casefold()
@@ -82,18 +82,13 @@ def onizleme_hazirla(
         for anahtar in (sinif.kodu, sinif.adi, f"{sinif.kodu} · {sinif.adi}")
         if anahtar
     }
-    if urunler and not stok_turleri:
-        hatalar.append("Hammadde aktarımından önce sistemde hammadde türleri tanımlanmalıdır.")
     for sira, urun in enumerate(urunler, start=2):
-        tur_adi = _metin(urun.get("stok_turu_adi"))
         sinif_anahtari = _metin(urun.get("urun_sinifi_anahtari"))
-        if tur_adi.casefold() not in stok_turleri:
-            hatalar.append(f"Hammaddeler satır {sira}: '{tur_adi}' türü sistemde tanımlı değil")
         if sinif_anahtari and sinif_anahtari.casefold() not in urun_sinifi_anahtarlari:
-            hatalar.append(f"Hammaddeler satır {sira}: '{sinif_anahtari}' ürün sınıfı Stok/Üretim Tanımları içinde bulunamadı")
+                hatalar.append(f"Stok Ürün Kartları satır {sira}: '{sinif_anahtari}' ürün sınıfı Stok/Üretim Tanımları içinde bulunamadı")
         for kod in _istasyon_kodlarini_ayir(urun.get("istasyon_kodlari")):
             if kod not in mevcut_istasyonlar | aktarilan_istasyonlar:
-                hatalar.append(f"Hammaddeler satır {sira}: '{kod}' istasyon kodu bulunamadı")
+                hatalar.append(f"Stok Ürün Kartları satır {sira}: '{kod}' istasyon kodu bulunamadı")
 
     mevcut_musteriler = {m.firma_adi.casefold() for m in db.query(Musteri).all()}
     eklenecek, guncellenecek = [], []
@@ -215,7 +210,7 @@ def aktarimi_onayla(db: Session, token: str | None, kullanici_adi: str, ip_adres
 
         urun_haritasi = {u.kodu: u for u in db.query(Urun).all()}
         kullanilan_urun_kodlari = set(urun_haritasi)
-        stok_turu_haritasi = {tur.adi.casefold(): tur for tur in db.query(StokUrunTuru).filter(StokUrunTuru.aktif.is_(True), StokUrunTuru.uretilen.is_(False)).all()}
+        stok_turu_haritasi = {tur.adi.casefold(): tur for tur in db.query(StokUrunTuru).filter(StokUrunTuru.aktif.is_(True)).all()}
         urun_sinifi_haritasi = {
             anahtar.casefold(): sinif
             for sinif in db.query(UrunSinifi).filter(UrunSinifi.aktif.is_(True)).all()
@@ -231,13 +226,15 @@ def aktarimi_onayla(db: Session, token: str | None, kullanici_adi: str, ip_adres
                 continue
             if not urun:
                 urun = Urun(kodu=satir["kodu"]); db.add(urun); urun_haritasi[satir["kodu"]] = urun
-            tur_adi = _metin(satir.pop("stok_turu_adi", "")).casefold()
             sinif_anahtari = _metin(satir.pop("urun_sinifi_anahtari", "")).casefold()
             secili_istasyon_kodlari = _istasyon_kodlarini_ayir(satir.pop("istasyon_kodlari", ""))
             satir.pop("_excel_referans_zamani", None)
-            if tur_adi not in stok_turu_haritasi or (sinif_anahtari and sinif_anahtari not in urun_sinifi_haritasi):
-                raise ValueError(f"{urun.kodu} için hammadde türü veya ürün sınıfı bulunamadı")
-            _alanlari_uygula(urun, {"stok_urun_turu_id": stok_turu_haritasi[tur_adi].id,
+            if sinif_anahtari and sinif_anahtari not in urun_sinifi_haritasi:
+                raise ValueError(f"{urun.kodu} için ürün sınıfı bulunamadı")
+            urun_tipi = urun_turunu_normalize_et(satir.get("urun_tipi"))
+            stok_turu = stok_turu_haritasi.get(urun_tipi.casefold()) if urun_tipi else None
+            _alanlari_uygula(urun, {"stok_urun_turu_id": stok_turu.id if stok_turu else None,
+                "urun_tipi": urun_tipi,
                 "urun_sinifi_id": urun_sinifi_haritasi[sinif_anahtari].id if sinif_anahtari else None,
                 **satir})
             db.flush()
