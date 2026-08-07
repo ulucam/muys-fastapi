@@ -1,23 +1,52 @@
 import json
+import base64
 from datetime import datetime
 from urllib.parse import urlparse
 
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.config import Config
 from app.database import SessionLocal
 from app.models.push_aboneligi import PushAboneligi
+from app.models.vapid_ayari import VapidAyari
 
 
-def push_yapilandirildi() -> bool:
-    return bool(Config.VAPID_PUBLIC_KEY and Config.VAPID_PRIVATE_KEY and Config.VAPID_SUBJECT)
+def _base64url(veri: bytes) -> str:
+    return base64.urlsafe_b64encode(veri).rstrip(b"=").decode("ascii")
+
+
+def _vapid_anahtarlari(db: Session, otomatik_olustur: bool = True) -> tuple[str, str, str]:
+    if Config.VAPID_PUBLIC_KEY and Config.VAPID_PRIVATE_KEY:
+        return Config.VAPID_PUBLIC_KEY, Config.VAPID_PRIVATE_KEY, Config.VAPID_SUBJECT
+    ayar = db.query(VapidAyari).order_by(VapidAyari.id).first()
+    if not ayar and otomatik_olustur:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import ec
+
+        private = ec.generate_private_key(ec.SECP256R1())
+        private_der = private.private_bytes(serialization.Encoding.DER, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
+        public_point = private.public_key().public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)
+        ayar = VapidAyari(id=1, public_key=_base64url(public_point), private_key=_base64url(private_der), subject=Config.VAPID_SUBJECT or "mailto:admin@example.com")
+        db.add(ayar)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            ayar = db.query(VapidAyari).filter(VapidAyari.id == 1).first()
+    return (ayar.public_key, ayar.private_key, ayar.subject) if ayar else ("", "", "")
+
+
+def push_yapilandirildi(db: Session) -> bool:
+    return all(_vapid_anahtarlari(db))
 
 
 def abonelik_durumu(db: Session, kullanici_id: int) -> dict:
+    public_key, private_key, subject = _vapid_anahtarlari(db)
     return {
-        "yapilandirildi": push_yapilandirildi(),
+        "yapilandirildi": bool(public_key and private_key and subject),
         "aktif_abonelik": db.query(PushAboneligi).filter(PushAboneligi.kullanici_id == kullanici_id, PushAboneligi.aktif.is_(True)).count(),
-        "public_key": Config.VAPID_PUBLIC_KEY if push_yapilandirildi() else "",
+        "public_key": public_key,
     }
 
 
@@ -48,7 +77,8 @@ def abonelik_sil(db: Session, kullanici_id: int, endpoint: str) -> bool:
 
 
 def _push_gonder(db: Session, kullanici_id: int, baslik: str, icerik: str, baglanti: str, badge: int | None = None) -> int:
-    if not push_yapilandirildi():
+    public_key, private_key, subject = _vapid_anahtarlari(db)
+    if not public_key or not private_key or not subject:
         return 0
     from pywebpush import WebPushException, webpush
 
@@ -60,8 +90,8 @@ def _push_gonder(db: Session, kullanici_id: int, baslik: str, icerik: str, bagla
             webpush(
                 subscription_info={"endpoint": abonelik.endpoint, "keys": {"p256dh": abonelik.p256dh_key, "auth": abonelik.auth_key}},
                 data=payload,
-                vapid_private_key=Config.VAPID_PRIVATE_KEY,
-                vapid_claims={"sub": Config.VAPID_SUBJECT},
+                vapid_private_key=private_key,
+                vapid_claims={"sub": subject},
                 timeout=10,
             )
             abonelik.son_kullanim = datetime.utcnow()
