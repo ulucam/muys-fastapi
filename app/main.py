@@ -6,6 +6,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import Config
 from app.database import SessionLocal
+from app.templating import STATIK_KLASORU
 from app.routes import (
     auth,
     ayarlar,
@@ -34,7 +35,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory=str(STATIK_KLASORU)), name="static")
 app.add_middleware(SessionMiddleware, secret_key=Config.SECRET_KEY)
 
 

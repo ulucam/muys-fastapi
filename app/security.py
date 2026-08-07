@@ -1,38 +1,7 @@
-from fastapi import Depends, Request, HTTPException, status
-from sqlalchemy.orm import Session
+"""Güvenlik bağımlılıkları.
 
-from app.database import get_db
-from app.models.rol_sinifi import RolSinifi
+Ortak yetki denetimleri artık ``app.dependencies`` içinde tanımlıdır;
+bu modül mevcut importları kırmamak için onları yeniden dışa aktarır.
+"""
 
-
-def yetki_kontrol(izinli_roller):
-
-    def kontrol(request: Request):
-
-        rol = request.session.get(
-            "rol",
-            ""
-        )
-
-
-        if rol not in izinli_roller:
-
-            raise HTTPException(
-                status_code=403,
-                detail="Bu sayfaya erişim yetkiniz yok."
-            )
-
-
-        return True
-
-
-    return kontrol
-
-
-def kullanici_yonetim_kontrol(request: Request, db: Session = Depends(get_db)):
-    """Admin veya rolüne Admin tarafından kullanıcı ekleme izni verilmiş kullanıcı."""
-    rol_adi = request.session.get("rol", "")
-    rol = db.query(RolSinifi).filter(RolSinifi.adi == rol_adi, RolSinifi.aktif.is_(True)).first()
-    if rol_adi != "Admin" and (not rol or not rol.kullanici_ekleyebilir):
-        raise HTTPException(status_code=403, detail="Kullanıcı yönetimi yetkiniz yok.")
-    return rol
+from app.dependencies import kullanici_yonetim_kontrol, yetki_kontrol  # noqa: F401

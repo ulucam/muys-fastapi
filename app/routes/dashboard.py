@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.templating import templates
 from sqlalchemy.orm import Session
 
 from app.context import template_data
@@ -25,7 +25,6 @@ from app.models.uretim_plani import UretimPlani, UretimPlanAsamasi
 from app.services.uretim_plan_service import plan_asamasini_tamamla, uretim_plani_olustur
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 
 def tarihi_oku(deger: str | None) -> date:

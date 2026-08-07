@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.templating import templates
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -16,7 +16,6 @@ from app.services.kullanici_service import (atanabilir_personeller, form_secenek
     rol_secenekleri)
 
 router = APIRouter(prefix="/kullanicilar", tags=["Kullanıcılar"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 def _form_verisi(request, db, kullanici=None, **ek):

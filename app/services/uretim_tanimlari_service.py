@@ -16,14 +16,12 @@ from app.models.urun_sinifi import UrunSinifi
 from app.models.user import User
 from app.services.islem_log_service import islem_logla_veri
 from app.product_types import URUN_TURLERI, urun_turunu_normalize_et
+from app.utils.helpers import metin, sayi
 
 ANA_MODELLER = {"personel": Personel, "istasyon": Istasyon, "makine": Makine, "sinif": UrunSinifi}
 ILISKILI_MODELLER = {"operasyon": UrunSinifOperasyon, "urun": Urun, "recete": ReceteKalem}
 URUN_TIPLERI = set(URUN_TURLERI) | {""}
 
-
-def metin(deger):
-    return str(deger or "").strip()
 
 
 def urun_turlerini_standartlastir(db: Session) -> int:
@@ -48,16 +46,6 @@ def otomatik_kod(db: Session, model, onek: str) -> str:
         sira += 1
         kod = f"{onek}-{sira:04d}"
     return kod
-
-
-def sayi(deger, alan, tam_sayi=False):
-    try:
-        sayisal_deger = float(deger)
-        if tam_sayi and not sayisal_deger.is_integer():
-            raise ValueError
-        return int(sayisal_deger) if tam_sayi else sayisal_deger
-    except (TypeError, ValueError):
-        raise ValueError(f"{alan} sayısal olmalı")
 
 
 def ekran_verisi(db: Session, **ek) -> dict:
