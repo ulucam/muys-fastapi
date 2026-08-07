@@ -12,10 +12,44 @@ from app.models.personel_istasyon import PersonelIstasyon
 from app.models.uretim_emri import UretimEmri
 from app.models.uretim_kaydi import UretimKaydi
 from app.models.urun import Urun
+from app.models.urun_istasyon import UrunIstasyon
+from app.models.uretim_plani import UretimPlanAsamasi
 from app.services.puantaj_service import puantajlari_kaydet
 from app.services.uretim_plan_service import planlama_verisi
 
 SIPARIS_DURUMLARI = ("Beklemede", "Üretimde", "Sevke Hazır")
+
+
+def uretim_emri_izinli_istasyonlari(db: Session, emirler: list[UretimEmri]) -> dict[int, list[int]]:
+    """İş emri yalnız reçete aşamasının ya da ürün kartının istasyonlarına atanır."""
+    plan_asamalari = {
+        asama.id: asama.istasyon_id
+        for asama in db.query(UretimPlanAsamasi).filter(
+            UretimPlanAsamasi.id.in_([emir.plan_asamasi_id for emir in emirler if emir.plan_asamasi_id])
+        ).all()
+    }
+    urun_istasyonlari: dict[int, list[int]] = {}
+    for atama in db.query(UrunIstasyon).filter(
+        UrunIstasyon.urun_id.in_([emir.urun_id for emir in emirler]),
+        UrunIstasyon.aktif.is_(True),
+    ).all():
+        urun_istasyonlari.setdefault(atama.urun_id, []).append(atama.istasyon_id)
+    return {
+        emir.id: ([plan_asamalari[emir.plan_asamasi_id]] if emir.plan_asamasi_id in plan_asamalari else urun_istasyonlari.get(emir.urun_id, []))
+        for emir in emirler
+    }
+
+
+def uretim_emri_istasyonunu_ata(db: Session, emir_id: int, istasyon_id: int) -> UretimEmri:
+    emir = db.query(UretimEmri).filter(UretimEmri.id == emir_id, UretimEmri.aktif.is_(True)).first()
+    if not emir:
+        raise ValueError("Üretim emri bulunamadı")
+    izinli_istasyonlar = uretim_emri_izinli_istasyonlari(db, [emir]).get(emir.id, [])
+    if istasyon_id not in izinli_istasyonlar:
+        raise ValueError("Bu iş emri yalnız ürün veya reçetesinde tanımlı istasyona atanabilir")
+    emir.istasyon_id = istasyon_id
+    db.commit()
+    return emir
 
 
 def _gorulebilir_personeller(db: Session, rol: str | None, kullanici_id: int | None):
@@ -68,6 +102,7 @@ def dashboard_verisi(db: Session, secili_tarih: date, rol: str | None, kullanici
         "uretim_kayitlari": uretim_kayitlari, "aktif_uretim_kayitlari": aktif_kayitlar,
         "urunler": urunler, "istasyonlar": istasyonlar, "personel_haritasi": personel_haritasi,
         "emir_haritasi": emir_haritasi, "operator_personel_id": kullanici.personel_id if kullanici else None,
+        "emir_izinli_istasyonlari": uretim_emri_izinli_istasyonlari(db, uretim_emirleri),
         **planlama_verisi(db)}
 
 
