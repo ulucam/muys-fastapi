@@ -27,11 +27,12 @@
         <div class="card-header bg-white py-3"><strong><i class="bi bi-diagram-3 me-1"></i> Aşamalı Yarı Mamul / Mamul Reçetesi</strong></div>
         <div class="card-body">
             <form method="post" action="/receteler/kaydet" class="row g-2 border rounded p-3 mb-4">
-                <div class="col-md-3"><label class="form-label">Reçete No</label><input class="form-control" name="recete_no" required></div>
-                <div class="col-md-4"><label class="form-label">Üretilecek Ürün</label><select class="form-select" name="urun_id" required><option value="">Ürün seçin</option>{% for urun in tum_urunler %}<option value="{{ urun.id }}">{{ urun.kodu }} · {{ urun.adi }}</option>{% endfor %}</select></div>
+                <div class="col-md-3"><label class="form-label">Reçete No</label><div class="form-control bg-light text-muted">Otomatik: {{ siradaki_recete_no }}</div></div>
+                <div class="col-md-4"><label class="form-label">Üretilecek Yarı Mamul / Mamul</label><select class="form-select" name="urun_id" required><option value="">Ürün seçin</option>{% for urun in uretilebilir_urunler %}<option value="{{ urun.id }}">{{ urun.kodu }} · {{ urun.adi }}</option>{% endfor %}</select></div>
                 <div class="col-md-3"><label class="form-label">Açıklama</label><input class="form-control" name="aciklama"></div>
-                <div class="col-md-2 d-flex align-items-end"><button class="btn btn-info w-100" type="submit">Reçete Aç</button></div>
+                <div class="col-md-2 d-flex align-items-end"><button class="btn btn-info w-100" type="submit" {% if not uretilebilir_urunler %}disabled{% endif %}>Reçete Aç</button></div>
             </form>
+            {% if not uretilebilir_urunler %}<div class="alert alert-warning">Önce <a href="/uretim-tanimlari?goster=urunler">Stok / Üretim Tanımları</a> bölümünden ürün tipini <strong>Yarı Mamul</strong> veya <strong>Mamul</strong> seçerek üretilecek ürün kartını oluşturun.</div>{% endif %}
 
             <div class="vstack gap-3">{% for recete in uretim_receteleri %}{% set recete_urunu = urun_haritasi.get(recete.urun_id) %}
                 <details class="border rounded" {% if loop.first %}open{% endif %}>
