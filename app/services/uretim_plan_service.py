@@ -17,14 +17,16 @@ def uretilebilir_urun_mu(urun: Urun) -> bool:
     """Eski kayıtların Türkçe tür yazımlarını da üretilebilir kabul eder."""
     donusum = str.maketrans({"ı": "i", "İ": "i", "ş": "s", "ğ": "g", "ü": "u", "ö": "o", "ç": "c"})
     tur = "".join(karakter for karakter in str(urun.urun_tipi or "").casefold().translate(donusum) if karakter.isalnum())
-    return tur in {"yarimamul", "mamul"}
+    return tur == "mamul" or "yarimamul" in tur
 
 
 def uretim_tanim_verisi(db: Session) -> dict:
     receteler = db.query(Recete).filter(Recete.aktif.is_(True)).order_by(Recete.updated_at.desc()).all()
     asamalar = db.query(ReceteAsama).filter(ReceteAsama.aktif.is_(True)).order_by(ReceteAsama.recete_id, ReceteAsama.sira_no).all()
     malzemeler = db.query(ReceteAsamaMalzeme).order_by(ReceteAsamaMalzeme.asama_id, ReceteAsamaMalzeme.id).all()
-    aktif_urunler = db.query(Urun).filter(Urun.aktif.is_(True)).order_by(Urun.adi).all()
+    # Eski veritabanlarında aktif sütunu boş kalmış ürünler üretilebilir kabul edilir;
+    # yalnızca açıkça pasife alınan kartlar listeden çıkarılır.
+    aktif_urunler = db.query(Urun).filter(Urun.aktif.isnot(False)).order_by(Urun.adi).all()
     return {
         "uretim_receteleri": receteler,
         "recete_asamalari": asamalar,
@@ -52,7 +54,7 @@ def _siradaki_recete_no(db: Session) -> str:
 
 
 def recete_kaydet(db: Session, urun_id: int, tahmini_uretim_suresi: float = 0, aciklama: str = "") -> Recete:
-    urun = db.query(Urun).filter(Urun.id == urun_id, Urun.aktif.is_(True)).first()
+    urun = db.query(Urun).filter(Urun.id == urun_id, Urun.aktif.isnot(False)).first()
     if not urun or not uretilebilir_urun_mu(urun):
         raise ValueError("Reçete çıktısı yarı mamul veya mamul olmalıdır")
     recete = db.query(Recete).filter(Recete.urun_id == urun.id, Recete.aktif.is_(True)).first()
@@ -106,15 +108,15 @@ def recete_duzenleme_verisi(db: Session, recete_id: int) -> dict | None:
         "recete": recete,
         "asamalar": asamalar,
         "malzemeler": malzemeler,
-        "urunler": db.query(Urun).filter(Urun.aktif.is_(True)).order_by(Urun.adi).all(),
-        "uretilebilir_urunler": [urun for urun in db.query(Urun).filter(Urun.aktif.is_(True)).order_by(Urun.adi).all() if uretilebilir_urun_mu(urun)],
+        "urunler": db.query(Urun).filter(Urun.aktif.isnot(False)).order_by(Urun.adi).all(),
+        "uretilebilir_urunler": [urun for urun in db.query(Urun).filter(Urun.aktif.isnot(False)).order_by(Urun.adi).all() if uretilebilir_urun_mu(urun)],
         "istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.adi).all(),
     }
 
 
 def recete_guncelle(db: Session, recete_id: int, urun_id: int, tahmini_uretim_suresi: float, aciklama: str) -> Recete:
     recete = db.query(Recete).filter(Recete.id == recete_id, Recete.aktif.is_(True)).first()
-    urun = db.query(Urun).filter(Urun.id == urun_id, Urun.aktif.is_(True)).first()
+    urun = db.query(Urun).filter(Urun.id == urun_id, Urun.aktif.isnot(False)).first()
     cakisan = db.query(Recete).filter(Recete.urun_id == urun_id, Recete.id != recete_id, Recete.aktif.is_(True)).first()
     if not recete or not urun or not uretilebilir_urun_mu(urun) or cakisan:
         raise ValueError("Geçerli ve başka aktif reçetesi olmayan bir üretim ürünü seçin")
