@@ -9,6 +9,7 @@ from app.services.iletisim_service import (
     aktif_kullanicilar,
     bildirimleri_okundu_yap,
     iletisim_ozeti,
+    konusmayi_sil,
     mesaj_gonder,
     mesaj_konulari_verisi,
     mesaj_konusu_kaydet,
@@ -19,6 +20,7 @@ from app.services.iletisim_service import (
 from app.services.push_service import arka_planda_push_gonder
 from app.roles import ADMIN
 from app.security import yetki_kontrol
+from app.services.islem_log_service import islem_logla
 
 router = APIRouter(tags=["İletişim"])
 templates = Jinja2Templates(directory="app/templates")
@@ -72,6 +74,16 @@ def mesaj_okundu(mesaj_id: int, request: Request, db: Session = Depends(get_db))
     if not konusma_id:
         raise HTTPException(status_code=404, detail="Mesaj bulunamadı")
     return RedirectResponse(f"/mesajlar#konusma-{konusma_id}", status_code=303)
+
+
+@router.post("/mesajlar/konusma/{konusma_id}/sil")
+def mesaj_konusmasi_sil(konusma_id: int, request: Request, db: Session = Depends(get_db)):
+    try:
+        detay = konusmayi_sil(db, konusma_id, _kullanici_id(request))
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Konuşma bulunamadı")
+    islem_logla(db, request, "Mesajlar", "Konuşma silindi", detay, commit=True)
+    return RedirectResponse("/mesajlar", status_code=303)
 
 
 @router.get("/api/iletisim/ozet", response_class=JSONResponse)
