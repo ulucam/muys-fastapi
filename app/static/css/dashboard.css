@@ -290,3 +290,78 @@ table tr.collapse.show{
 .live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#198754;margin-right:4px;animation:live-pulse 1.5s infinite}
 @keyframes live-pulse{50%{opacity:.35;transform:scale(.8)}}
 @media(max-width:576px){.production-card-grid{grid-template-columns:1fr}.production-meta{grid-template-columns:1fr}}
+
+/* Sağ kenardan açılan dashboard dock'u */
+.dashboard-workspace{display:block}
+.dashboard-panel-area{width:100%}
+.stats-grid{
+    position:fixed;
+    z-index:880;
+    top:78px;
+    right:0;
+    display:flex;
+    width:min(230px,calc(100vw - 42px));
+    max-height:calc(100vh - 94px);
+    padding:10px;
+    flex-direction:column;
+    gap:8px;
+    overflow:visible;
+    border:1px solid #e2e8f0;
+    border-right:0;
+    border-radius:16px 0 0 16px;
+    background:rgba(255,255,255,.96);
+    box-shadow:-12px 12px 30px rgba(15,23,42,.16);
+    backdrop-filter:blur(12px);
+    transform:translateX(100%);
+    transition:transform .24s ease;
+}
+.stats-grid.is-open{transform:translateX(0)}
+.dashboard-dock-toggle{
+    position:absolute;
+    top:14px;
+    right:100%;
+    display:grid;
+    place-items:center;
+    width:38px;
+    height:48px;
+    border:1px solid #e2e8f0;
+    border-right:0;
+    border-radius:12px 0 0 12px;
+    background:#fff;
+    color:#2563eb;
+    box-shadow:-5px 5px 14px rgba(15,23,42,.12);
+}
+.stats-grid .stat-card{
+    flex:0 0 auto;
+    width:100%;
+    height:58px;
+    padding:6px;
+    gap:10px;
+    border-radius:12px;
+    scroll-snap-align:none;
+}
+.stats-grid .stat-card:hover{transform:translateX(-3px)}
+.stats-grid .stat-icon{flex:0 0 44px;width:44px;height:44px;border-radius:11px}
+.stats-grid .stat-body{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:8px;flex:1}
+.stats-grid .stat-body span{display:block;overflow:hidden;color:#334155;font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+.stats-grid .stat-body h3{
+    display:block;
+    position:static;
+    min-width:27px;
+    margin:0;
+    padding:3px 6px;
+    border:0;
+    border-radius:999px;
+    background:#e2e8f0;
+    color:#1e293b;
+    font-size:12px;
+    line-height:18px;
+}
+.stats-grid .stat-card::before,.stats-grid .stat-card::after{display:none!important}
+.stats-grid .stat-card-arrow{display:none}
+@media(max-width:767.98px){
+    .stats-grid{top:70px;width:min(225px,calc(100vw - 38px));padding:9px}
+    .stats-grid .stat-card{width:100%;height:56px;padding:6px}
+    .stats-grid .stat-icon{width:42px;height:42px}
+    .dashboard-dock-toggle{top:10px;width:36px;height:46px}
+}
