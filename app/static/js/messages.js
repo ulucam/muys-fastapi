@@ -21,6 +21,15 @@ document.addEventListener("DOMContentLoaded", function () {
         layout.classList.add("chat-open");
         content.scrollTop = content.scrollHeight;
         if (updateHash) history.replaceState(null, "", "#" + button.id);
+        if (source.dataset.lastMessageId) {
+            fetch("/api/mesajlar/" + source.dataset.lastMessageId + "/okundu", {method: "POST", headers: {"Accept": "application/json"}}).then(function (response) {
+                if (!response.ok) return;
+                button.classList.remove("is-unread");
+                const unread = button.querySelector(".chat-unread");
+                if (unread) unread.remove();
+                document.dispatchEvent(new CustomEvent("muys:notifications-refresh"));
+            }).catch(function () {});
+        }
     }
     document.querySelectorAll("[data-chat-open]").forEach(function (button) {
         button.addEventListener("click", function () { openChat(button, true); });
