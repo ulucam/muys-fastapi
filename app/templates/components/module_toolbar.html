@@ -1,0 +1,15 @@
+{% macro panel_button(target, label, icon, color='primary', count=None, active=False) -%}
+<button class="module-tool{% if active %} is-active{% endif %}" type="button"
+        data-module-target="{{ target }}" data-label="{{ label }}" aria-label="{{ label }}"
+        title="{{ label }}" aria-pressed="{{ 'true' if active else 'false' }}">
+    <span class="module-tool-icon bg-{{ color }}"><i class="bi {{ icon }}"></i></span>
+    {% if count is not none %}<span class="module-tool-count">{{ count }}</span>{% endif %}
+</button>
+{%- endmacro %}
+
+{% macro link_button(url, label, icon, color='primary', count=None) -%}
+<a class="module-tool" href="{{ url }}" data-label="{{ label }}" aria-label="{{ label }}" title="{{ label }}">
+    <span class="module-tool-icon bg-{{ color }}"><i class="bi {{ icon }}"></i></span>
+    {% if count is not none %}<span class="module-tool-count">{{ count }}</span>{% endif %}
+</a>
+{%- endmacro %}
