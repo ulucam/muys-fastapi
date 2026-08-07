@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function render(data) {
         badge(notificationBadge, Number(data.okunmamis_bildirim || 0));
         if ("setAppBadge" in navigator) {
-            const total = Number(data.okunmamis_bildirim || 0) + Number(data.okunmamis_mesaj || 0);
+            const total = Number(data.okunmamis_bildirim || 0);
             if (total) navigator.setAppBadge(total).catch(function () {});
             else if ("clearAppBadge" in navigator) navigator.clearAppBadge().catch(function () {});
         }
@@ -42,7 +42,11 @@ document.addEventListener("DOMContentLoaded", function () {
     feed.addEventListener("click", function (event) {
         const link = event.target.closest("[data-notification-id]");
         if (!link) return;
-        fetch("/api/bildirimler/" + link.dataset.notificationId + "/okundu", {method: "POST", keepalive: true, headers: {"Accept": "application/json"}}).catch(function () {});
+        event.preventDefault();
+        const hedef = link.href;
+        fetch("/api/bildirimler/" + link.dataset.notificationId + "/okundu", {method: "POST", headers: {"Accept": "application/json"}})
+            .catch(function () {})
+            .finally(function () { window.location.href = hedef; });
     });
     document.addEventListener("visibilitychange", load);
     document.addEventListener("muys:notifications-refresh", load);
