@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container-fluid py-3 px-0">
     <div class="mb-4"><h3 class="mb-1"><i class="bi bi-chat-dots"></i> Mesajlar</h3><p class="text-muted mb-0">Sistem kullanıcılarıyla güvenli uygulama içi iletişim kurun.</p></div>
-    {% if durum == 'gonderildi' %}<div class="alert alert-success">Mesaj gönderildi.</div>{% elif durum == 'hata' %}<div class="alert alert-danger">Mesaj gönderilemedi. Alıcı, konu ve içeriği kontrol edin.</div>{% endif %}
+    {% if durum in ['gonderildi', 'yanitlandi'] %}<div class="alert alert-success">{{ 'Cevabınız gönderildi.' if durum == 'yanitlandi' else 'Mesaj gönderildi.' }}</div>{% elif durum in ['hata', 'yanit_hata'] %}<div class="alert alert-danger">Mesaj gönderilemedi. Alıcı ve içeriği kontrol edin.</div>{% endif %}
     <div class="module-workspace" data-module-workspace>
         <aside class="module-toolbar" aria-label="Mesaj kutuları">
             {{ panel_button('gelen', 'Gelen Kutusu', 'bi-inbox', 'primary', okunmamis, true) }}
@@ -14,12 +14,13 @@
         <div class="module-panel-area">
             <section class="module-panel is-active" data-module-panel="gelen">
                 <div class="card border-0 shadow-sm"><div class="card-header bg-white py-3"><strong>Gelen Kutusu</strong> <span class="badge bg-primary">{{ okunmamis }} okunmamış</span></div>
-                    <div class="list-group list-group-flush">{% for mesaj in gelen %}{% set gonderen = kullanicilar.get(mesaj.gonderen_id) %}
-                        <article class="list-group-item py-3{% if not mesaj.okundu %} bg-primary-subtle{% endif %}" id="mesaj-{{ mesaj.id }}">
-                            <div class="d-flex justify-content-between gap-3"><div><strong>{{ mesaj.konu }}</strong><div class="small text-muted">{{ gonderen.ad_soyad if gonderen else 'Silinmiş kullanıcı' }} · {{ mesaj.created_at.strftime('%d.%m.%Y %H:%M') }}</div></div>{% if not mesaj.okundu %}<form method="post" action="/mesajlar/{{ mesaj.id }}/okundu"><button class="btn btn-sm btn-outline-primary">Okundu</button></form>{% else %}<span class="badge text-bg-light align-self-start">Okundu</span>{% endif %}</div>
-                            <div class="mt-2 message-content">{{ mesaj.icerik }}</div>
+                    <div class="list-group list-group-flush">{% for konusma in konusmalar %}
+                        <article class="list-group-item py-3{% if konusma.okunmamis %} bg-primary-subtle{% endif %}" id="konusma-{{ konusma.id }}">
+                            <div class="d-flex justify-content-between gap-3 mb-3"><div><strong>{{ konusma.ilk.konu }}</strong><div class="small text-muted">{{ konusma.mesajlar|length }} mesaj · Son hareket {{ konusma.son.created_at.strftime('%d.%m.%Y %H:%M') }}</div></div>{% if konusma.okunmamis %}<form method="post" action="/mesajlar/{{ konusma.son.id }}/okundu"><button class="btn btn-sm btn-outline-primary">Okundu</button></form>{% endif %}</div>
+                            <div class="conversation-thread">{% for mesaj in konusma.mesajlar %}{% set yazar = kullanicilar.get(mesaj.gonderen_id) %}<div class="message-bubble {% if mesaj.gonderen_id == oturum_kullanici_id %}is-sent{% else %}is-received{% endif %}"><div class="message-bubble-meta">{{ yazar.ad_soyad if yazar else 'Silinmiş kullanıcı' }} · {{ mesaj.created_at.strftime('%d.%m.%Y %H:%M') }}</div><div class="message-content">{{ mesaj.icerik }}</div></div>{% endfor %}</div>
+                            <form method="post" action="/mesajlar/{{ konusma.son.id }}/yanitla" class="d-flex gap-2 mt-3"><textarea class="form-control" name="icerik" rows="2" maxlength="5000" placeholder="Cevabınızı yazın..." required></textarea><button class="btn btn-primary align-self-end"><i class="bi bi-reply"></i> Cevapla</button></form>
                         </article>
-                    {% else %}<div class="list-group-item text-center text-muted py-5">Gelen mesaj bulunmuyor.</div>{% endfor %}</div>
+                    {% else %}<div class="list-group-item text-center text-muted py-5">Henüz bir konuşma bulunmuyor.</div>{% endfor %}</div>
                 </div>
             </section>
             <section class="module-panel" data-module-panel="giden" hidden>
