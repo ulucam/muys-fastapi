@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "components/module_toolbar.html" import panel_button %}
+{% block title %}Mesajlar{% endblock %}
+{% block content %}
+<div class="container-fluid py-3 px-0">
+    <div class="mb-4"><h3 class="mb-1"><i class="bi bi-chat-dots"></i> Mesajlar</h3><p class="text-muted mb-0">Sistem kullanıcılarıyla güvenli uygulama içi iletişim kurun.</p></div>
+    {% if durum == 'gonderildi' %}<div class="alert alert-success">Mesaj gönderildi.</div>{% elif durum == 'hata' %}<div class="alert alert-danger">Mesaj gönderilemedi. Alıcı, konu ve içeriği kontrol edin.</div>{% endif %}
+    <div class="module-workspace" data-module-workspace>
+        <aside class="module-toolbar" aria-label="Mesaj kutuları">
+            {{ panel_button('gelen', 'Gelen Kutusu', 'bi-inbox', 'primary', okunmamis, true) }}
+            {{ panel_button('giden', 'Gönderilenler', 'bi-send', 'success', giden|length) }}
+            {{ panel_button('yeni', 'Yeni Mesaj', 'bi-pencil-square', 'dark') }}
+        </aside>
+        <div class="module-panel-area">
+            <section class="module-panel is-active" data-module-panel="gelen">
+                <div class="card border-0 shadow-sm"><div class="card-header bg-white py-3"><strong>Gelen Kutusu</strong> <span class="badge bg-primary">{{ okunmamis }} okunmamış</span></div>
+                    <div class="list-group list-group-flush">{% for mesaj in gelen %}{% set gonderen = kullanicilar.get(mesaj.gonderen_id) %}
+                        <article class="list-group-item py-3{% if not mesaj.okundu %} bg-primary-subtle{% endif %}" id="mesaj-{{ mesaj.id }}">
+                            <div class="d-flex justify-content-between gap-3"><div><strong>{{ mesaj.konu }}</strong><div class="small text-muted">{{ gonderen.ad_soyad if gonderen else 'Silinmiş kullanıcı' }} · {{ mesaj.created_at.strftime('%d.%m.%Y %H:%M') }}</div></div>{% if not mesaj.okundu %}<form method="post" action="/mesajlar/{{ mesaj.id }}/okundu"><button class="btn btn-sm btn-outline-primary">Okundu</button></form>{% else %}<span class="badge text-bg-light align-self-start">Okundu</span>{% endif %}</div>
+                            <div class="mt-2 message-content">{{ mesaj.icerik }}</div>
+                        </article>
+                    {% else %}<div class="list-group-item text-center text-muted py-5">Gelen mesaj bulunmuyor.</div>{% endfor %}</div>
+                </div>
+            </section>
+            <section class="module-panel" data-module-panel="giden" hidden>
+                <div class="card border-0 shadow-sm"><div class="card-header bg-white py-3"><strong>Gönderilenler</strong></div>
+                    <div class="list-group list-group-flush">{% for mesaj in giden %}{% set alici = kullanicilar.get(mesaj.alici_id) %}<article class="list-group-item py-3"><strong>{{ mesaj.konu }}</strong><div class="small text-muted">{{ alici.ad_soyad if alici else 'Silinmiş kullanıcı' }} · {{ mesaj.created_at.strftime('%d.%m.%Y %H:%M') }} · {{ 'Okundu' if mesaj.okundu else 'Bekliyor' }}</div><div class="mt-2 message-content">{{ mesaj.icerik }}</div></article>{% else %}<div class="list-group-item text-center text-muted py-5">Gönderilmiş mesaj bulunmuyor.</div>{% endfor %}</div>
+                </div>
+            </section>
+            <section class="module-panel" data-module-panel="yeni" hidden>
+                <div class="card border-0 shadow-sm"><div class="card-header bg-white py-3"><strong>Yeni Mesaj</strong></div><div class="card-body">
+                    <form method="post" action="/mesajlar/gonder" class="row g-3">
+                        <div class="col-12 col-md-5"><label class="form-label">Alıcı</label><select class="form-select" name="alici_id" required><option value="">Kullanıcı seçin</option>{% for kullanici in alici_secenekleri %}<option value="{{ kullanici.id }}">{{ kullanici.ad_soyad }} · {{ kullanici.rol }}</option>{% endfor %}</select></div>
+                        <div class="col-12 col-md-7"><label class="form-label">Konu</label><input class="form-control" name="konu" maxlength="150" required></div>
+                        <div class="col-12"><label class="form-label">Mesaj</label><textarea class="form-control" name="icerik" rows="8" maxlength="5000" required></textarea><div class="form-text">En fazla 5000 karakter.</div></div>
+                        <div class="col-12 text-end"><button class="btn btn-success"><i class="bi bi-send me-1"></i> Mesajı Gönder</button></div>
+                    </form>
+                </div></div>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}
