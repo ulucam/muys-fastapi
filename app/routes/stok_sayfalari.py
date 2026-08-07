@@ -65,8 +65,8 @@ def urunler_eski_adres(yetki=Depends(yetki_kontrol(STOK))):
 def urun_kaydet(
     kodu: str = Form(""), adi: str = Form(""), stok_urun_turu_id: int = Form(...),
     stok_urun_sinifi_id: int | None = Form(None), birim: str = Form("Adet"),
-    marka: str = Form(""), model: str = Form(""), mevcut_stok: float = Form(0),
-    min_stok: float = Form(0), urun_id: int | None = Form(None),
+    marka: str = Form(""), model: str = Form(""), mevcut_stok: int = Form(0),
+    min_stok: int = Form(0), urun_id: int | None = Form(None),
     db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK)),
 ):
     try:
@@ -160,10 +160,12 @@ async def stok_urunlerini_toplu_guncelle_route(request: Request, db: Session = D
 def uretim_recetesi_kaydet(urun_id: int = Form(...), tahmini_uretim_suresi: float = Form(0), aciklama: str = Form(""),
     db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
     try:
-        recete_kaydet(db, urun_id, tahmini_uretim_suresi, aciklama)
+        recete, mevcut_recete = recete_kaydet(db, urun_id, tahmini_uretim_suresi, aciklama)
     except ValueError:
         return RedirectResponse("/receteler?error=recete#module-uretim-receteleri", status_code=303)
-    return RedirectResponse("/receteler#module-uretim-receteleri", status_code=303)
+    if mevcut_recete:
+        return RedirectResponse(f"/receteler/{recete.id}/duzenle?mevcut=1", status_code=303)
+    return RedirectResponse(f"/receteler/{recete.id}/duzenle", status_code=303)
 
 
 @router.get("/receteler/{recete_id}/duzenle", response_class=HTMLResponse)
@@ -217,7 +219,7 @@ def uretim_recetesi_asama_sil(recete_id: int, asama_id: int, db: Session = Depen
 
 
 @router.post("/receteler/asama/{asama_id}/malzeme")
-def uretim_asama_malzeme_kaydet(asama_id: int, malzeme_id: int = Form(...), miktar: float = Form(...),
+def uretim_asama_malzeme_kaydet(asama_id: int, malzeme_id: int = Form(...), miktar: int = Form(...),
     birim: str = Form("Adet"), fire_orani: float = Form(0), donus_recete_id: int | None = Form(None), db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(STOK))):
     try:
