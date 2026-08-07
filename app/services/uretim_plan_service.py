@@ -22,19 +22,34 @@ def uretim_tanim_verisi(db: Session) -> dict:
         "recete_asamalari": asamalar,
         "asama_malzemeleri": malzemeler,
         "tum_urunler": db.query(Urun).filter(Urun.aktif.is_(True)).order_by(Urun.adi).all(),
+        "uretilebilir_urunler": db.query(Urun).filter(
+            Urun.aktif.is_(True), Urun.urun_tipi.in_(("YariMamul", "Mamul"))
+        ).order_by(Urun.adi).all(),
         "aktif_istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.adi).all(),
         "urun_haritasi": {u.id: u for u in db.query(Urun).all()},
         "istasyon_haritasi": {i.id: i for i in db.query(Istasyon).all()},
+        "siradaki_recete_no": _siradaki_recete_no(db),
     }
 
 
-def recete_kaydet(db: Session, urun_id: int, recete_no: str, aciklama: str = "") -> Recete:
+def _siradaki_recete_no(db: Session) -> str:
+    numaralar = []
+    for (recete_no,) in db.query(Recete.recete_no).all():
+        if recete_no and recete_no.startswith("RCT") and recete_no[3:].isdigit():
+            numaralar.append(int(recete_no[3:]))
+    sira = max(numaralar, default=0) + 1
+    recete_no = f"RCT{sira:06d}"
+    while db.query(Recete.id).filter(Recete.recete_no == recete_no).first():
+        sira += 1
+        recete_no = f"RCT{sira:06d}"
+    return recete_no
+
+
+def recete_kaydet(db: Session, urun_id: int, aciklama: str = "") -> Recete:
     urun = db.query(Urun).filter(Urun.id == urun_id, Urun.aktif.is_(True)).first()
-    recete_no = recete_no.strip()
-    if not urun or not recete_no:
-        raise ValueError("Ürün ve reçete numarası zorunludur")
-    if db.query(Recete).filter(Recete.recete_no == recete_no).first():
-        raise ValueError("Reçete numarası kullanılıyor")
+    if not urun or urun.urun_tipi not in {"YariMamul", "Mamul"}:
+        raise ValueError("Reçete çıktısı yarı mamul veya mamul olmalıdır")
+    recete_no = _siradaki_recete_no(db)
     recete = Recete(urun_id=urun.id, recete_no=recete_no[:50], aciklama=aciklama.strip()[:250], aktif=True)
     db.add(recete); db.commit()
     return recete
