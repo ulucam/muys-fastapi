@@ -43,7 +43,7 @@ class Urun(Base):
     urun_tipi = Column(
         String(30),
         nullable=False,
-        default="Mamul"
+        default=""
     )
 
 
