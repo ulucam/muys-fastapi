@@ -21,6 +21,25 @@ def hammaddeleri_listele(db: Session):
     )
 
 
+def hammaddeleri_filtrele(db: Session, arama: str = "", urun_id: int | None = None, tur_id: int | None = None, sinif_id: int | None = None):
+    """Reçeteler ekranındaki stok kartlarını kayıtlı tür/sınıf değerleriyle süzer."""
+    sorgu = (
+        db.query(Urun)
+        .join(StokUrunTuru, StokUrunTuru.id == Urun.stok_urun_turu_id)
+        .filter(StokUrunTuru.uretilen.is_(False))
+    )
+    if arama.strip():
+        desen = f"%{arama.strip()}%"
+        sorgu = sorgu.filter((Urun.kodu.ilike(desen)) | (Urun.adi.ilike(desen)))
+    if urun_id:
+        sorgu = sorgu.filter(Urun.id == urun_id)
+    if tur_id:
+        sorgu = sorgu.filter(Urun.stok_urun_turu_id == tur_id)
+    if sinif_id:
+        sorgu = sorgu.filter(Urun.stok_urun_sinifi_id == sinif_id)
+    return sorgu.order_by(Urun.kodu).all()
+
+
 def stok_tanimlari(db: Session):
     return (
         db.query(StokUrunTuru).filter(StokUrunTuru.uretilen.is_(False), StokUrunTuru.aktif.is_(True)).order_by(StokUrunTuru.adi).all(),
@@ -84,6 +103,48 @@ def stok_urunu_kaydet(
     urun.mevcut_stok, urun.min_stok = mevcut_stok, min_stok
     db.add(urun); db.commit()
     return urun
+
+
+def stok_urunlerini_toplu_guncelle(db: Session, form) -> int:
+    """Yalnızca kullanıcı tarafından açılmış stok kartlarını tek işlemde günceller."""
+    try:
+        urun_idleri = {int(urun_id) for urun_id in form.getlist("urun_idleri")}
+        if not urun_idleri:
+            raise ValueError("Güncellenecek açık kart bulunamadı")
+        guncellenen = 0
+        for urun_id in urun_idleri:
+            onek = f"urun_{urun_id}_"
+            urun = db.query(Urun).filter(Urun.id == urun_id).first()
+            tur_id = int(form.get(f"{onek}tur_id") or 0)
+            sinif_degeri = form.get(f"{onek}sinif_id")
+            sinif_id = int(sinif_degeri) if sinif_degeri else None
+            tur = db.query(StokUrunTuru).filter(
+                StokUrunTuru.id == tur_id, StokUrunTuru.aktif.is_(True), StokUrunTuru.uretilen.is_(False)
+            ).first()
+            sinif = db.query(StokUrunSinifi).filter(StokUrunSinifi.id == sinif_id, StokUrunSinifi.aktif.is_(True)).first() if sinif_id else None
+            kodu, adi = str(form.get(f"{onek}kodu") or "").strip(), str(form.get(f"{onek}adi") or "").strip()
+            if not urun or not kodu or not adi or not tur or (sinif_id and not sinif):
+                raise ValueError("Açık kartlardaki zorunlu alanları kontrol edin")
+            cakisan = db.query(Urun).filter(Urun.kodu == kodu, Urun.id != urun.id).first()
+            if cakisan:
+                raise ValueError(f"{kodu} stok kodu başka bir üründe kullanılıyor")
+            birim = str(form.get(f"{onek}birim") or "").strip()
+            if birim not in {"Adet", "Kg"}:
+                raise ValueError("Birim Adet veya Kg olmalıdır")
+            urun.kodu, urun.adi = kodu, adi
+            urun.stok_urun_turu_id, urun.stok_urun_sinifi_id = tur.id, sinif.id if sinif else None
+            urun.marka, urun.model, urun.birim = str(form.get(f"{onek}marka") or "").strip(), str(form.get(f"{onek}model") or "").strip(), birim
+            urun.mevcut_stok = float(form.get(f"{onek}mevcut_stok") or 0)
+            urun.min_stok = float(form.get(f"{onek}min_stok") or 0)
+            guncellenen += 1
+        db.commit()
+        return guncellenen
+    except (TypeError, ValueError):
+        db.rollback()
+        raise ValueError("Kart değerlerini ve sayısal alanları kontrol edin")
+    except Exception:
+        db.rollback()
+        raise
 
 
 def stok_turu_kaydet(db: Session, adi: str, tur_id: int | None = None):
