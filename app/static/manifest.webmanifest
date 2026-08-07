@@ -1,0 +1,14 @@
+{
+  "id": "/",
+  "name": "MÜYS - Üretim Yönetim Sistemi",
+  "short_name": "MÜYS",
+  "description": "Üretim, sipariş ve stok yönetim sistemi",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#1f4e78",
+  "icons": [
+    {"src": "/static/img/logo_menu.png", "sizes": "any", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
