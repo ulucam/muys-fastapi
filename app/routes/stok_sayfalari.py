@@ -124,10 +124,10 @@ def receteler(request: Request, error: str | None = None, db: Session = Depends(
 
 
 @router.post("/receteler/kaydet")
-def uretim_recetesi_kaydet(urun_id: int = Form(...), recete_no: str = Form(""), aciklama: str = Form(""),
+def uretim_recetesi_kaydet(urun_id: int = Form(...), aciklama: str = Form(""),
     db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
     try:
-        recete_kaydet(db, urun_id, recete_no, aciklama)
+        recete_kaydet(db, urun_id, aciklama)
     except ValueError:
         return RedirectResponse("/receteler?error=recete#module-uretim-receteleri", status_code=303)
     return RedirectResponse("/receteler#module-uretim-receteleri", status_code=303)
