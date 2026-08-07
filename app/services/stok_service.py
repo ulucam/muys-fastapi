@@ -23,15 +23,15 @@ def hammaddeleri_listele(db: Session):
 
 def stok_tanimlari(db: Session):
     return (
-        db.query(StokUrunTuru).filter(StokUrunTuru.uretilen.is_(False)).order_by(StokUrunTuru.adi).all(),
-        db.query(StokUrunSinifi).order_by(StokUrunSinifi.adi).all(),
+        db.query(StokUrunTuru).filter(StokUrunTuru.uretilen.is_(False), StokUrunTuru.aktif.is_(True)).order_by(StokUrunTuru.adi).all(),
+        db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).order_by(StokUrunSinifi.adi).all(),
     )
 
 
 def stok_tum_tanimlari(db: Session):
     return (
-        db.query(StokUrunTuru).order_by(StokUrunTuru.adi).all(),
-        db.query(StokUrunSinifi).order_by(StokUrunSinifi.adi).all(),
+        db.query(StokUrunTuru).filter(StokUrunTuru.aktif.is_(True)).order_by(StokUrunTuru.adi).all(),
+        db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).order_by(StokUrunSinifi.adi).all(),
     )
 
 
@@ -90,9 +90,9 @@ def stok_turu_kaydet(db: Session, adi: str, tur_id: int | None = None):
     if tur_id and not tur:
         raise ValueError("Güncellenecek tür bulunamadı")
     cakisan = next((kayit for kayit in db.query(StokUrunTuru).all() if kayit.id != (tur.id if tur else 0) and kayit.adi.casefold() == temiz_ad.casefold()), None)
-    if not temiz_ad or cakisan:
+    if not temiz_ad or (cakisan and (tur is not None or cakisan.aktif)):
         raise ValueError("Tür adı zorunludur ve benzersiz olmalıdır")
-    tur = tur or StokUrunTuru(uretilen=False)
+    tur = tur or cakisan or StokUrunTuru(uretilen=False)
     tur.adi, tur.aktif = temiz_ad, True
     db.add(tur); db.commit()
     return tur
@@ -104,9 +104,9 @@ def stok_sinifi_kaydet(db: Session, adi: str, sinif_id: int | None = None):
     if sinif_id and not sinif:
         raise ValueError("Güncellenecek sınıf bulunamadı")
     cakisan = next((kayit for kayit in db.query(StokUrunSinifi).all() if kayit.id != (sinif.id if sinif else 0) and kayit.adi.casefold() == temiz_ad.casefold()), None)
-    if not temiz_ad or cakisan:
+    if not temiz_ad or (cakisan and (sinif is not None or cakisan.aktif)):
         raise ValueError("Sınıf adı zorunludur ve benzersiz olmalıdır")
-    sinif = sinif or StokUrunSinifi()
+    sinif = sinif or cakisan or StokUrunSinifi()
     sinif.adi, sinif.aktif = temiz_ad, True
     db.add(sinif); db.commit()
     return sinif
@@ -121,7 +121,7 @@ def stok_turu_sil(db: Session, tur_id: int, urunlerden_kaldir: bool = False) -> 
         raise ValueError("Tür ürünlerde kullanılıyor")
     for urun in urunler:
         urun.stok_urun_turu_id = None
-    db.delete(tur)
+    tur.aktif = False
     db.commit()
     return len(urunler)
 
@@ -135,7 +135,7 @@ def stok_sinifi_sil(db: Session, sinif_id: int, urunlerden_kaldir: bool = False)
         raise ValueError("Sınıf ürünlerde kullanılıyor")
     for urun in urunler:
         urun.stok_urun_sinifi_id = None
-    db.delete(sinif)
+    sinif.aktif = False
     db.commit()
     return len(urunler)
 
