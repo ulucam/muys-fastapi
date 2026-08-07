@@ -103,12 +103,10 @@ def mesaji_yanitla(db: Session, kullanici_id: int, mesaj_id: int, icerik: str):
 def mesaj_kutulari(db: Session, kullanici_id: int) -> dict:
     kullanicilar = {k.id: k for k in db.query(User).all()}
     gelen = db.query(Mesaj).filter(Mesaj.alici_id == kullanici_id, Mesaj.alici_sildi.is_(False)).order_by(Mesaj.created_at.desc()).limit(200).all()
-    giden = db.query(Mesaj).filter(Mesaj.gonderen_id == kullanici_id, Mesaj.gonderen_sildi.is_(False)).order_by(Mesaj.created_at.desc()).limit(200).all()
     teslim_mesaj_idleri = {x.mesaj_id for x in db.query(MesajAlici).filter(MesajAlici.kullanici_id == kullanici_id).all()}
     tumu = db.query(Mesaj).filter(or_(Mesaj.gonderen_id == kullanici_id, Mesaj.alici_id == kullanici_id, Mesaj.id.in_(teslim_mesaj_idleri or {-1}))).order_by(Mesaj.created_at).limit(500).all()
     gruplar = {}
     silinen_konusmalar = {x.konusma_id for x in db.query(MesajSilme).filter(MesajSilme.kullanici_id == kullanici_id).all()}
-    giden = [mesaj for mesaj in giden if (mesaj.konusma_id or mesaj.id) not in silinen_konusmalar]
     for mesaj in tumu:
         konusma_id = mesaj.konusma_id or mesaj.id
         if konusma_id not in silinen_konusmalar:
@@ -119,7 +117,7 @@ def mesaj_kutulari(db: Session, kullanici_id: int) -> dict:
     } for konusma_id, mesajlar in gruplar.items()]
     konusmalar.sort(key=lambda kayit: kayit["son"].created_at, reverse=True)
     okunmamis = db.query(MesajAlici).filter(MesajAlici.kullanici_id == kullanici_id, MesajAlici.okundu.is_(False)).count()
-    return {"gelen": gelen, "giden": giden, "konusmalar": konusmalar, "kullanicilar": kullanicilar, "okunmamis": okunmamis}
+    return {"gelen": gelen, "konusmalar": konusmalar, "kullanicilar": kullanicilar, "okunmamis": okunmamis}
 
 
 def konusmayi_sil(db: Session, konusma_id: int, kullanici_id: int) -> str:
