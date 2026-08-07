@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 ILLER_DOSYASI = Path(__file__).resolve().parent.parent / "data" / "iller.js"
 MUSTERI_SUTUNLARI = ["Firma Adı", "Yetkili", "Telefon", "E-Posta", "Vergi Dairesi", "Vergi No", "İl", "İlçe", "Müşteri Türü", "Adres", "Açıklama", "Durum"]
 TURLER = ["Alıcı", "Tedarikçi", "Satıcı"]
-URUN_SUTUNLARI = ["Ürün Kodu", "Ürün Adı", "Marka", "Model", "Ürün Türü", "Ürün Sınıfı", "Ürün Cinsi", "Birim", "Mevcut Stok", "Min. Stok", "Max. Stok", "Maliyet", "Satış Fiyatı", "Açıklama", "Durum"]
+URUN_SUTUNLARI = ["Ürün Kodu", "Ürün Adı", "Marka", "Model", "Ürün Türü", "Ürün Sınıfı", "Ürün Cinsi", "İstasyon Kodları", "Birim", "Mevcut Stok", "Min. Stok", "Max. Stok", "Maliyet", "Satış Fiyatı", "Açıklama", "Durum"]
+ESKI_URUN_SUTUNLARI = [sutun for sutun in URUN_SUTUNLARI if sutun != "İstasyon Kodları"]
 PERSONEL_SUTUNLARI = ["Ad Soyad", "İstasyon Kodları", "Görev", "Durum"]
 ISTASYON_SUTUNLARI = ["İstasyon Kodu", "İstasyon Adı", "Bölüm", "Açıklama", "Durum"]
 MAKINE_SUTUNLARI = ["Makine Kodu", "Makine Adı", "İstasyon Kodu", "Model", "Kapasite", "Durum"]
@@ -111,13 +112,15 @@ def excel_satirlarini_oku(dosya_icerigi):
     if urun_sayfa_adi:
         stok_sayfasi = kitap[urun_sayfa_adi]
         stok_basliklari = [metin(hucre.value) for hucre in stok_sayfasi[1]]
-        if stok_basliklari[:len(URUN_SUTUNLARI)] != URUN_SUTUNLARI:
+        urun_sutunlari = URUN_SUTUNLARI if stok_basliklari[:len(URUN_SUTUNLARI)] == URUN_SUTUNLARI else ESKI_URUN_SUTUNLARI
+        if stok_basliklari[:len(urun_sutunlari)] != urun_sutunlari:
             hatalar.append(f"{urun_sayfa_adi} sayfasındaki sütun başlıkları taslakla uyuşmuyor.")
         else:
             for sira, satir in enumerate(stok_sayfasi.iter_rows(min_row=2, values_only=True), start=2):
                 if not any(satir):
                     continue
-                veri = dict(zip(URUN_SUTUNLARI, satir))
+                veri = dict(zip(urun_sutunlari, satir))
+                veri.setdefault("İstasyon Kodları", "")
                 satir_hatalari = []
                 kod, ad = metin(veri["Ürün Kodu"]), metin(veri["Ürün Adı"])
                 urun_turu, birim = metin(veri["Ürün Türü"]), metin(veri["Birim"])
@@ -134,6 +137,7 @@ def excel_satirlarini_oku(dosya_icerigi):
                     "kodu": kod, "adi": ad, "marka": metin(veri["Marka"]), "model": metin(veri["Model"]), "urun_tipi": "Hammadde",
                         "stok_turu_adi": urun_turu, "stok_sinifi_adi": metin(veri["Ürün Sınıfı"]),
                         "urun_cinsi": metin(veri["Ürün Cinsi"]),
+                        "istasyon_kodlari": metin(veri["İstasyon Kodları"]),
                         "birim": birim or "Adet",
                         "mevcut_stok": sayi(veri["Mevcut Stok"], "Mevcut stok"),
                         "min_stok": sayi(veri["Min. Stok"], "Min. stok"),
@@ -201,12 +205,13 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
     mevcut_makineler = sablon_verisi["makineler"]
     mevcut_stok_turleri = sablon_verisi.get("stok_turleri", [])
     mevcut_stok_siniflari = sablon_verisi.get("stok_siniflari", [])
+    urun_istasyon_kodlari = sablon_verisi.get("urun_istasyon_kodlari", {})
     kitap = openpyxl.Workbook()
     sistem = kitap.active
     sistem.title = "Sistem Bilgileri"
     sistem.append(["MÜYS Excel Aktarım ve Dışa Aktarma"])
     sistem.append(["Açıklama", "Firma, müşteri, stok ve üretim ana verileri ayrı sayfalarda yer alır."])
-    sistem.append(["Kurallar", "Personel Listesi'nde istasyon kodunu açılır listeden seçin. Birden fazla istasyon için kodları virgülle ayırın: KESIM, BUKUM."])
+    sistem.append(["Kurallar", "Personel ve hammadde sayfalarında birden fazla istasyon kodunu virgülle ayırın: KESIM, BUKUM."])
     sistem.append(["Dışa Aktarım Tarihi", datetime.now().strftime("%d.%m.%Y %H:%M")])
     sistem.append(["Sistem", "MÜYS v0.1.1 / FastAPI / SQLite"])
     sistem.append(["Kayıt Özeti", f"{len(mevcut_musteriler)} müşteri, {len(mevcut_urunler)} stok ürünü, {len(mevcut_personeller)} personel, {len(mevcut_istasyonlar)} istasyon, {len(mevcut_makineler)} makine"])
@@ -265,7 +270,8 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
     for urun in aktarilacak_urunler:
         stok.append([
             urun.kodu, urun.adi, urun.marka or "", urun.model or "", stok_tur_adlari.get(urun.stok_urun_turu_id, "Hammadde"),
-            stok_sinif_adlari.get(urun.stok_urun_sinifi_id, ""), urun.urun_cinsi or "", urun.birim or "Adet",
+            stok_sinif_adlari.get(urun.stok_urun_sinifi_id, ""), urun.urun_cinsi or "",
+            ", ".join(urun_istasyon_kodlari.get(urun.id, [])), urun.birim or "Adet",
             urun.mevcut_stok or 0, urun.min_stok or 0, urun.max_stok or 0,
             urun.maliyet or 0, urun.satis_fiyati or 0, urun.aciklama or "",
             "Aktif" if urun.aktif else "Pasif",
@@ -276,7 +282,7 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
     for hucre in stok[1]:
         hucre.font = openpyxl.styles.Font(bold=True, color="FFFFFF")
         hucre.fill = openpyxl.styles.PatternFill("solid", fgColor="1F4E78")
-    for sutun, genislik in zip("ABCDEFGHIJKLMNO", [18, 32, 20, 20, 20, 22, 22, 14, 16, 16, 16, 14, 16, 36, 12]):
+    for sutun, genislik in zip("ABCDEFGHIJKLMNOP", [18, 32, 20, 20, 20, 22, 22, 24, 14, 16, 16, 16, 14, 16, 36, 12]):
         stok.column_dimensions[sutun].width = genislik
 
     listeler = kitap.create_sheet("Listeler")
@@ -305,7 +311,7 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
     for formül, alan, bos_birakilabilir in [
         (f"'Listeler'!$D$2:$D${max(2, len(tur_listesi) + 1)}", f"E2:E{stok_son_satir}", False),
         (f"'Listeler'!$E$2:$E${max(2, len(sinif_listesi) + 1)}", f"F2:F{stok_son_satir}", True),
-        ("'Listeler'!$F$2:$F$3", f"O2:O{stok_son_satir}", False),
+        ("'Listeler'!$F$2:$F$3", f"P2:P{stok_son_satir}", False),
     ]:
         dogrulama = DataValidation(type="list", formula1=formül, allow_blank=bos_birakilabilir)
         stok.add_data_validation(dogrulama)
@@ -321,6 +327,9 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
     istasyon_dogrulamasi = DataValidation(type="list", formula1=f"'Listeler'!$G$2:$G${max(2, len(istasyon_listesi) + 1)}", allow_blank=True)
     kitap["Personel Listesi"].add_data_validation(istasyon_dogrulamasi)
     istasyon_dogrulamasi.add("B2:B1000")
+    urun_istasyon_dogrulamasi = DataValidation(type="list", formula1=f"'Listeler'!$G$2:$G${max(2, len(istasyon_listesi) + 1)}", allow_blank=True)
+    stok.add_data_validation(urun_istasyon_dogrulamasi)
+    urun_istasyon_dogrulamasi.add(f"H2:H{stok_son_satir}")
 
     # Gizli yardımcı liste sayfasından sonra da olsa ürün sayfasını çalışma
     # kitabındaki mutlak son sekme yap.
