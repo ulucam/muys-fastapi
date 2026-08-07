@@ -64,6 +64,8 @@ def stok_urunu_kaydet(
     birim: str, marka: str = "", model: str = "", mevcut_stok: float = 0,
     min_stok: float = 0, urun_id: int | None = None,
 ):
+    if birim.strip() not in {"Adet", "Kg"}:
+        raise ValueError("Birim Adet veya Kg olmalıdır")
     tur = db.query(StokUrunTuru).filter(StokUrunTuru.id == tur_id, StokUrunTuru.aktif.is_(True), StokUrunTuru.uretilen.is_(False)).first()
     sinif = db.query(StokUrunSinifi).filter(StokUrunSinifi.id == sinif_id, StokUrunSinifi.aktif.is_(True)).first() if sinif_id else None
     if db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).count() == 0:
@@ -77,7 +79,7 @@ def stok_urunu_kaydet(
     urun = urun or Urun(kodu=kodu.strip())
     urun.kodu = kodu.strip()
     urun.adi, urun.stok_urun_turu_id, urun.stok_urun_sinifi_id = adi.strip(), tur.id, sinif.id if sinif else None
-    urun.urun_tipi, urun.birim, urun.aktif = ("YariMamul" if tur.uretilen else "Hammadde"), birim.strip() or "Adet", True
+    urun.urun_tipi, urun.birim, urun.aktif = ("YariMamul" if tur.uretilen else "Hammadde"), birim.strip(), True
     urun.marka, urun.model = marka.strip(), model.strip()
     urun.mevcut_stok, urun.min_stok = mevcut_stok, min_stok
     db.add(urun); db.commit()
