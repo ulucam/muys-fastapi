@@ -80,11 +80,13 @@ def stok_kurulum_durumu(db: Session) -> dict:
 
 def stok_urunu_kaydet(
     db: Session, kodu: str, adi: str, tur_id: int, sinif_id: int | None,
-    birim: str, marka: str = "", model: str = "", mevcut_stok: float = 0,
-    min_stok: float = 0, urun_id: int | None = None,
+    birim: str, marka: str = "", model: str = "", mevcut_stok: int = 0,
+    min_stok: int = 0, urun_id: int | None = None,
 ):
     if birim.strip() not in {"Adet", "Kg"}:
         raise ValueError("Birim Adet veya Kg olmalıdır")
+    if int(mevcut_stok) != mevcut_stok or int(min_stok) != min_stok:
+        raise ValueError("Stok miktarları tam sayı olmalıdır")
     tur = db.query(StokUrunTuru).filter(StokUrunTuru.id == tur_id, StokUrunTuru.aktif.is_(True)).first()
     sinif = db.query(StokUrunSinifi).filter(StokUrunSinifi.id == sinif_id, StokUrunSinifi.aktif.is_(True)).first() if sinif_id else None
     if db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).count() == 0:
@@ -105,7 +107,8 @@ def stok_urunu_kaydet(
     urun = urun or Urun(kodu=kodu.strip())
     urun.kodu = kodu.strip()
     urun.adi, urun.stok_urun_turu_id, urun.stok_urun_sinifi_id = adi.strip(), tur.id, sinif.id if sinif else None
-    urun_tipi = "YariMamul" if tur.uretilen else ("TicariMamul" if "ticari" in tur.adi.casefold() else "Hammadde")
+    from app.product_types import urun_turunu_normalize_et
+    urun_tipi = "Yarı Mamül" if tur.uretilen else (urun_turunu_normalize_et(tur.adi) or "Hammadde")
     urun.urun_tipi, urun.birim, urun.aktif = urun_tipi, birim.strip(), True
     urun.marka, urun.model = marka.strip(), model.strip()
     urun.mevcut_stok, urun.min_stok = mevcut_stok, min_stok
@@ -142,8 +145,8 @@ def stok_urunlerini_toplu_guncelle(db: Session, form) -> int:
             urun.kodu, urun.adi = kodu, adi
             urun.stok_urun_turu_id, urun.stok_urun_sinifi_id = tur.id, sinif.id if sinif else None
             urun.marka, urun.model, urun.birim = str(form.get(f"{onek}marka") or "").strip(), str(form.get(f"{onek}model") or "").strip(), birim
-            urun.mevcut_stok = float(form.get(f"{onek}mevcut_stok") or 0)
-            urun.min_stok = float(form.get(f"{onek}min_stok") or 0)
+            urun.mevcut_stok = int(form.get(f"{onek}mevcut_stok") or 0)
+            urun.min_stok = int(form.get(f"{onek}min_stok") or 0)
             guncellenen += 1
         db.commit()
         return guncellenen
