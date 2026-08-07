@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models.bildirim import Bildirim
 from app.models.mesaj import Mesaj
+from app.models.mesaj_konusu import MesajAlici, MesajKonusu, MesajKonusuYetkili
 from app.models.user import User
 
 
@@ -18,27 +19,66 @@ def bildirim_olustur(db: Session, kullanici_id: int, baslik: str, mesaj: str, tu
     return bildirim
 
 
-def mesaj_gonder(db: Session, gonderen_id: int, alici_id: int, konu: str, icerik: str):
-    konu, icerik = konu.strip(), icerik.strip()
+def mesaj_konulari_verisi(db: Session) -> dict:
+    konular = db.query(MesajKonusu).filter(MesajKonusu.aktif.is_(True)).order_by(MesajKonusu.adi).all()
+    yetkililer = {}
+    for kayit in db.query(MesajKonusuYetkili).all():
+        yetkililer.setdefault(kayit.konu_id, set()).add(kayit.kullanici_id)
+    return {"mesaj_konulari": konular, "mesaj_konu_haritasi": {konu.id: konu for konu in konular}, "konu_yetkilileri": yetkililer}
+
+
+def mesaj_konusu_kaydet(db: Session, konu_id: int | None, adi: str, renk: str, kullanici_idleri) -> MesajKonusu:
+    adi = adi.strip()
+    if not adi or len(adi) > 80:
+        raise ValueError("Konu adı geçersiz")
+    konu = db.query(MesajKonusu).filter(MesajKonusu.id == konu_id).first() if konu_id else MesajKonusu()
+    if konu_id and not konu:
+        raise ValueError("Konu bulunamadı")
+    cakisan = db.query(MesajKonusu).filter(MesajKonusu.adi == adi, MesajKonusu.id != (konu.id or 0)).first()
+    if cakisan:
+        raise ValueError("Konu adı kullanılıyor")
+    konu.adi, konu.renk, konu.aktif = adi, renk if renk in {"primary", "info", "warning", "success", "danger", "dark"} else "primary", True
+    db.add(konu); db.flush()
+    secilenler = {int(x) for x in kullanici_idleri if str(x).isdigit()}
+    db.query(MesajKonusuYetkili).filter(MesajKonusuYetkili.konu_id == konu.id).delete(synchronize_session=False)
+    for kullanici_id in secilenler:
+        db.add(MesajKonusuYetkili(konu_id=konu.id, kullanici_id=kullanici_id))
+    db.commit()
+    return konu
+
+
+def _alici_kayitlarini_ekle(db: Session, mesaj: Mesaj, kullanici_idleri: set[int]) -> None:
+    for kullanici_id in kullanici_idleri - {mesaj.gonderen_id}:
+        db.add(MesajAlici(mesaj_id=mesaj.id, kullanici_id=kullanici_id))
+
+
+def mesaj_gonder(db: Session, gonderen_id: int, alici_id: int, konu_id: int, baslik: str, icerik: str):
+    baslik, icerik = baslik.strip(), icerik.strip()
     alici = db.query(User).filter(User.id == alici_id, User.aktif.is_(True)).first()
     gonderen = db.query(User).filter(User.id == gonderen_id, User.aktif.is_(True)).first()
+    mesaj_konusu = db.query(MesajKonusu).filter(MesajKonusu.id == konu_id, MesajKonusu.aktif.is_(True)).first()
     if not alici or not gonderen or alici.id == gonderen.id:
         raise ValueError("Geçerli bir alıcı seçin")
-    if not konu or not icerik or len(konu) > 150 or len(icerik) > 5000:
+    if not mesaj_konusu or not baslik or not icerik or len(baslik) > 150 or len(icerik) > 5000:
         raise ValueError("Konu ve mesaj zorunludur; mesaj en fazla 5000 karakter olabilir")
-    mesaj = Mesaj(gonderen_id=gonderen.id, alici_id=alici.id, konu=konu, icerik=icerik)
+    mesaj = Mesaj(gonderen_id=gonderen.id, alici_id=alici.id, konu_id=mesaj_konusu.id, konu=baslik, icerik=icerik)
     db.add(mesaj)
     db.flush()
     mesaj.konusma_id = mesaj.id
-    bildirim_olustur(db, alici.id, "Yeni mesaj", f"{gonderen.ad_soyad} size bir mesaj gönderdi: {konu}", "mesaj", f"/mesajlar#konusma-{mesaj.id}")
+    yetkili_idleri = {x.kullanici_id for x in db.query(MesajKonusuYetkili).filter(MesajKonusuYetkili.konu_id == mesaj_konusu.id).all()}
+    alici_idleri = yetkili_idleri | {alici.id}
+    _alici_kayitlarini_ekle(db, mesaj, alici_idleri)
+    for hedef_id in alici_idleri - {gonderen.id}:
+        bildirim_olustur(db, hedef_id, f"{mesaj_konusu.adi}: Yeni mesaj", f"{gonderen.ad_soyad}: {baslik}", "mesaj", f"/mesajlar#konusma-{mesaj.id}")
     db.commit()
-    return mesaj
+    return mesaj, alici_idleri - {gonderen.id}, mesaj_konusu
 
 
 def mesaji_yanitla(db: Session, kullanici_id: int, mesaj_id: int, icerik: str):
     icerik = icerik.strip()
-    onceki = db.query(Mesaj).filter(Mesaj.id == mesaj_id, or_(Mesaj.gonderen_id == kullanici_id, Mesaj.alici_id == kullanici_id)).first()
-    if not onceki or not icerik or len(icerik) > 5000:
+    onceki = db.query(Mesaj).filter(Mesaj.id == mesaj_id).first()
+    yetkili_alici = onceki and db.query(MesajAlici).filter(MesajAlici.mesaj_id == onceki.id, MesajAlici.kullanici_id == kullanici_id).first()
+    if not onceki or (onceki.gonderen_id != kullanici_id and onceki.alici_id != kullanici_id and not yetkili_alici) or not icerik or len(icerik) > 5000:
         raise ValueError("Cevap metni geçersiz")
     alici_id = onceki.alici_id if onceki.gonderen_id == kullanici_id else onceki.gonderen_id
     gonderen = db.query(User).filter(User.id == kullanici_id, User.aktif.is_(True)).first()
@@ -47,39 +87,50 @@ def mesaji_yanitla(db: Session, kullanici_id: int, mesaj_id: int, icerik: str):
         raise ValueError("Kullanıcı bulunamadı")
     konusma_id = onceki.konusma_id or onceki.id
     konu = onceki.konu if onceki.konu.lower().startswith("re:") else f"Re: {onceki.konu}"
-    cevap = Mesaj(gonderen_id=kullanici_id, alici_id=alici_id, konusma_id=konusma_id, konu=konu[:150], icerik=icerik)
+    cevap = Mesaj(gonderen_id=kullanici_id, alici_id=alici_id, konusma_id=konusma_id, konu_id=onceki.konu_id, konu=konu[:150], icerik=icerik)
     db.add(cevap)
     db.flush()
-    bildirim_olustur(db, alici_id, "Mesajınıza cevap", f"{gonderen.ad_soyad} mesajınıza cevap verdi", "mesaj", f"/mesajlar#konusma-{konusma_id}")
+    konusma_mesajlari = db.query(Mesaj).filter(Mesaj.konusma_id == konusma_id).all()
+    katilimcilar = {m.gonderen_id for m in konusma_mesajlari} | {m.alici_id for m in konusma_mesajlari}
+    katilimcilar |= {x.kullanici_id for x in db.query(MesajKonusuYetkili).filter(MesajKonusuYetkili.konu_id == onceki.konu_id).all()}
+    _alici_kayitlarini_ekle(db, cevap, katilimcilar)
+    for hedef_id in katilimcilar - {kullanici_id}:
+        bildirim_olustur(db, hedef_id, "Mesajınıza cevap", f"{gonderen.ad_soyad} mesajınıza cevap verdi", "mesaj", f"/mesajlar#konusma-{konusma_id}")
     db.commit()
-    return cevap, alici_id, konusma_id
+    return cevap, katilimcilar - {kullanici_id}, konusma_id
 
 
 def mesaj_kutulari(db: Session, kullanici_id: int) -> dict:
     kullanicilar = {k.id: k for k in db.query(User).all()}
     gelen = db.query(Mesaj).filter(Mesaj.alici_id == kullanici_id, Mesaj.alici_sildi.is_(False)).order_by(Mesaj.created_at.desc()).limit(200).all()
     giden = db.query(Mesaj).filter(Mesaj.gonderen_id == kullanici_id, Mesaj.gonderen_sildi.is_(False)).order_by(Mesaj.created_at.desc()).limit(200).all()
-    tumu = db.query(Mesaj).filter(or_(Mesaj.gonderen_id == kullanici_id, Mesaj.alici_id == kullanici_id)).order_by(Mesaj.created_at).limit(500).all()
+    teslim_mesaj_idleri = {x.mesaj_id for x in db.query(MesajAlici).filter(MesajAlici.kullanici_id == kullanici_id).all()}
+    tumu = db.query(Mesaj).filter(or_(Mesaj.gonderen_id == kullanici_id, Mesaj.alici_id == kullanici_id, Mesaj.id.in_(teslim_mesaj_idleri or {-1}))).order_by(Mesaj.created_at).limit(500).all()
     gruplar = {}
     for mesaj in tumu:
         gruplar.setdefault(mesaj.konusma_id or mesaj.id, []).append(mesaj)
     konusmalar = [{
         "id": konusma_id, "mesajlar": mesajlar, "ilk": mesajlar[0], "son": mesajlar[-1],
-        "okunmamis": sum(m.alici_id == kullanici_id and not m.okundu for m in mesajlar),
+        "okunmamis": db.query(MesajAlici).filter(MesajAlici.kullanici_id == kullanici_id, MesajAlici.mesaj_id.in_([m.id for m in mesajlar]), MesajAlici.okundu.is_(False)).count(),
     } for konusma_id, mesajlar in gruplar.items()]
     konusmalar.sort(key=lambda kayit: kayit["son"].created_at, reverse=True)
-    return {"gelen": gelen, "giden": giden, "konusmalar": konusmalar, "kullanicilar": kullanicilar, "okunmamis": sum(not mesaj.okundu for mesaj in gelen)}
+    okunmamis = db.query(MesajAlici).filter(MesajAlici.kullanici_id == kullanici_id, MesajAlici.okundu.is_(False)).count()
+    return {"gelen": gelen, "giden": giden, "konusmalar": konusmalar, "kullanicilar": kullanicilar, "okunmamis": okunmamis}
 
 
 def mesaji_okundu_yap(db: Session, mesaj_id: int, kullanici_id: int) -> int | None:
-    mesaj = db.query(Mesaj).filter(Mesaj.id == mesaj_id, or_(Mesaj.gonderen_id == kullanici_id, Mesaj.alici_id == kullanici_id)).first()
-    if not mesaj:
+    mesaj = db.query(Mesaj).filter(Mesaj.id == mesaj_id).first()
+    yetkili_alici = mesaj and db.query(MesajAlici).filter(MesajAlici.mesaj_id == mesaj.id, MesajAlici.kullanici_id == kullanici_id).first()
+    if not mesaj or (mesaj.gonderen_id != kullanici_id and mesaj.alici_id != kullanici_id and not yetkili_alici):
         return None
     konusma_id = mesaj.konusma_id or mesaj.id
     okunmamislar = db.query(Mesaj).filter(Mesaj.konusma_id == konusma_id, Mesaj.alici_id == kullanici_id, Mesaj.okundu.is_(False)).all()
-    if okunmamislar:
+    alici_kayitlari = db.query(MesajAlici).filter(MesajAlici.kullanici_id == kullanici_id, MesajAlici.mesaj_id.in_([m.id for m in db.query(Mesaj).filter(Mesaj.konusma_id == konusma_id).all()]), MesajAlici.okundu.is_(False)).all()
+    if okunmamislar or alici_kayitlari:
         simdi = datetime.utcnow()
         for kayit in okunmamislar:
+            kayit.okundu, kayit.okunma_tarihi = True, simdi
+        for kayit in alici_kayitlari:
             kayit.okundu, kayit.okunma_tarihi = True, simdi
         db.commit()
     return konusma_id
@@ -97,7 +148,7 @@ def bildirimleri_okundu_yap(db: Session, kullanici_id: int) -> int:
 def iletisim_ozeti(db: Session, kullanici_id: int) -> dict:
     bildirimler = db.query(Bildirim).filter(Bildirim.kullanici_id == kullanici_id).order_by(Bildirim.created_at.desc()).limit(8).all()
     okunmamis_bildirim = db.query(Bildirim).filter(Bildirim.kullanici_id == kullanici_id, Bildirim.okundu.is_(False)).count()
-    okunmamis_mesaj = db.query(Mesaj).filter(Mesaj.alici_id == kullanici_id, Mesaj.okundu.is_(False), Mesaj.alici_sildi.is_(False)).count()
+    okunmamis_mesaj = db.query(MesajAlici).filter(MesajAlici.kullanici_id == kullanici_id, MesajAlici.okundu.is_(False)).count()
     return {
         "okunmamis_bildirim": okunmamis_bildirim,
         "okunmamis_mesaj": okunmamis_mesaj,
