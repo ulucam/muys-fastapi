@@ -84,4 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
         : legacyTargets[location.hash.slice(1)] || "uretim";
 
     showPanel(initialTarget, false);
+    if (location.hash === "#uretim-emirleri") {
+        requestAnimationFrame(() => document.getElementById("uretim-emirleri")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
 });
