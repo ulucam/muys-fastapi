@@ -6,6 +6,7 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
     """Eski kurulumlarda bulunmayan sütunları geriye uyumlu biçimde ekler."""
     with engine.begin() as connection:
         denetleyici = inspect(connection)
+        mevcut_tablolar = set(denetleyici.get_table_names())
         migrationlar = {
             "musteriler": [
                 ("musteri_turu", "ALTER TABLE musteriler ADD COLUMN musteri_turu VARCHAR(30) NOT NULL DEFAULT 'Alıcı'"),
@@ -47,6 +48,8 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
             ],
         }
         for tablo, sutun_migrationlari in migrationlar.items():
+            if tablo not in mevcut_tablolar:
+                continue
             mevcut_sutunlar = {sutun["name"] for sutun in denetleyici.get_columns(tablo)}
             for sutun_adi, sql in sutun_migrationlari:
                 if sutun_adi not in mevcut_sutunlar:
@@ -64,8 +67,7 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
             connection.execute(text("UPDATE mesajlar SET konusma_id = id WHERE konusma_id IS NULL"))
 
         # Eski operatörlerin tekil istasyon bilgisini yeni çoklu ilişki tablosuna taşır.
-        tablolar = set(denetleyici.get_table_names())
-        if {"kullanicilar", "personel_istasyon_atamalari"}.issubset(tablolar):
+        if {"kullanicilar", "personel_istasyon_atamalari"}.issubset(mevcut_tablolar):
             connection.execute(text("""
                 INSERT INTO personel_istasyon_atamalari (personel_id, istasyon_id, aktif, created_at, updated_at)
                 SELECT k.personel_id, k.istasyon_id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
