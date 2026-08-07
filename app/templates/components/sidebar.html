@@ -44,45 +44,10 @@
             </a>
         </li>
         <li>
-
-            <a class="menu-toggle"
-               data-bs-toggle="collapse"
-               href="#uretimMenu">
-
+            <a href="/receteler">
                 <i class="bi bi-gear-wide-connected"></i>
-
                 <span>Üretim</span>
-
-                <i class="bi bi-chevron-down ms-auto"></i>
-
             </a>
-
-
-            <div class="collapse"
-                 id="uretimMenu">
-
-
-                <a href="/receteler"
-                   class="submenu">
-
-                    <i class="bi bi-diagram-3"></i>
-
-                    Reçeteler
-
-                </a>
-
-                {% if kullanici_rol in ["Admin", "Yönetici"] %}<a href="/uretim-tanimlari"
-                   class="submenu">
-
-                    <i class="bi bi-diagram-3"></i>
-
-                    Üretim Tanımları
-
-                </a>{% endif %}
-
-
-            </div>
-
         </li>
 
         {% endif %}
