@@ -316,6 +316,7 @@ def iliskili_kayit_guncelle(db: Session, tip: str, kayit_id: int, form) -> str |
             birim = metin(form.get("birim")) or "Adet"
             if birim not in {"Adet", "Kg"}: raise ValueError("Birim Adet veya Kg olmalıdır")
             kayit.urun_sinifi_id, kayit.birim, kayit.urun_cinsi = sinif.id if sinif else None, birim, metin(form.get("urun_cinsi"))
+            kayit.olcu, kayit.model = metin(form.get("olcu")), metin(form.get("model"))
             kayit.tahmini_uretim_suresi = sayi(form.get("tahmini_uretim_suresi") or 0, "Tahmini üretim süresi")
             kayit.mevcut_stok, kayit.min_stok, kayit.aktif = sayi(form.get("mevcut_stok") or 0, "Stok"), sayi(form.get("min_stok") or 0, "Min stok"), form.get("aktif") == "true"
             donus = "urunler"
@@ -453,6 +454,7 @@ def manuel_tanim_kaydet(
             if birim not in {"Adet", "Kg"}: raise ValueError("Birim Adet veya Kg olmalıdır")
             nesne.birim, nesne.mevcut_stok, nesne.min_stok = birim, sayi(form.get("mevcut_stok") or 0, "Mevcut stok"), sayi(form.get("min_stok") or 0, "Min. stok")
             nesne.tahmini_uretim_suresi = sayi(form.get("tahmini_uretim_suresi") or 0, "Tahmini üretim süresi")
+            nesne.urun_cinsi, nesne.olcu, nesne.model = metin(form.get("urun_cinsi")), metin(form.get("olcu")), metin(form.get("model"))
             nesne.aktif = aktif
         elif tip == "recete":
             ust = db.query(Urun).filter(Urun.kodu == metin(form.get("ust_urun_kodu"))).first()
