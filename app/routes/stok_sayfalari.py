@@ -39,6 +39,14 @@ router = APIRouter(tags=["Stok"])
 templates = Jinja2Templates(directory="app/templates")
 
 
+def _opsiyonel_id(deger: str) -> int | None:
+    """Boş seçmeli filtre alanlarını sayı doğrulamasına takılmadan işler."""
+    try:
+        return int(deger) if str(deger or "").strip() else None
+    except (TypeError, ValueError):
+        return None
+
+
 @router.get("/stok", response_class=HTMLResponse)
 def stok_listesi(request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
     data = template_data(request)
@@ -123,7 +131,8 @@ def sinif_sil(sinif_id: int, urunlerden_kaldir: bool = Form(False), db: Session 
 
 
 @router.get("/receteler", response_class=HTMLResponse)
-def receteler(request: Request, error: str | None = None, q: str = "", urun_id: int | None = None, tur_id: int | None = None, sinif_id: int | None = None, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+def receteler(request: Request, error: str | None = None, q: str = "", urun_id: str = "", tur_id: str = "", sinif_id: str = "", db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+    urun_id, tur_id, sinif_id = _opsiyonel_id(urun_id), _opsiyonel_id(tur_id), _opsiyonel_id(sinif_id)
     data = template_data(request)
     data["receteler"] = receteleri_listele(db)
     data["urunler"] = hammaddeleri_filtrele(db, q, urun_id, tur_id, sinif_id)
