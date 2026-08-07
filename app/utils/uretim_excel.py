@@ -3,6 +3,7 @@ from datetime import datetime
 
 import openpyxl
 from openpyxl.worksheet.datavalidation import DataValidation
+from app.product_types import URUN_TURLERI
 
 SAYFALAR = {
     "Personeller": ["Personel Kodu", "Ad Soyad", "Departman", "Görev", "Durum"],
@@ -50,9 +51,9 @@ def excel_sablonu_olustur(veriler: dict[str, list]) -> bytes:
         for sutun in range(1, len(SAYFALAR[ad]) + 1): sayfa.column_dimensions[openpyxl.utils.get_column_letter(sutun)].width = 22
     listeler = kitap.create_sheet("Listeler")
     listeler.append(["Durumlar", "Ürün Türleri"])
-    for sira in range(4): listeler.append([["Aktif", "Pasif"][sira] if sira < 2 else None, ["Hammadde", "YariMamul", "Mamul", "TicariMamul"][sira]])
+    for sira in range(len(URUN_TURLERI)): listeler.append([["Aktif", "Pasif"][sira] if sira < 2 else None, URUN_TURLERI[sira]])
     listeler.sheet_state = "hidden"
     for ad, sutun in [("Personeller", "E"), ("İstasyonlar", "E"), ("Makineler", "F"), ("Personel Makine Atamaları", "E"), ("Ürün Sınıfları", "D"), ("Sınıf Reçete Operasyonları", "G"), ("Ürünler", "L")]:
         dogrulama = DataValidation(type="list", formula1="'Listeler'!$A$2:$A$3"); kitap[ad].add_data_validation(dogrulama); dogrulama.add(f"{sutun}2:{sutun}1000")
-    dogrulama = DataValidation(type="list", formula1="'Listeler'!$B$2:$B$5"); kitap["Ürünler"].add_data_validation(dogrulama); dogrulama.add("C2:C1000")
+    dogrulama = DataValidation(type="list", formula1=f"'Listeler'!$B$2:$B${len(URUN_TURLERI) + 1}", allow_blank=True); kitap["Ürünler"].add_data_validation(dogrulama); dogrulama.add("C2:C1000")
     akis = io.BytesIO(); kitap.save(akis); return akis.getvalue()
