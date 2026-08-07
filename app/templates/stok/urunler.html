@@ -115,7 +115,12 @@
 
     <section class="module-panel is-active" data-module-panel="stoklar">
     <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white"><strong>Stok Kartları</strong> <span class="badge bg-secondary">{{ urunler|length }}</span></div>
+        <div class="card-header bg-white py-3"><div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"><div><strong>Stok Kartları</strong> <span class="badge bg-secondary">{{ urunler|length }}</span></div><span class="small text-muted">Açtığınız kartlar tek seferde güncellenir.</span></div>
+            <form method="get" action="/receteler" class="row g-2"><input type="hidden" name="sekme" value="stoklar"><div class="col-md-4"><select class="form-select form-select-sm" name="urun_id"><option value="">Tüm ürünler</option>{% for urun in stok_filtre_urunleri %}<option value="{{ urun.id }}" {% if secili_urun_id == urun.id %}selected{% endif %}>{{ urun.kodu }} · {{ urun.adi }}</option>{% endfor %}</select></div><div class="col-6 col-md-2"><select class="form-select form-select-sm" name="tur_id"><option value="">Tüm türler</option>{% for tur in turler %}<option value="{{ tur.id }}" {% if secili_tur_id == tur.id %}selected{% endif %}>{{ tur.adi }}</option>{% endfor %}</select></div><div class="col-6 col-md-3"><select class="form-select form-select-sm" name="sinif_id"><option value="">Tüm sınıflar</option>{% for sinif in siniflar %}<option value="{{ sinif.id }}" {% if secili_sinif_id == sinif.id %}selected{% endif %}>{{ sinif.adi }}</option>{% endfor %}</select></div><div class="col-md-3 d-flex gap-1"><button class="btn btn-sm btn-primary flex-grow-1">Filtrele</button><a class="btn btn-sm btn-outline-secondary" href="/receteler#module-stoklar">Temizle</a></div></form>
+        </div>
+        {% if request.query_params.get('kaydedildi') == 'toplu' %}<div class="alert alert-success m-3 mb-0">Açık stok kartları güncellendi.</div>{% endif %}
+        {% if request.query_params.get('error') == 'toplu' %}<div class="alert alert-danger m-3 mb-0">Kartlar güncellenemedi. Açık kartlardaki zorunlu alanları kontrol edin.</div>{% endif %}
+        <form method="post" action="/urunler/toplu-guncelle" id="stokKartlariForm">
         <div class="table-responsive"><table class="table table-hover align-middle mb-0">
             <thead><tr><th>Ürün</th><th>Tür</th><th class="text-end">Stok</th></tr></thead>
             <tbody>{% for urun in urunler %}
@@ -124,24 +129,31 @@
                     <td>{% for tur in turler if tur.id == urun.stok_urun_turu_id %}{{ tur.adi }}{% else %}{{ urun.urun_tipi }}{% endfor %}</td>
                     <td class="text-end"><strong>{{ urun.mevcut_stok or 0 }} {{ urun.birim }}</strong></td>
                 </tr>
-                <tr class="collapse bg-light" id="urunDetay{{ urun.id }}"><td colspan="3" class="p-0"><div class="p-3 p-md-4"><form method="post" action="/urunler" class="row g-3">
-                    <input type="hidden" name="urun_id" value="{{ urun.id }}">
-                    <div class="col-6 col-md-3"><label class="form-label">Stok Kodu</label><input class="form-control" name="kodu" value="{{ urun.kodu }}" required></div>
-                    <div class="col-6 col-md-3"><label class="form-label">Ürün Adı</label><input class="form-control" name="adi" value="{{ urun.adi }}" required></div>
-                    <div class="col-6 col-md-3"><label class="form-label">Marka</label><input class="form-control" name="marka" value="{{ urun.marka or '' }}"></div>
-                    <div class="col-6 col-md-3"><label class="form-label">Model</label><input class="form-control" name="model" value="{{ urun.model or '' }}"></div>
-                    <div class="col-6 col-md-3"><label class="form-label">Tür</label><select class="form-select" name="stok_urun_turu_id" required>{% for tur in turler if tur.aktif %}<option value="{{ tur.id }}" {% if tur.id == urun.stok_urun_turu_id %}selected{% endif %}>{{ tur.adi }}</option>{% endfor %}</select></div>
-                    <div class="col-6 col-md-3"><label class="form-label">Sınıf</label><select class="form-select" name="stok_urun_sinifi_id"><option value="">Sınıf yok</option>{% for sinif in siniflar if sinif.aktif %}<option value="{{ sinif.id }}" {% if sinif.id == urun.stok_urun_sinifi_id %}selected{% endif %}>{{ sinif.adi }}</option>{% endfor %}</select></div>
-                    <div class="col-4 col-md-2"><label class="form-label">Birim</label><select class="form-select" name="birim"><option value="Adet" {% if urun.birim == 'Adet' %}selected{% endif %}>Adet</option><option value="Kg" {% if urun.birim == 'Kg' %}selected{% endif %}>Kg</option></select></div>
-                    <div class="col-4 col-md-2"><label class="form-label">Mevcut</label><input class="form-control" name="mevcut_stok" type="number" step="0.001" value="{{ urun.mevcut_stok or 0 }}"></div>
-                    <div class="col-4 col-md-2"><label class="form-label">Minimum</label><input class="form-control" name="min_stok" type="number" step="0.001" value="{{ urun.min_stok or 0 }}"></div>
-                    <div class="col-12 text-end"><button class="btn btn-primary" type="submit"><i class="bi bi-pencil me-1"></i> Kartı Güncelle</button></div>
-                </form></div></td></tr>
+                <tr class="collapse bg-light stok-kart-detayi" id="urunDetay{{ urun.id }}"><td colspan="3" class="p-0"><div class="p-3 p-md-4"><div class="row g-3">
+                    <input type="hidden" name="urun_idleri" value="{{ urun.id }}" data-toplu-alan disabled>
+                    <div class="col-6 col-md-3"><label class="form-label">Stok Kodu</label><input class="form-control" name="urun_{{ urun.id }}_kodu" value="{{ urun.kodu }}" data-toplu-alan disabled required></div>
+                    <div class="col-6 col-md-3"><label class="form-label">Ürün Adı</label><input class="form-control" name="urun_{{ urun.id }}_adi" value="{{ urun.adi }}" data-toplu-alan disabled required></div>
+                    <div class="col-6 col-md-3"><label class="form-label">Marka</label><input class="form-control" name="urun_{{ urun.id }}_marka" value="{{ urun.marka or '' }}" data-toplu-alan disabled></div>
+                    <div class="col-6 col-md-3"><label class="form-label">Model</label><input class="form-control" name="urun_{{ urun.id }}_model" value="{{ urun.model or '' }}" data-toplu-alan disabled></div>
+                    <div class="col-6 col-md-3"><label class="form-label">Tür</label><select class="form-select" name="urun_{{ urun.id }}_tur_id" data-toplu-alan disabled required>{% for tur in turler if tur.aktif %}<option value="{{ tur.id }}" {% if tur.id == urun.stok_urun_turu_id %}selected{% endif %}>{{ tur.adi }}</option>{% endfor %}</select></div>
+                    <div class="col-6 col-md-3"><label class="form-label">Sınıf</label><select class="form-select" name="urun_{{ urun.id }}_sinif_id" data-toplu-alan disabled><option value="">Sınıf yok</option>{% for sinif in siniflar if sinif.aktif %}<option value="{{ sinif.id }}" {% if sinif.id == urun.stok_urun_sinifi_id %}selected{% endif %}>{{ sinif.adi }}</option>{% endfor %}</select></div>
+                    <div class="col-4 col-md-2"><label class="form-label">Birim</label><select class="form-select" name="urun_{{ urun.id }}_birim" data-toplu-alan disabled><option value="Adet" {% if urun.birim == 'Adet' %}selected{% endif %}>Adet</option><option value="Kg" {% if urun.birim == 'Kg' %}selected{% endif %}>Kg</option></select></div>
+                    <div class="col-4 col-md-2"><label class="form-label">Mevcut</label><input class="form-control" name="urun_{{ urun.id }}_mevcut_stok" type="number" step="0.001" value="{{ urun.mevcut_stok or 0 }}" data-toplu-alan disabled></div>
+                    <div class="col-4 col-md-2"><label class="form-label">Minimum</label><input class="form-control" name="urun_{{ urun.id }}_min_stok" type="number" step="0.001" value="{{ urun.min_stok or 0 }}" data-toplu-alan disabled></div>
+                </div></div></td></tr>
             {% else %}<tr><td colspan="3" class="text-center text-muted py-5">Stok kartı bulunamadı.</td></tr>{% endfor %}</tbody>
-        </table></div>
+        </table></div><div class="card-footer bg-white text-end"><button class="btn btn-primary" type="submit"><i class="bi bi-save2"></i> Açık Kartları Toplu Güncelle</button></div></form>
     </div>
     </section>
     </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.stok-kart-detayi').forEach((kart) => {
+        kart.addEventListener('shown.bs.collapse', () => kart.querySelectorAll('[data-toplu-alan]').forEach((alan) => alan.disabled = false));
+        kart.addEventListener('hidden.bs.collapse', () => kart.querySelectorAll('[data-toplu-alan]').forEach((alan) => alan.disabled = true));
+    });
+});
+</script>
 {% endblock %}
