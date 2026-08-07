@@ -18,8 +18,8 @@
         <input type="text" name="kodu" placeholder="Ürün Kodu" required>
         <input type="text" name="adi" placeholder="Ürün Adı" required>
         <input type="text" name="birim" placeholder="Birim" value="Adet">
-        <input type="number" name="mevcut_stok" placeholder="Stok" step="0.01">
-        <input type="number" name="min_stok" placeholder="Min. Stok" step="0.01">
+        <input type="number" name="mevcut_stok" placeholder="Stok" min="0" step="1">
+        <input type="number" name="min_stok" placeholder="Min. Stok" min="0" step="1">
         <input type="number" name="birim_fiyat" placeholder="Fiyat" step="0.01">
         <button type="submit" class="btn btn-primary">Ekle</button>
     </form>
