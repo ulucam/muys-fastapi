@@ -9,3 +9,11 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      # Web Push anahtarları gizlidir; değerleri Render Dashboard > Environment
+      # bölümünden bir kez girilir ve repoya yazılmaz.
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
