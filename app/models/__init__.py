@@ -22,4 +22,5 @@ from app.models.islem_logu import IslemLogu
 from app.models.excel_aktarim_taslagi import ExcelAktarimTaslagi
 from app.models.stok_urun_turu import StokUrunTuru
 from app.models.stok_urun_sinifi import StokUrunSinifi
+from app.models.urun_istasyon import UrunIstasyon
 from app.models.rol_sinifi import RolSinifi
