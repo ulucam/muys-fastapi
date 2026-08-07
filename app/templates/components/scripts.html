@@ -38,15 +38,15 @@ document.addEventListener("DOMContentLoaded",function(){
 
 
 
-    const stok=document.getElementById("stokMenu");
+    const uretim=document.getElementById("uretimMenu");
 
-    if(stok){
+    if(uretim){
 
-        if(current.startsWith("/urunler")||
+        if(current.startsWith("/receteler")||
 
-           current.startsWith("/receteler")){
+           current.startsWith("/uretim-tanimlari")){
 
-            new bootstrap.Collapse(stok,{
+            new bootstrap.Collapse(uretim,{
 
                 toggle:true
 
