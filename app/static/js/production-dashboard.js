@@ -21,7 +21,14 @@
     function duration(minutes) {
         return Math.floor(minutes / 60) + ' sa ' + (minutes % 60) + ' dk';
     }
+    var loading = false;
+    function panelVisible() {
+        var panel = document.getElementById('uretim-paneli');
+        return panel && !panel.hidden && document.visibilityState === 'visible';
+    }
     async function refresh() {
+        if (!panelVisible() || loading) return;
+        loading = true;
         try {
             var response = await fetch('/api/dashboard/uretim-durum', {headers: {'Accept': 'application/json'}});
             if (!response.ok) return;
@@ -37,7 +44,14 @@
             }).join('') : '<tr><td colspan="7" class="text-center text-muted py-4">Henüz üretim hareketi yok.</td></tr>';
             document.getElementById('uretim-son-guncelleme').textContent = 'Son güncelleme: ' + new Date().toLocaleTimeString('tr-TR');
         } catch (_) { /* Son başarılı veri ekranda kalır. */ }
+        finally { loading = false; }
     }
     refresh();
     setInterval(refresh, 10000);
+    document.addEventListener('dashboard:panel-change', function (event) {
+        if (event.detail && event.detail.target === 'uretim') refresh();
+    });
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') refresh();
+    });
 }());
