@@ -89,9 +89,16 @@ def stok_urunu_kaydet(
     sinif = db.query(StokUrunSinifi).filter(StokUrunSinifi.id == sinif_id, StokUrunSinifi.aktif.is_(True)).first() if sinif_id else None
     if db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).count() == 0:
         raise ValueError("Hammadde kartından önce en az bir takip sınıfı tanımlanmalıdır")
-    if not kodu.strip() or not adi.strip() or not tur or (sinif_id and not sinif):
-        raise ValueError("Ürün kodu, adı ve geçerli tür zorunludur")
+    if not adi.strip() or not tur or (sinif_id and not sinif):
+        raise ValueError("Ürün adı ve geçerli tür zorunludur")
     urun = db.query(Urun).filter(Urun.id == urun_id).first() if urun_id else None
+    if not kodu.strip() and not urun:
+        kullanilan = {kod for (kod,) in db.query(Urun.kodu).all() if kod}
+        sira = 1
+        kodu = f"STK-{sira:04d}"
+        while kodu in kullanilan:
+            sira += 1
+            kodu = f"STK-{sira:04d}"
     kod_cakismasi = db.query(Urun).filter(Urun.kodu == kodu.strip(), Urun.id != (urun.id if urun else 0)).first()
     if kod_cakismasi:
         raise ValueError("Bu stok kodu başka bir üründe kullanılıyor")
