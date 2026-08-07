@@ -32,12 +32,18 @@ router = APIRouter(tags=["Stok"])
 templates = Jinja2Templates(directory="app/templates")
 
 
-@router.get("/urunler", response_class=HTMLResponse)
-def urunler(request: Request, error: str | None = None, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+@router.get("/stok", response_class=HTMLResponse)
+def stok_listesi(request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
     data = template_data(request)
     data["urunler"] = stok_urunlerini_listele(db)
     data["turler"], data["siniflar"] = stok_tum_tanimlari(db)
     return templates.TemplateResponse("stok/urun_listesi.html", data)
+
+
+@router.get("/urunler")
+def urunler_eski_adres(yetki=Depends(yetki_kontrol(STOK))):
+    """Önceki menü bağlantıları için stok listesine güvenli yönlendirme."""
+    return RedirectResponse("/stok", status_code=303)
 
 
 @router.post("/urunler")
