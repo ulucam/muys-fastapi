@@ -10,6 +10,7 @@ from app.routes import (
     auth,
     ayarlar,
     dashboard,
+    iletisim,
     kullanicilar,
     musteriler,
     profil,
@@ -48,6 +49,7 @@ async def firma_bilgisi_ekle(request, call_next):
 
 app.include_router(auth.router)
 app.include_router(dashboard.router)
+app.include_router(iletisim.router)
 app.include_router(kullanicilar.router)
 app.include_router(musteriler.router)
 app.include_router(ayarlar.router)
