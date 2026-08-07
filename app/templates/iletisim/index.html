@@ -14,12 +14,15 @@
         <div class="module-panel-area">
             <section class="module-panel is-active" data-module-panel="gelen">
                 <div class="card border-0 shadow-sm"><div class="card-header bg-white py-3"><strong>Gelen Kutusu</strong> <span class="badge bg-primary">{{ okunmamis }} okunmamış</span></div>
-                    <div class="list-group list-group-flush">{% for konusma in konusmalar %}
-                        <article class="list-group-item py-3{% if konusma.okunmamis %} bg-primary-subtle{% endif %}" id="konusma-{{ konusma.id }}">
-                            <div class="d-flex justify-content-between gap-3 mb-3"><div><strong>{{ konusma.ilk.konu }}</strong><div class="small text-muted">{{ konusma.mesajlar|length }} mesaj · Son hareket {{ konusma.son.created_at.strftime('%d.%m.%Y %H:%M') }}</div></div>{% if konusma.okunmamis %}<form method="post" action="/mesajlar/{{ konusma.son.id }}/okundu"><button class="btn btn-sm btn-outline-primary">Okundu</button></form>{% endif %}</div>
+                    <div class="list-group list-group-flush">{% for konusma in konusmalar %}{% set son_yazar = kullanicilar.get(konusma.son.gonderen_id) %}
+                        <button class="list-group-item list-group-item-action py-3{% if konusma.okunmamis %} bg-primary-subtle{% endif %}" type="button" data-conversation-open="conversationSource{{ konusma.id }}" data-conversation-title="{{ konusma.ilk.konu }}" id="konusma-{{ konusma.id }}">
+                            <div class="d-flex justify-content-between align-items-start gap-3"><div class="min-width-0"><strong>{{ konusma.ilk.konu }}</strong><div class="small text-muted">{{ son_yazar.ad_soyad if son_yazar else 'Silinmiş kullanıcı' }} · {{ konusma.mesajlar|length }} mesaj · {{ konusma.son.created_at.strftime('%d.%m.%Y %H:%M') }}</div><div class="message-preview mt-1">{{ konusma.son.icerik }}</div></div><div class="d-flex align-items-center gap-2">{% if konusma.okunmamis %}<span class="badge bg-primary">{{ konusma.okunmamis }} yeni</span>{% endif %}<i class="bi bi-chevron-right text-muted"></i></div></div>
+                        </button>
+                        <div class="d-none" id="conversationSource{{ konusma.id }}">
+                            {% if konusma.okunmamis %}<form method="post" action="/mesajlar/{{ konusma.son.id }}/okundu" class="text-end mb-2"><button class="btn btn-sm btn-outline-primary">Tümünü Okundu Yap</button></form>{% endif %}
                             <div class="conversation-thread">{% for mesaj in konusma.mesajlar %}{% set yazar = kullanicilar.get(mesaj.gonderen_id) %}<div class="message-bubble {% if mesaj.gonderen_id == oturum_kullanici_id %}is-sent{% else %}is-received{% endif %}"><div class="message-bubble-meta">{{ yazar.ad_soyad if yazar else 'Silinmiş kullanıcı' }} · {{ mesaj.created_at.strftime('%d.%m.%Y %H:%M') }}</div><div class="message-content">{{ mesaj.icerik }}</div></div>{% endfor %}</div>
-                            <form method="post" action="/mesajlar/{{ konusma.son.id }}/yanitla" class="d-flex gap-2 mt-3"><textarea class="form-control" name="icerik" rows="2" maxlength="5000" placeholder="Cevabınızı yazın..." required></textarea><button class="btn btn-primary align-self-end"><i class="bi bi-reply"></i> Cevapla</button></form>
-                        </article>
+                            <form method="post" action="/mesajlar/{{ konusma.son.id }}/yanitla" class="d-flex flex-column flex-sm-row gap-2 mt-3"><textarea class="form-control" name="icerik" rows="2" maxlength="5000" placeholder="Cevabınızı yazın..." required></textarea><button class="btn btn-primary align-self-sm-end"><i class="bi bi-reply"></i> Cevapla</button></form>
+                        </div>
                     {% else %}<div class="list-group-item text-center text-muted py-5">Henüz bir konuşma bulunmuyor.</div>{% endfor %}</div>
                 </div>
             </section>
@@ -41,4 +44,6 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="conversationModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="conversationModalTitle">Konuşma</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div><div class="modal-body" id="conversationModalBody"></div></div></div></div>
+<script src="/static/js/messages.js?v=1"></script>
 {% endblock %}
