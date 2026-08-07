@@ -167,8 +167,11 @@ def aktarimi_onayla(db: Session, token: str | None, kullanici_adi: str, ip_adres
             _alanlari_uygula(personel, {"ad_soyad": ad, "gorev": _metin(satir["Görev"]), "aktif": _metin(satir["Durum"]) == "Aktif"})
 
         istasyon_haritasi = {i.kodu: i for i in db.query(Istasyon).all()}
+        kullanilan_istasyon_kodlari = set(istasyon_haritasi)
         for satir in istasyonlar:
-            kod = _metin(satir["İstasyon Kodu"]); istasyon = istasyon_haritasi.get(kod)
+            kod = _metin(satir["İstasyon Kodu"]) or _sirali_kod(kullanilan_istasyon_kodlari, "IST-")
+            satir["İstasyon Kodu"] = kod
+            istasyon = istasyon_haritasi.get(kod)
             if istasyon and _sistem_kaydi_daha_yeni(istasyon, satir):
                 continue
             if not istasyon:
@@ -194,8 +197,11 @@ def aktarimi_onayla(db: Session, token: str | None, kullanici_adi: str, ip_adres
                 db.add(PersonelIstasyon(personel_id=personel.id, istasyon_id=istasyon_id, aktif=True))
 
         makine_haritasi = {m.kodu: m for m in db.query(Makine).all()}
+        kullanilan_makine_kodlari = set(makine_haritasi)
         for satir in makineler:
-            kod = _metin(satir["Makine Kodu"]); istasyon = istasyon_haritasi.get(_metin(satir["İstasyon Kodu"]))
+            kod = _metin(satir["Makine Kodu"]) or _sirali_kod(kullanilan_makine_kodlari, "MKN-")
+            satir["Makine Kodu"] = kod
+            istasyon = istasyon_haritasi.get(_metin(satir["İstasyon Kodu"]))
             if not istasyon:
                 raise ValueError(f"{kod} makinesi için istasyon bulunamadı")
             makine = makine_haritasi.get(kod)
@@ -208,6 +214,7 @@ def aktarimi_onayla(db: Session, token: str | None, kullanici_adi: str, ip_adres
                 "aktif": _metin(satir["Durum"]) == "Aktif"})
 
         urun_haritasi = {u.kodu: u for u in db.query(Urun).all()}
+        kullanilan_urun_kodlari = set(urun_haritasi)
         stok_turu_haritasi = {tur.adi.casefold(): tur for tur in db.query(StokUrunTuru).filter(StokUrunTuru.aktif.is_(True), StokUrunTuru.uretilen.is_(False)).all()}
         urun_sinifi_haritasi = {
             anahtar.casefold(): sinif
@@ -217,6 +224,8 @@ def aktarimi_onayla(db: Session, token: str | None, kullanici_adi: str, ip_adres
         }
         for veri in urunler:
             satir = dict(veri)
+            if not _metin(satir.get("kodu")):
+                satir["kodu"] = _sirali_kod(kullanilan_urun_kodlari, "STK-")
             urun = urun_haritasi.get(satir["kodu"])
             if urun and _sistem_kaydi_daha_yeni(urun, satir):
                 continue
