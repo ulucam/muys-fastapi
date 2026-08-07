@@ -8,6 +8,7 @@ from app.database import get_db
 from app.services.iletisim_service import (
     aktif_kullanicilar,
     bildirimleri_okundu_yap,
+    bildirimi_okundu_yap,
     iletisim_ozeti,
     konusmayi_sil,
     mesaj_gonder,
@@ -94,6 +95,21 @@ def ozet(request: Request, db: Session = Depends(get_db)):
 @router.post("/api/bildirimler/okundu", response_class=JSONResponse)
 def bildirim_okundu(request: Request, db: Session = Depends(get_db)):
     return {"okunan": bildirimleri_okundu_yap(db, _kullanici_id(request))}
+
+
+@router.post("/api/bildirimler/{bildirim_id}/okundu", response_class=JSONResponse)
+def tek_bildirim_okundu(bildirim_id: int, request: Request, db: Session = Depends(get_db)):
+    if not bildirimi_okundu_yap(db, bildirim_id, _kullanici_id(request)):
+        raise HTTPException(status_code=404, detail="Bildirim bulunamadı")
+    return {"okundu": True}
+
+
+@router.post("/api/mesajlar/{mesaj_id}/okundu", response_class=JSONResponse)
+def mesaj_api_okundu(mesaj_id: int, request: Request, db: Session = Depends(get_db)):
+    konusma_id = mesaji_okundu_yap(db, mesaj_id, _kullanici_id(request))
+    if not konusma_id:
+        raise HTTPException(status_code=404, detail="Mesaj bulunamadı")
+    return {"okundu": True, "konusma_id": konusma_id}
 
 
 @router.post("/mesaj-konulari/kaydet")
