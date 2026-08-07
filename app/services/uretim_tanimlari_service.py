@@ -15,14 +15,28 @@ from app.models.urun_sinif_operasyon_makine import UrunSinifOperasyonMakine
 from app.models.urun_sinifi import UrunSinifi
 from app.models.user import User
 from app.services.islem_log_service import islem_logla_veri
+from app.product_types import URUN_TURLERI, urun_turunu_normalize_et
 
 ANA_MODELLER = {"personel": Personel, "istasyon": Istasyon, "makine": Makine, "sinif": UrunSinifi}
 ILISKILI_MODELLER = {"operasyon": UrunSinifOperasyon, "urun": Urun, "recete": ReceteKalem}
-URUN_TIPLERI = {"Hammadde", "YariMamul", "Mamul", "TicariMamul"}
+URUN_TIPLERI = set(URUN_TURLERI) | {""}
 
 
 def metin(deger):
     return str(deger or "").strip()
+
+
+def urun_turlerini_standartlastir(db: Session) -> int:
+    """Eski ürün türlerini güncel sözlüğe çevirir, tanınmayanı boş bırakır."""
+    degisen = 0
+    for urun in db.query(Urun).all():
+        standart_tur = urun_turunu_normalize_et(urun.urun_tipi)
+        if urun.urun_tipi != standart_tur:
+            urun.urun_tipi = standart_tur
+            degisen += 1
+    if degisen:
+        db.commit()
+    return degisen
 
 
 def otomatik_kod(db: Session, model, onek: str) -> str:
@@ -38,7 +52,10 @@ def otomatik_kod(db: Session, model, onek: str) -> str:
 
 def sayi(deger, alan, tam_sayi=False):
     try:
-        return int(deger) if tam_sayi else float(deger)
+        sayisal_deger = float(deger)
+        if tam_sayi and not sayisal_deger.is_integer():
+            raise ValueError
+        return int(sayisal_deger) if tam_sayi else sayisal_deger
     except (TypeError, ValueError):
         raise ValueError(f"{alan} sayısal olmalı")
 
@@ -188,7 +205,7 @@ def tanim_listesi(db: Session, goster: str):
         "makineler_pasif": ("Pasif Makineler", db.query(Makine).filter(Makine.aktif.is_(False)).order_by(Makine.kodu).all()),
         "urun_siniflari": ("Aktif Ürün Sınıfları", db.query(UrunSinifi).filter(UrunSinifi.aktif.is_(True)).order_by(UrunSinifi.kodu).all()),
         "operasyonlar": ("Sınıf Reçeteleri", sinif_recetelerini_listele(db)),
-        "urunler": ("Ürün Kartları", db.query(Urun).order_by(Urun.kodu).all()),
+        "urunler": ("Stok / Ürün Kartları", db.query(Urun).order_by(Urun.kodu).all()),
         "recete_bilesenleri": ("Ürün Reçetesi Bileşenleri", db.query(ReceteKalem).order_by(ReceteKalem.recete_id, ReceteKalem.sira_no).all()),
     }
     return listeler.get(goster, (None, []))
@@ -319,17 +336,18 @@ def iliskili_kayit_guncelle(db: Session, tip: str, kayit_id: int, form) -> str |
         elif tip == "urun":
             kayit = db.query(Urun).filter(Urun.id == kayit_id).first()
             sinif = db.query(UrunSinifi).filter(UrunSinifi.kodu == metin(form.get("sinif_kodu"))).first() if metin(form.get("sinif_kodu")) else None
-            if not kayit or not metin(form.get("kodu")) or not metin(form.get("adi")) or metin(form.get("urun_tipi")) not in URUN_TIPLERI:
+            urun_tipi = urun_turunu_normalize_et(form.get("urun_tipi"))
+            if not kayit or not metin(form.get("kodu")) or not metin(form.get("adi")) or urun_tipi not in URUN_TIPLERI:
                 raise ValueError("Geçersiz ürün bilgisi")
             cakisan = db.query(Urun).filter(Urun.kodu == metin(form.get("kodu")), Urun.id != kayit.id).first()
             if cakisan: raise ValueError("Ürün kodu kullanılıyor")
-            kayit.kodu, kayit.adi, kayit.urun_tipi = metin(form.get("kodu")), metin(form.get("adi")), metin(form.get("urun_tipi"))
+            kayit.kodu, kayit.adi, kayit.urun_tipi = metin(form.get("kodu")), metin(form.get("adi")), urun_tipi
             birim = metin(form.get("birim")) or "Adet"
             if birim not in {"Adet", "Kg"}: raise ValueError("Birim Adet veya Kg olmalıdır")
             kayit.urun_sinifi_id, kayit.birim, kayit.urun_cinsi = sinif.id if sinif else None, birim, metin(form.get("urun_cinsi"))
             kayit.olcu, kayit.model = metin(form.get("olcu")), metin(form.get("model"))
             kayit.tahmini_uretim_suresi = sayi(form.get("tahmini_uretim_suresi") or 0, "Tahmini üretim süresi")
-            kayit.mevcut_stok, kayit.min_stok, kayit.aktif = sayi(form.get("mevcut_stok") or 0, "Stok"), sayi(form.get("min_stok") or 0, "Min stok"), form.get("aktif") == "true"
+            kayit.mevcut_stok, kayit.min_stok, kayit.aktif = sayi(form.get("mevcut_stok") or 0, "Stok", True), sayi(form.get("min_stok") or 0, "Min stok", True), form.get("aktif") == "true"
             donus = "urunler"
         elif tip == "recete":
             kayit = db.query(ReceteKalem).filter(ReceteKalem.id == kayit_id).first()
@@ -455,15 +473,15 @@ def manuel_tanim_kaydet(
                 for makine in secili_makineler:
                     db.add(UrunSinifOperasyonMakine(operasyon_id=nesne.id, makine_id=makine.id))
         elif tip == "urun":
-            kod, sinif_kodu, urun_tipi = metin(form.get("kodu")) or otomatik_kod(db, Urun, "URUN"), metin(form.get("sinif_kodu")), metin(form.get("urun_tipi"))
+            kod, sinif_kodu, urun_tipi = metin(form.get("kodu")) or otomatik_kod(db, Urun, "URUN"), metin(form.get("sinif_kodu")), urun_turunu_normalize_et(form.get("urun_tipi"))
             sinif = db.query(UrunSinifi).filter(UrunSinifi.kodu == sinif_kodu).first() if sinif_kodu else None
             if not metin(form.get("adi")) or urun_tipi not in URUN_TIPLERI or (sinif_kodu and not sinif):
-                raise ValueError("Ürün adı, türü ve varsa ürün ailesi seçimi geçerli olmalı")
+                raise ValueError("Ürün adı ve varsa ürün ailesi seçimi geçerli olmalı")
             nesne = db.query(Urun).filter(Urun.kodu == kod).first() or Urun(kodu=kod)
             nesne.adi, nesne.urun_tipi, nesne.urun_sinifi_id = metin(form.get("adi")), urun_tipi, sinif.id if sinif else None
             birim = metin(form.get("birim")) or "Adet"
             if birim not in {"Adet", "Kg"}: raise ValueError("Birim Adet veya Kg olmalıdır")
-            nesne.birim, nesne.mevcut_stok, nesne.min_stok = birim, sayi(form.get("mevcut_stok") or 0, "Mevcut stok"), sayi(form.get("min_stok") or 0, "Min. stok")
+            nesne.birim, nesne.mevcut_stok, nesne.min_stok = birim, sayi(form.get("mevcut_stok") or 0, "Mevcut stok", True), sayi(form.get("min_stok") or 0, "Min. stok", True)
             nesne.tahmini_uretim_suresi = sayi(form.get("tahmini_uretim_suresi") or 0, "Tahmini üretim süresi")
             nesne.urun_cinsi, nesne.olcu, nesne.model = metin(form.get("urun_cinsi")), metin(form.get("olcu")), metin(form.get("model"))
             nesne.aktif = aktif
@@ -554,17 +572,17 @@ def excel_verilerini_aktar(
 
         urunler = {x.kodu: x for x in db.query(Urun).all()}
         for satir in veriler["Ürünler"]:
-            kod, sinif_kodu, urun_tipi = metin(satir["Ürün Kodu"]), metin(satir["Ürün Sınıfı Kodu"]), metin(satir["Ürün Türü"])
+            kod, sinif_kodu, urun_tipi = metin(satir["Ürün Kodu"]), metin(satir["Ürün Sınıfı Kodu"]), urun_turunu_normalize_et(satir["Ürün Türü"])
             if not kod or not metin(satir["Ürün Adı"]) or urun_tipi not in URUN_TIPLERI:
-                raise ValueError("Ürünler: Ürün Kodu, Ürün Adı ve geçerli Ürün Türü zorunlu")
+                raise ValueError("Ürünler: Ürün Kodu ve Ürün Adı zorunlu")
             if sinif_kodu and sinif_kodu not in siniflar:
                 raise ValueError(f"Ürünler: '{sinif_kodu}' ürün sınıfı bulunamadı")
             nesne = urunler.get(kod) or Urun(kodu=kod)
             nesne.adi, nesne.urun_tipi, nesne.urun_sinifi_id = metin(satir["Ürün Adı"]), urun_tipi, siniflar[sinif_kodu].id if sinif_kodu else None
             nesne.birim = metin(satir["Birim"]) or "Adet"
-            nesne.mevcut_stok = sayi(satir["Mevcut Stok"] or 0, "Mevcut Stok")
-            nesne.min_stok = sayi(satir["Min. Stok"] or 0, "Min. Stok")
-            nesne.max_stok = sayi(satir["Max. Stok"] or 0, "Max. Stok")
+            nesne.mevcut_stok = sayi(satir["Mevcut Stok"] or 0, "Mevcut Stok", True)
+            nesne.min_stok = sayi(satir["Min. Stok"] or 0, "Min. Stok", True)
+            nesne.max_stok = sayi(satir["Max. Stok"] or 0, "Max. Stok", True)
             nesne.maliyet = sayi(satir["Maliyet"] or 0, "Maliyet")
             nesne.satis_fiyati = sayi(satir["Satış Fiyatı"] or 0, "Satış Fiyatı")
             nesne.aciklama, nesne.aktif = metin(satir["Açıklama"]), durum(satir["Durum"])
