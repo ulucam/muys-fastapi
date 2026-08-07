@@ -1,0 +1,29 @@
+<form method="post" action="{{ form_action }}" class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3"><strong><i class="bi bi-cart-plus me-1"></i> {{ 'Sipariş Düzenle' if siparis else 'Yeni Sipariş Gir' }}</strong></div>
+    <div class="card-body">
+        <div class="row g-3 mb-4">
+            <div class="col-md-3"><label class="form-label">Sipariş No</label><input class="form-control" name="siparis_no" value="{{ siparis.siparis_no if siparis else '' }}" placeholder="Boş bırakılırsa otomatik"></div>
+            <div class="col-md-4"><label class="form-label">Müşteri</label><select class="form-select" name="musteri_id" required><option value="">Müşteri seçin</option>{% for musteri_kaydi in musteriler %}<option value="{{ musteri_kaydi.id }}" {% if siparis and siparis.musteri_id == musteri_kaydi.id %}selected{% endif %}>{{ musteri_kaydi.firma_adi }}</option>{% endfor %}</select></div>
+            <div class="col-md-2"><label class="form-label">Teslim Tarihi</label><input class="form-control" name="teslim_tarihi" type="date" value="{{ siparis.teslim_tarihi.strftime('%Y-%m-%d') if siparis and siparis.teslim_tarihi else '' }}"></div>
+            <div class="col-md-3"><label class="form-label">Durum</label><select class="form-select" name="durum">{% for durum_adi in durumlar %}<option value="{{ durum_adi }}" {% if siparis and siparis.durum == durum_adi %}selected{% endif %}>{{ durum_adi }}</option>{% endfor %}</select></div>
+            <div class="col-12"><label class="form-label">Açıklama</label><input class="form-control" name="aciklama" value="{{ siparis.aciklama if siparis else '' }}" maxlength="500"></div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-2"><strong>Sipariş Kalemleri</strong><button type="button" class="btn btn-sm btn-outline-success" data-kalem-ekle><i class="bi bi-plus-lg"></i> Ürün Ekle</button></div>
+        <div class="vstack gap-2" data-kalemler>
+            {% for kalem in kalemler %}
+            <div class="row g-2 align-items-end" data-kalem-satiri><input type="hidden" name="kalem_id" value="{{ kalem.id }}"><div class="col-md-7"><label class="form-label small">Ürün</label><select class="form-select" name="urun_id" required>{% for urun in urunler %}<option value="{{ urun.id }}" {% if kalem.urun_id == urun.id %}selected{% endif %}>{{ urun.adi }}</option>{% endfor %}</select></div><div class="col-8 col-md-3"><label class="form-label small">Miktar</label><input class="form-control" name="miktar" type="number" min="1" step="1" value="{{ kalem.miktar|int }}" required></div><div class="col-4 col-md-2"><button class="btn btn-outline-danger w-100" type="button" data-kalem-sil><i class="bi bi-trash"></i></button></div></div>
+            {% else %}
+            <div class="row g-2 align-items-end" data-kalem-satiri><input type="hidden" name="kalem_id" value=""><div class="col-md-7"><label class="form-label small">Ürün</label><select class="form-select" name="urun_id" required><option value="">Ürün seçin</option>{% for urun in urunler %}<option value="{{ urun.id }}">{{ urun.adi }}</option>{% endfor %}</select></div><div class="col-8 col-md-3"><label class="form-label small">Miktar</label><input class="form-control" name="miktar" type="number" min="1" step="1" required></div><div class="col-4 col-md-2"><button class="btn btn-outline-danger w-100" type="button" data-kalem-sil><i class="bi bi-trash"></i></button></div></div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="card-footer bg-white text-end"><a class="btn btn-outline-secondary" href="/siparisler">Vazgeç</a><button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i> Siparişi Kaydet</button></div>
+</form>
+<script>
+document.addEventListener('click', (event) => {
+    const ekle = event.target.closest('[data-kalem-ekle]');
+    if (ekle) { const alan = ekle.closest('form').querySelector('[data-kalemler]'); const satir = alan.querySelector('[data-kalem-satiri]').cloneNode(true); satir.querySelector('input[name="kalem_id"]').value = ''; satir.querySelector('select').value = ''; satir.querySelector('input[name="miktar"]').value = ''; alan.appendChild(satir); }
+    const sil = event.target.closest('[data-kalem-sil]');
+    if (sil) { const alan = sil.closest('form').querySelector('[data-kalemler]'); if (alan.querySelectorAll('[data-kalem-satiri]').length > 1) sil.closest('[data-kalem-satiri]').remove(); }
+});
+</script>
