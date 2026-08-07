@@ -20,11 +20,15 @@
 
     display:grid;
 
-    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    grid-template-columns:1fr;
 
-    gap:20px;
+    gap:12px;
 
-    margin-bottom:30px;
+    align-content:start;
+
+    position:sticky;
+
+    top:88px;
 
 }
 
@@ -34,33 +38,43 @@
 
     border-radius:15px;
 
-    padding:22px;
+    padding:14px;
 
     display:flex;
 
     align-items:center;
 
-    gap:20px;
+    gap:12px;
 
     transition:.25s;
 
     box-shadow:0 2px 8px rgba(0,0,0,.05);
 
+    border:1px solid transparent;
+
+    width:100%;
+
+    text-align:left;
+
 }
 
 .stat-card:hover{
 
-    transform:translateY(-4px);
+    transform:translateX(-4px);
 
     box-shadow:0 12px 25px rgba(0,0,0,.12);
 
 }
 
+.stat-card.is-active{border-color:#0d6efd;background:#f4f8ff;box-shadow:0 8px 22px rgba(13,110,253,.12)}
+.stat-card-arrow{margin-left:auto;color:#adb5bd;transition:.2s}
+.stat-card.is-active .stat-card-arrow{color:#0d6efd;transform:translateX(-3px)}
+
 .stat-icon{
 
-    width:65px;
+    width:46px;
 
-    height:65px;
+    height:46px;
 
     border-radius:15px;
 
@@ -72,7 +86,7 @@
 
     color:#fff;
 
-    font-size:28px;
+    font-size:20px;
 
 }
 
@@ -80,9 +94,16 @@
 
     margin:0;
 
-    font-size:32px;
+    font-size:24px;
 
 }
+
+.dashboard-workspace{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:24px;align-items:start}
+.dashboard-panel-area{min-width:0;grid-column:1;grid-row:1}
+.stats-grid{grid-column:2;grid-row:1}
+.dashboard-panel[hidden]{display:none!important}
+.dashboard-panel.is-active{animation:dashboard-panel-in .22s ease-out}
+@keyframes dashboard-panel-in{from{opacity:.45;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 .stat-body span{
 
@@ -136,7 +157,15 @@ grid-template-columns:1fr;
 
 }
 
+.dashboard-workspace{grid-template-columns:1fr}
+.stats-grid{position:static;grid-column:1;grid-row:1;grid-template-columns:repeat(4,minmax(155px,1fr));overflow-x:auto;padding-bottom:8px}
+.dashboard-panel-area{grid-column:1;grid-row:2}
+.stat-card:hover{transform:translateY(-2px)}
+.stat-card-arrow{display:none}
+
 }
+
+@media(max-width:576px){.stats-grid{grid-template-columns:repeat(4,155px)}.stat-card{padding:10px}.stat-icon{width:40px;height:40px}.stat-body h3{font-size:20px}.stat-body span{font-size:.8rem}}
 
 /* Bootstrap collapse normalde blok olarak açılır; tablo ayrıntı satırının
    sütun yapısını koruması için tablo satırı görünümü kullanılır. */
