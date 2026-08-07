@@ -10,11 +10,6 @@
 
     <div class="user-area">
 
-        <a class="activity-button navbar-icon-link" href="/mesajlar" aria-label="Mesajlar" title="Mesajlar">
-            <i class="bi bi-chat-dots"></i>
-            <span id="messageBadge" class="activity-badge d-none"></span>
-        </a>
-
         <div class="dropdown activity-area">
             <button id="notificationButton" class="activity-button" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Bildirimler">
                 <i class="bi bi-bell"></i>
@@ -23,7 +18,6 @@
             <div class="dropdown-menu dropdown-menu-end activity-panel p-0">
                 <div class="activity-panel-header"><strong>Bildirimler</strong><button id="markNotificationsRead" class="btn btn-sm btn-link text-decoration-none p-0" type="button">Tümünü okundu yap</button></div>
                 <div id="notificationFeed" class="activity-feed"><div class="activity-empty">Bildirimler yükleniyor...</div></div>
-                <a class="activity-history-link" href="/mesajlar"><i class="bi bi-chat-dots me-1"></i> Mesajlara Git</a>
             </div>
         </div>
 
@@ -34,7 +28,7 @@
         </div>
         <div class="dropdown activity-area">
 
-            <button class="activity-button"
+            <button id="activityButton" class="activity-button"
                     type="button"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
