@@ -9,6 +9,7 @@ from app.roles import STOK
 from app.security import yetki_kontrol
 from app.services.stok_service import (
     hammaddeleri_listele,
+    hammaddeleri_filtrele,
     receteleri_listele,
     stok_sinifi_kaydet,
     stok_sinifi_sil,
@@ -19,6 +20,7 @@ from app.services.stok_service import (
     stok_turu_kaydet,
     stok_turu_sil,
     stok_urunu_kaydet,
+    stok_urunlerini_toplu_guncelle,
     stok_urunlerini_listele,
 )
 from app.services.uretim_plan_service import (
@@ -121,17 +123,28 @@ def sinif_sil(sinif_id: int, urunlerden_kaldir: bool = Form(False), db: Session 
 
 
 @router.get("/receteler", response_class=HTMLResponse)
-def receteler(request: Request, error: str | None = None, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+def receteler(request: Request, error: str | None = None, q: str = "", urun_id: int | None = None, tur_id: int | None = None, sinif_id: int | None = None, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
     data = template_data(request)
     data["receteler"] = receteleri_listele(db)
-    data["urunler"] = hammaddeleri_listele(db)
+    data["urunler"] = hammaddeleri_filtrele(db, q, urun_id, tur_id, sinif_id)
     data["turler"], data["siniflar"] = stok_tanimlari(db)
     data["kurulum"] = stok_kurulum_durumu(db)
     data["tanim_kullanimlari"] = stok_tanim_kullanimlari(db)
     data.update(uretim_tanim_verisi(db))
     kullanim_hatasi = error in ("tur_kullanim", "sinif_kullanim")
     data["hata"] = ("Tanım ürünlerde kullanılıyor. Ürünlerden kaldırıp sil seçeneğini kullanın." if kullanim_hatasi else "Kayıt yapılamadı. Zorunlu alanları ve benzersiz ad/kod bilgisini kontrol edin.") if error else None
+    data.update({"stok_arama": q, "stok_filtre_urunleri": hammaddeleri_listele(db), "secili_urun_id": urun_id, "secili_tur_id": tur_id, "secili_sinif_id": sinif_id})
     return templates.TemplateResponse("stok/urunler.html", data)
+
+
+@router.post("/urunler/toplu-guncelle")
+async def stok_urunlerini_toplu_guncelle_route(request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+    form = await request.form()
+    try:
+        stok_urunlerini_toplu_guncelle(db, form)
+    except ValueError:
+        return RedirectResponse("/receteler?error=toplu#module-stoklar", status_code=303)
+    return RedirectResponse("/receteler?kaydedildi=toplu#module-stoklar", status_code=303)
 
 
 @router.post("/receteler/kaydet")
