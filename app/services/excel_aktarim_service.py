@@ -12,6 +12,7 @@ from app.models.personel_istasyon import PersonelIstasyon
 from app.models.urun import Urun
 from app.models.stok_urun_sinifi import StokUrunSinifi
 from app.models.stok_urun_turu import StokUrunTuru
+from app.models.urun_istasyon import UrunIstasyon
 from app.services.islem_log_service import islem_logla_veri
 
 
@@ -61,6 +62,9 @@ def onizleme_hazirla(
             hatalar.append(f"Hammaddeler satır {sira}: '{tur_adi}' türü sistemde tanımlı değil")
         if sinif_adi and sinif_adi.casefold() not in stok_siniflari:
             hatalar.append(f"Hammaddeler satır {sira}: '{sinif_adi}' sınıfı sistemde tanımlı değil")
+        for kod in _istasyon_kodlarini_ayir(urun.get("istasyon_kodlari")):
+            if kod not in mevcut_istasyonlar | aktarilan_istasyonlar:
+                hatalar.append(f"Hammaddeler satır {sira}: '{kod}' istasyon kodu bulunamadı")
 
     mevcut_musteriler = {m.firma_adi.casefold() for m in db.query(Musteri).all()}
     eklenecek, guncellenecek = [], []
@@ -172,11 +176,22 @@ def aktarimi_onayla(db: Session, token: str | None, kullanici_adi: str, ip_adres
                 urun = Urun(kodu=satir["kodu"]); db.add(urun); urun_haritasi[satir["kodu"]] = urun
             tur_adi = _metin(satir.pop("stok_turu_adi", "")).casefold()
             sinif_adi = _metin(satir.pop("stok_sinifi_adi", "")).casefold()
+            secili_istasyon_kodlari = _istasyon_kodlarini_ayir(satir.pop("istasyon_kodlari", ""))
             if tur_adi not in stok_turu_haritasi or (sinif_adi and sinif_adi not in stok_sinifi_haritasi):
                 raise ValueError(f"{urun.kodu} için hammadde türü veya sınıfı bulunamadı")
             urun.stok_urun_turu_id = stok_turu_haritasi[tur_adi].id
             urun.stok_urun_sinifi_id = stok_sinifi_haritasi[sinif_adi].id if sinif_adi else None
             for alan, deger in satir.items(): setattr(urun, alan, deger)
+            db.flush()
+            secili_istasyon_idleri = {istasyon_haritasi[kod].id for kod in secili_istasyon_kodlari}
+            mevcut_atamalar = {
+                atama.istasyon_id: atama
+                for atama in db.query(UrunIstasyon).filter(UrunIstasyon.urun_id == urun.id).all()
+            }
+            for istasyon_id, atama in mevcut_atamalar.items():
+                atama.aktif = istasyon_id in secili_istasyon_idleri
+            for istasyon_id in secili_istasyon_idleri - set(mevcut_atamalar):
+                db.add(UrunIstasyon(urun_id=urun.id, istasyon_id=istasyon_id, aktif=True))
         db.delete(taslak)
         islem_logla_veri(db, kullanici_adi, ip_adresi, "Excel", "Excel aktarımı tamamlandı",
             f"Dosya: {dosya_adi}. {len(musteriler)} müşteri, {len(urunler)} stok ürünü, {len(personeller)} personel, {len(istasyonlar)} istasyon ve {len(makineler)} makine aktarıldı/güncellendi.")
