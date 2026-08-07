@@ -11,6 +11,7 @@ from app.services.iletisim_service import (
     iletisim_ozeti,
     mesaj_gonder,
     mesaj_kutulari,
+    mesaji_yanitla,
     mesaji_okundu_yap,
 )
 from app.services.push_service import arka_planda_push_gonder
@@ -31,6 +32,7 @@ def mesajlar(request: Request, durum: str | None = None, db: Session = Depends(g
     kullanici_id = _kullanici_id(request)
     data = template_data(request)
     data.update(mesaj_kutulari(db, kullanici_id))
+    data["oturum_kullanici_id"] = kullanici_id
     data["alici_secenekleri"] = aktif_kullanicilar(db, kullanici_id)
     data["durum"] = durum
     return templates.TemplateResponse("iletisim/index.html", data)
@@ -46,11 +48,22 @@ def mesaj_gonder_route(request: Request, background_tasks: BackgroundTasks, alic
     return RedirectResponse("/mesajlar?durum=gonderildi#module-giden", status_code=303)
 
 
+@router.post("/mesajlar/{mesaj_id}/yanitla")
+def mesaj_yanitla_route(mesaj_id: int, request: Request, background_tasks: BackgroundTasks, icerik: str = Form(""), db: Session = Depends(get_db)):
+    try:
+        cevap, alici_id, konusma_id = mesaji_yanitla(db, _kullanici_id(request), mesaj_id, icerik)
+    except ValueError:
+        return RedirectResponse(f"/mesajlar?durum=yanit_hata#konusma-{mesaj_id}", status_code=303)
+    background_tasks.add_task(arka_planda_push_gonder, alici_id, "Mesajınıza cevap", f"{request.session.get('kullanici_adi', 'Bir kullanıcı')} mesajınıza cevap verdi", f"/mesajlar#konusma-{konusma_id}")
+    return RedirectResponse(f"/mesajlar?durum=yanitlandi#konusma-{konusma_id}", status_code=303)
+
+
 @router.post("/mesajlar/{mesaj_id}/okundu")
 def mesaj_okundu(mesaj_id: int, request: Request, db: Session = Depends(get_db)):
-    if not mesaji_okundu_yap(db, mesaj_id, _kullanici_id(request)):
+    konusma_id = mesaji_okundu_yap(db, mesaj_id, _kullanici_id(request))
+    if not konusma_id:
         raise HTTPException(status_code=404, detail="Mesaj bulunamadı")
-    return RedirectResponse(f"/mesajlar#mesaj-{mesaj_id}", status_code=303)
+    return RedirectResponse(f"/mesajlar#konusma-{konusma_id}", status_code=303)
 
 
 @router.get("/api/iletisim/ozet", response_class=JSONResponse)
