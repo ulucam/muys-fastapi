@@ -1,5 +1,6 @@
 import json
 import secrets
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 
@@ -33,6 +34,28 @@ def _sirali_kod(kullanilan: set[str], onek: str) -> str:
         kod = f"{onek}{sira:06}"
     kullanilan.add(kod)
     return kod
+
+
+def _sistem_kaydi_daha_yeni(kayit, satir: dict) -> bool:
+    """Excel indirildikten sonra sistemde değişen mevcut kaydı korur."""
+    referans = _metin(satir.get("_excel_referans_zamani"))
+    guncelleme = getattr(kayit, "updated_at", None)
+    if not referans or not guncelleme:
+        return False
+    try:
+        return guncelleme > datetime.fromisoformat(referans.replace("Z", "+00:00")).replace(tzinfo=None)
+    except ValueError:
+        return False
+
+
+def _alanlari_uygula(kayit, degerler: dict) -> bool:
+    """Yalnız gerçekten değişen alanları yazar."""
+    degisti = False
+    for alan, deger in degerler.items():
+        if getattr(kayit, alan) != deger:
+            setattr(kayit, alan, deger)
+            degisti = True
+    return degisti
 
 
 def onizleme_hazirla(
@@ -120,35 +143,45 @@ def aktarimi_onayla(db: Session, token: str | None, kullanici_adi: str, ip_adres
         for satir in musteriler:
             anahtar = satir["Firma Adı"].casefold()
             musteri = harita.get(anahtar)
+            if musteri and _sistem_kaydi_daha_yeni(musteri, satir):
+                continue
             if not musteri:
                 musteri = Musteri(musteri_kodu=_sirali_kod(kullanilan, "M"))
                 db.add(musteri); harita[anahtar] = musteri
-            musteri.firma_adi, musteri.yetkili = satir["Firma Adı"], satir["Yetkili"]
-            musteri.telefon, musteri.email = satir["Telefon"], satir["E-Posta"]
-            musteri.vergi_dairesi, musteri.vergi_no = satir["Vergi Dairesi"], satir["Vergi No"]
-            musteri.il, musteri.ilce, musteri.musteri_turu = satir["İl"], satir["İlçe"], satir["Müşteri Türü"]
-            musteri.adres, musteri.aciklama, musteri.aktif = satir["Adres"], satir["Açıklama"], satir["Durum"] == "Aktif"
+            _alanlari_uygula(musteri, {"firma_adi": satir["Firma Adı"], "yetkili": satir["Yetkili"],
+                "telefon": satir["Telefon"], "email": satir["E-Posta"], "vergi_dairesi": satir["Vergi Dairesi"],
+                "vergi_no": satir["Vergi No"], "il": satir["İl"], "ilce": satir["İlçe"],
+                "musteri_turu": satir["Müşteri Türü"], "adres": satir["Adres"], "aciklama": satir["Açıklama"],
+                "aktif": satir["Durum"] == "Aktif"})
 
         kullanilan = {kod for (kod,) in db.query(Personel.kodu).all() if kod}
         harita = {p.ad_soyad.casefold(): p for p in db.query(Personel).all() if p.ad_soyad}
+        yeni_personel_anahtarlari = set()
         for satir in personeller:
             ad = _metin(satir["Ad Soyad"]); anahtar = ad.casefold(); personel = harita.get(anahtar)
+            if personel and _sistem_kaydi_daha_yeni(personel, satir):
+                continue
             if not personel:
                 personel = Personel(kodu=_sirali_kod(kullanilan, "P")); db.add(personel); harita[anahtar] = personel
-            personel.ad_soyad, personel.gorev = ad, _metin(satir["Görev"])
-            personel.aktif = _metin(satir["Durum"]) == "Aktif"
+                yeni_personel_anahtarlari.add(anahtar)
+            _alanlari_uygula(personel, {"ad_soyad": ad, "gorev": _metin(satir["Görev"]), "aktif": _metin(satir["Durum"]) == "Aktif"})
 
         istasyon_haritasi = {i.kodu: i for i in db.query(Istasyon).all()}
         for satir in istasyonlar:
             kod = _metin(satir["İstasyon Kodu"]); istasyon = istasyon_haritasi.get(kod)
+            if istasyon and _sistem_kaydi_daha_yeni(istasyon, satir):
+                continue
             if not istasyon:
                 istasyon = Istasyon(kodu=kod); db.add(istasyon); istasyon_haritasi[kod] = istasyon
-            istasyon.adi, istasyon.bolum = _metin(satir["İstasyon Adı"]), _metin(satir["Bölüm"])
-            istasyon.aciklama, istasyon.aktif = _metin(satir["Açıklama"]), _metin(satir["Durum"]) == "Aktif"
+            _alanlari_uygula(istasyon, {"adi": _metin(satir["İstasyon Adı"]), "bolum": _metin(satir["Bölüm"]),
+                "aciklama": _metin(satir["Açıklama"]), "aktif": _metin(satir["Durum"]) == "Aktif"})
         db.flush()
 
         for satir in personeller:
-            personel = harita.get(_metin(satir["Ad Soyad"]).casefold())
+            personel_anahtari = _metin(satir["Ad Soyad"]).casefold()
+            personel = harita.get(personel_anahtari)
+            if not personel or (personel_anahtari not in yeni_personel_anahtarlari and _sistem_kaydi_daha_yeni(personel, satir)):
+                continue
             secili_kodlar = _istasyon_kodlarini_ayir(satir.get("İstasyon Kodları"))
             secili_idler = {istasyon_haritasi[kod].id for kod in secili_kodlar if kod in istasyon_haritasi}
             mevcut_atamalar = {
@@ -166,11 +199,13 @@ def aktarimi_onayla(db: Session, token: str | None, kullanici_adi: str, ip_adres
             if not istasyon:
                 raise ValueError(f"{kod} makinesi için istasyon bulunamadı")
             makine = makine_haritasi.get(kod)
+            if makine and _sistem_kaydi_daha_yeni(makine, satir):
+                continue
             if not makine:
                 makine = Makine(kodu=kod); db.add(makine); makine_haritasi[kod] = makine
-            makine.adi, makine.istasyon_id = _metin(satir["Makine Adı"]), istasyon.id
-            makine.model, makine.kapasite = _metin(satir["Model"]), _metin(satir["Kapasite"])
-            makine.aktif = _metin(satir["Durum"]) == "Aktif"
+            _alanlari_uygula(makine, {"adi": _metin(satir["Makine Adı"]), "istasyon_id": istasyon.id,
+                "model": _metin(satir["Model"]), "kapasite": _metin(satir["Kapasite"]),
+                "aktif": _metin(satir["Durum"]) == "Aktif"})
 
         urun_haritasi = {u.kodu: u for u in db.query(Urun).all()}
         stok_turu_haritasi = {tur.adi.casefold(): tur for tur in db.query(StokUrunTuru).filter(StokUrunTuru.aktif.is_(True), StokUrunTuru.uretilen.is_(False)).all()}
@@ -183,16 +218,19 @@ def aktarimi_onayla(db: Session, token: str | None, kullanici_adi: str, ip_adres
         for veri in urunler:
             satir = dict(veri)
             urun = urun_haritasi.get(satir["kodu"])
+            if urun and _sistem_kaydi_daha_yeni(urun, satir):
+                continue
             if not urun:
                 urun = Urun(kodu=satir["kodu"]); db.add(urun); urun_haritasi[satir["kodu"]] = urun
             tur_adi = _metin(satir.pop("stok_turu_adi", "")).casefold()
             sinif_anahtari = _metin(satir.pop("urun_sinifi_anahtari", "")).casefold()
             secili_istasyon_kodlari = _istasyon_kodlarini_ayir(satir.pop("istasyon_kodlari", ""))
+            satir.pop("_excel_referans_zamani", None)
             if tur_adi not in stok_turu_haritasi or (sinif_anahtari and sinif_anahtari not in urun_sinifi_haritasi):
                 raise ValueError(f"{urun.kodu} için hammadde türü veya ürün sınıfı bulunamadı")
-            urun.stok_urun_turu_id = stok_turu_haritasi[tur_adi].id
-            urun.urun_sinifi_id = urun_sinifi_haritasi[sinif_anahtari].id if sinif_anahtari else None
-            for alan, deger in satir.items(): setattr(urun, alan, deger)
+            _alanlari_uygula(urun, {"stok_urun_turu_id": stok_turu_haritasi[tur_adi].id,
+                "urun_sinifi_id": urun_sinifi_haritasi[sinif_anahtari].id if sinif_anahtari else None,
+                **satir})
             db.flush()
             secili_istasyon_idleri = {istasyon_haritasi[kod].id for kod in secili_istasyon_kodlari}
             mevcut_atamalar = {
