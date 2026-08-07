@@ -20,6 +20,8 @@ document.addEventListener("DOMContentLoaded", () => {
             panel.classList.toggle("is-active", active);
         });
 
+        document.dispatchEvent(new CustomEvent("dashboard:panel-change", { detail: { target } }));
+
         if (target === "teslim") {
             const teslimAccordion = document.querySelector("#icerik-3");
             if (teslimAccordion && window.bootstrap) {
