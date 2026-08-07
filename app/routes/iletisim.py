@@ -1,6 +1,6 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.templating import templates
 from sqlalchemy.orm import Session
 
 from app.context import template_data
@@ -25,7 +25,6 @@ from app.services.islem_log_service import islem_logla
 from app.utils.zaman import turkiye_saati
 
 router = APIRouter(tags=["İletişim"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 def _kullanici_id(request: Request) -> int:

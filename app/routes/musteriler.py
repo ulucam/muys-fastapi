@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from fastapi import APIRouter, Request, Depends, Form, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.templating import templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -27,9 +27,6 @@ router = APIRouter(
     tags=["Müşteriler"]
 )
 
-templates = Jinja2Templates(
-    directory="app/templates"
-)
 
 ILLER_DOSYASI = Path(__file__).resolve().parent.parent / "data" / "iller.js"
 

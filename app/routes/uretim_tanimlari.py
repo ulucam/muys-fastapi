@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.templating import templates
 from sqlalchemy.orm import Session
 
 from app.context import template_data
@@ -32,7 +32,6 @@ from app.services.islem_log_service import islem_logla
 from app.services.puantaj_service import personel_puantaji, puantaj_kayitlarini_guncelle, puantaj_listesi_verisi
 
 router = APIRouter(tags=["Üretim Tanımları"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 def ekran_verisi(request: Request, db: Session, **ek):

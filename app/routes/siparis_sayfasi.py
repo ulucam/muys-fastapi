@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.templating import templates
 from sqlalchemy.orm import Session
 
 from app.context import template_data
@@ -11,7 +11,6 @@ from app.services.siparis_service import SIPARIS_DURUMLARI, siparis_form_verisi,
 
 
 router = APIRouter(tags=["Siparişler"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/siparisler", response_class=HTMLResponse)

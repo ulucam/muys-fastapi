@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, Response, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.templating import templates
 from sqlalchemy.orm import Session
 
 from app.utils.excel import (
@@ -31,9 +31,6 @@ from app.services.sistem_service import sistem_bilgileri
 
 router = APIRouter()
 
-templates = Jinja2Templates(
-    directory="app/templates"
-)
 
 
 @router.get("/api/islem-loglari/son")

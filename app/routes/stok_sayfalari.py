@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.templating import templates
 from sqlalchemy.orm import Session
 
 from app.context import template_data
@@ -36,7 +36,6 @@ from app.services.uretim_plan_service import (
 )
 
 router = APIRouter(tags=["Stok"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 def _opsiyonel_id(deger: str) -> int | None:
