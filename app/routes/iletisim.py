@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -13,6 +13,7 @@ from app.services.iletisim_service import (
     mesaj_kutulari,
     mesaji_okundu_yap,
 )
+from app.services.push_service import arka_planda_push_gonder
 
 router = APIRouter(tags=["İletişim"])
 templates = Jinja2Templates(directory="app/templates")
@@ -36,11 +37,12 @@ def mesajlar(request: Request, durum: str | None = None, db: Session = Depends(g
 
 
 @router.post("/mesajlar/gonder")
-def mesaj_gonder_route(request: Request, alici_id: int = Form(...), konu: str = Form(""), icerik: str = Form(""), db: Session = Depends(get_db)):
+def mesaj_gonder_route(request: Request, background_tasks: BackgroundTasks, alici_id: int = Form(...), konu: str = Form(""), icerik: str = Form(""), db: Session = Depends(get_db)):
     try:
-        mesaj_gonder(db, _kullanici_id(request), alici_id, konu, icerik)
+        mesaj = mesaj_gonder(db, _kullanici_id(request), alici_id, konu, icerik)
     except ValueError:
         return RedirectResponse("/mesajlar?durum=hata#module-yeni", status_code=303)
+    background_tasks.add_task(arka_planda_push_gonder, alici_id, "Yeni mesaj", f"{request.session.get('kullanici_adi', 'Bir kullanıcı')} size mesaj gönderdi: {mesaj.konu}", f"/mesajlar#mesaj-{mesaj.id}")
     return RedirectResponse("/mesajlar?durum=gonderildi#module-giden", status_code=303)
 
 
