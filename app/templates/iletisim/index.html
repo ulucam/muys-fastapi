@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/module_toolbar.html" import panel_button %}
+{% from "components/module_toolbar.html" import panel_button, dock_toggle %}
 {% block title %}Mesajlar{% endblock %}
 {% block content %}
 <div class="container-fluid py-3 px-0">
@@ -8,6 +8,7 @@
 
     <div class="module-workspace" data-module-workspace>
         <aside class="module-toolbar" aria-label="Mesaj bölümleri">
+            {{ dock_toggle('Mesaj bölümleri') }}
             {{ panel_button('sohbetler', 'Sohbetler', 'bi-chat-left-text', 'primary', okunmamis, true) }}
             {{ panel_button('yeni', 'Yeni Mesaj', 'bi-pencil-square', 'success') }}
             {% if kullanici_rol == 'Admin' %}{{ panel_button('konular', 'Konu Yetkilileri', 'bi-tags', 'warning') }}{% endif %}
