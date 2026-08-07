@@ -1,12 +1,21 @@
 {% extends "base.html" %}
+{% from "components/module_toolbar.html" import panel_button, link_button %}
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid px-0">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div><h3 class="mb-1">Kullanıcılar</h3><p class="text-muted mb-0">Personel hesapları ve rol atamaları</p></div>
-    <a class="btn btn-primary" href="/kullanicilar/ekle"><i class="bi bi-person-plus me-1"></i> Personelden kullanıcı ata</a>
   </div>
 
+  <div class="module-workspace" data-module-workspace>
+  <aside class="module-toolbar" aria-label="Kullanıcı bölümleri">
+    {{ panel_button('kullanicilar', 'Atanmış Kullanıcılar', 'bi-people', 'primary', kullanicilar|length, true) }}
+    {% if kullanici_rol == "Admin" %}{{ panel_button('roller', 'Roller ve Yetkiler', 'bi-shield-lock', 'warning') }}{% endif %}
+    {{ link_button('/kullanicilar/ekle', 'Kullanıcı Ata', 'bi-person-plus', 'success') }}
+  </aside>
+  <div class="module-panel-area">
+
   {% if kullanici_rol == "Admin" %}
+  <section class="module-panel" data-module-panel="roller" hidden>
   <div class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-white py-3"><h5 class="mb-1">Rol sınıfları ve yetkiler</h5><small class="text-muted">Rolü, hiyerarşi seviyesini, erişeceği alanları ve kullanıcı ekleme hakkını yalnızca Admin belirler.</small></div>
     <div class="card-body">
@@ -38,13 +47,18 @@
       </div>
     </div>
   </div>
+  </section>
   {% endif %}
 
+  <section class="module-panel is-active" data-module-panel="kullanicilar">
   <div class="card shadow-sm border-0"><div class="card-header bg-white py-3"><h5 class="mb-0">Atanmış kullanıcılar</h5></div>
     <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Personel</th><th>Kullanıcı adı</th><th>Rol</th><th>Durum</th><th></th></tr></thead><tbody>
       {% for k in kullanicilar %}<tr><td><strong>{{ k.ad_soyad }}</strong></td><td>{{ k.kullanici_adi }}</td><td><span class="badge text-bg-primary">{{ k.rol }}</span></td><td>{{ 'Aktif' if k.aktif else 'Pasif' }}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/kullanicilar/duzenle/{{ k.id }}">Düzenle</a></td></tr>
       {% else %}<tr><td colspan="5" class="text-center text-muted py-5">Henüz atanmış kullanıcı yok.</td></tr>{% endfor %}
     </tbody></table></div>
+  </div>
+  </section>
+  </div>
   </div>
 </div>
 {% endblock %}
