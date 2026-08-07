@@ -55,6 +55,7 @@ def son_kullanici_hareketleri(db: Session, limit: int = 5) -> list[dict]:
 
     return [
         {
+            "id": log.id,
             "kullanici_adi": log.kullanici_adi,
             "rol": rol,
             "modul": log.modul,
