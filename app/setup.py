@@ -11,8 +11,10 @@ def setup_database(db: Session):
 
     try:
 
-        for ad, uretilen in [("Hammadde", False), ("Sarf Malzeme", False), ("Üretim", True), ("Ticari Mamül", False)]:
-            if not db.query(StokUrunTuru).filter(StokUrunTuru.adi == ad).first():
+        # Varsayılan stok türleri yalnızca ilk, tamamen boş kurulumda eklenir.
+        # Kullanıcının sildiği veya yeniden adlandırdığı türler açılışta geri gelmemelidir.
+        if db.query(StokUrunTuru).count() == 0:
+            for ad, uretilen in [("Hammadde", False), ("Sarf Malzeme", False), ("Üretim", True), ("Ticari Mamül", False)]:
                 db.add(StokUrunTuru(adi=ad, uretilen=uretilen, aktif=True))
         db.commit()
 
