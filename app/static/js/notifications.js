@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 '<div class="activity-item-icon"><i class="bi ' + (item.tur === 'mesaj' ? 'bi-chat-dots' : 'bi-info-circle') + '"></i></div>' +
                 '<div class="activity-item-body"><div class="activity-item-title"><strong>' + safe(item.baslik) + '</strong></div>' +
                 '<div class="activity-item-meta">' + safe(item.mesaj) + '</div><div class="activity-item-meta">' + safe(item.zaman) + '</div></div></div>';
-            return item.baglanti ? '<a class="notification-item-link" href="' + safe(item.baglanti) + '">' + content + '</a>' : content;
+            return item.baglanti ? '<a class="notification-item-link" data-notification-id="' + Number(item.id) + '" href="' + safe(item.baglanti) + '">' + content + '</a>' : content;
         }).join("") : '<div class="activity-empty">Henüz bildiriminiz yok.</div>';
     }
     function load() {
@@ -41,7 +41,13 @@ document.addEventListener("DOMContentLoaded", function () {
     if (markRead) markRead.addEventListener("click", function () {
         fetch("/api/bildirimler/okundu", {method: "POST", headers: {"Accept": "application/json"}}).then(load);
     });
+    feed.addEventListener("click", function (event) {
+        const link = event.target.closest("[data-notification-id]");
+        if (!link) return;
+        fetch("/api/bildirimler/" + link.dataset.notificationId + "/okundu", {method: "POST", keepalive: true, headers: {"Accept": "application/json"}}).catch(function () {});
+    });
     document.addEventListener("visibilitychange", load);
+    document.addEventListener("muys:notifications-refresh", load);
     load();
     window.setInterval(load, 15000);
 });
