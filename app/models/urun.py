@@ -121,6 +121,9 @@ class Urun(Base):
         nullable=True,
     )
 
+    # Ürün ailesi altındaki varyantı ayıran ölçü/boyut bilgisi.
+    olcu = Column(String(100), default="", nullable=True)
+
     # Yarı mamul/mamul için bir birimin tahmini üretim süresi (dakika).
     tahmini_uretim_suresi = Column(Float, default=0, nullable=False)
 
