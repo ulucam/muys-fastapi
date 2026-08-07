@@ -33,6 +33,16 @@
             var response = await fetch('/api/dashboard/uretim-durum', {headers: {'Accept': 'application/json'}});
             if (!response.ok) return;
             var rows = await response.json();
+            var stationBoard = document.getElementById('canli-istasyonlar');
+            if (stationBoard) {
+                var activeRows = rows.filter(function (row) { return row.durum === 'Devam Ediyor'; });
+                var groups = {};
+                activeRows.forEach(function (row) { (groups[row.istasyon] = groups[row.istasyon] || []).push(row); });
+                stationBoard.innerHTML = Object.keys(groups).length ? Object.keys(groups).sort().map(function (station) {
+                    return '<article class="live-station-card"><div class="live-station-head"><strong><i class="bi bi-geo-alt me-1"></i>' + safe(station) + '</strong><span>' + groups[station].length + ' çalışan</span></div>' +
+                        groups[station].map(function (row) { return '<div class="live-worker"><i class="bi bi-person-gear"></i><div><strong>' + safe(row.operator) + '</strong><small>' + safe(row.operasyon || row.urun) + ' · ' + safe(row.emir_no) + '</small></div><span class="live-worker-time">' + duration(row.sure_dakika) + '</span></div>'; }).join('') + '</article>';
+                }).join('') : '<div class="text-muted text-center py-3">Şu anda istasyonda devam eden iş yok.</div>';
+            }
             body.innerHTML = rows.length ? rows.map(function (row) {
                 var active = row.durum === 'Devam Ediyor';
                 return '<tr class="' + (active ? 'table-success' : '') + '">' +
