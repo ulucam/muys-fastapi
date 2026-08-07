@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.istasyon import Istasyon
@@ -73,11 +74,14 @@ def ekran_verisi(db: Session, **ek) -> dict:
 
 def personel_listesi_verisi(db: Session, q: str, departman: str, gorev: str, istasyon_id: int | None) -> dict:
     sorgu = db.query(Personel).filter(Personel.aktif.is_(True))
-    if q.strip():
-        arama = f"%{q.strip()}%"
+    q, departman, gorev = metin(q), metin(departman), metin(gorev)
+    if q:
+        arama = f"%{q}%"
         sorgu = sorgu.filter((Personel.ad_soyad.ilike(arama)) | (Personel.kodu.ilike(arama)))
-    if departman: sorgu = sorgu.filter(Personel.departman == departman)
-    if gorev: sorgu = sorgu.filter(Personel.gorev == gorev)
+    if departman:
+        sorgu = sorgu.filter(func.trim(Personel.departman) == departman)
+    if gorev:
+        sorgu = sorgu.filter(func.trim(Personel.gorev) == gorev)
     if istasyon_id:
         makine_idleri = [m.id for m in db.query(Makine).filter(Makine.istasyon_id == istasyon_id).all()]
         personel_idleri = [a.personel_id for a in db.query(PersonelMakine).filter(PersonelMakine.makine_id.in_(makine_idleri), PersonelMakine.aktif.is_(True)).all()]
