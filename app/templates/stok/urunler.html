@@ -56,7 +56,7 @@
                                 <div class="d-flex flex-wrap gap-1 mb-3">{% for satir in asama_malzemeleri if satir.asama_id == asama.id %}{% set malzeme = urun_haritasi.get(satir.malzeme_id) %}<span class="badge text-bg-light border"><i class="bi bi-box-seam me-1"></i>{{ malzeme.adi if malzeme else '-' }}: {{ satir.miktar }} {{ satir.birim }}{% if satir.fire_orani %} +%{{ satir.fire_orani }}{% endif %}</span>{% else %}<span class="small text-muted">Bu aşamada eklenecek malzeme yok.</span>{% endfor %}</div>
                                 <form method="post" action="/receteler/asama/{{ asama.id }}/malzeme" class="row g-2">
                                     <div class="col-md-5"><select class="form-select form-select-sm" name="malzeme_id" required><option value="">Bu aşamada birleşecek malzeme</option>{% for urun in tum_urunler if urun.id != recete.urun_id %}<option value="{{ urun.id }}">{{ urun.kodu }} · {{ urun.adi }}</option>{% endfor %}</select></div>
-                                    <div class="col-4 col-md-2"><input class="form-control form-control-sm" type="number" step="0.001" min="0.001" name="miktar" placeholder="Miktar" required></div>
+                                    <div class="col-4 col-md-2"><input class="form-control form-control-sm" type="number" step="1" min="1" name="miktar" placeholder="Miktar" required></div>
                                     <div class="col-4 col-md-2"><select class="form-select form-select-sm" name="birim" required><option value="Adet">Adet</option><option value="Kg">Kg</option></select></div>
                                     <div class="col-4 col-md-2"><input class="form-control form-control-sm" type="number" step="0.1" min="0" name="fire_orani" value="0" placeholder="Fire %"></div>
                                     <div class="col-md-1"><button class="btn btn-sm btn-outline-success w-100"><i class="bi bi-plus"></i></button></div>
@@ -105,8 +105,8 @@
             <div class="col-12 col-md-3"><label class="form-label">Tür</label><select class="form-select" name="stok_urun_turu_id" required><option value="">Tür seçin</option>{% for tur in turler if tur.aktif %}<option value="{{ tur.id }}">{{ tur.adi }}</option>{% endfor %}</select></div>
             <div class="col-12 col-md-3"><label class="form-label">Takip Sınıfı</label><select class="form-select" name="stok_urun_sinifi_id"><option value="">Sınıf yok</option>{% for sinif in siniflar if sinif.aktif %}<option value="{{ sinif.id }}">{{ sinif.adi }}</option>{% endfor %}</select></div>
             <div class="col-4 col-md-2"><label class="form-label">Birim</label><select class="form-select" name="birim"><option value="Adet">Adet</option><option value="Kg">Kg</option></select></div>
-            <div class="col-4 col-md-2"><label class="form-label">Mevcut Stok</label><input class="form-control" name="mevcut_stok" type="number" step="0.001" value="0"></div>
-            <div class="col-4 col-md-2"><label class="form-label">Min. Stok</label><input class="form-control" name="min_stok" type="number" step="0.001" value="0"></div>
+            <div class="col-4 col-md-2"><label class="form-label">Mevcut Stok</label><input class="form-control" name="mevcut_stok" type="number" step="1" min="0" value="0"></div>
+            <div class="col-4 col-md-2"><label class="form-label">Min. Stok</label><input class="form-control" name="min_stok" type="number" step="1" min="0" value="0"></div>
             <div class="col-12 text-end"><button class="btn btn-success" type="submit"><i class="bi bi-check2-circle me-1"></i> Kartı Kaydet</button></div></fieldset>
         </form></div>
     </div>
@@ -137,8 +137,8 @@
                     <div class="col-6 col-md-3"><label class="form-label">Tür</label><select class="form-select" name="urun_{{ urun.id }}_tur_id" data-toplu-alan disabled required>{% for tur in turler if tur.aktif %}<option value="{{ tur.id }}" {% if tur.id == urun.stok_urun_turu_id %}selected{% endif %}>{{ tur.adi }}</option>{% endfor %}</select></div>
                     <div class="col-6 col-md-3"><label class="form-label">Sınıf</label><select class="form-select" name="urun_{{ urun.id }}_sinif_id" data-toplu-alan disabled><option value="">Sınıf yok</option>{% for sinif in siniflar if sinif.aktif %}<option value="{{ sinif.id }}" {% if sinif.id == urun.stok_urun_sinifi_id %}selected{% endif %}>{{ sinif.adi }}</option>{% endfor %}</select></div>
                     <div class="col-4 col-md-2"><label class="form-label">Birim</label><select class="form-select" name="urun_{{ urun.id }}_birim" data-toplu-alan disabled><option value="Adet" {% if urun.birim == 'Adet' %}selected{% endif %}>Adet</option><option value="Kg" {% if urun.birim == 'Kg' %}selected{% endif %}>Kg</option></select></div>
-                    <div class="col-4 col-md-2"><label class="form-label">Mevcut</label><input class="form-control" name="urun_{{ urun.id }}_mevcut_stok" type="number" step="0.001" value="{{ urun.mevcut_stok or 0 }}" data-toplu-alan disabled></div>
-                    <div class="col-4 col-md-2"><label class="form-label">Minimum</label><input class="form-control" name="urun_{{ urun.id }}_min_stok" type="number" step="0.001" value="{{ urun.min_stok or 0 }}" data-toplu-alan disabled></div>
+                    <div class="col-4 col-md-2"><label class="form-label">Mevcut</label><input class="form-control" name="urun_{{ urun.id }}_mevcut_stok" type="number" step="1" min="0" value="{{ urun.mevcut_stok or 0 }}" data-toplu-alan disabled></div>
+                    <div class="col-4 col-md-2"><label class="form-label">Minimum</label><input class="form-control" name="urun_{{ urun.id }}_min_stok" type="number" step="1" min="0" value="{{ urun.min_stok or 0 }}" data-toplu-alan disabled></div>
                 </div></div></td></tr>
             {% else %}<tr><td colspan="3" class="text-center text-muted py-5">Stok kartı bulunamadı.</td></tr>{% endfor %}</tbody>
         </table></div><div class="card-footer bg-white text-end"><button class="btn btn-primary" type="submit"><i class="bi bi-save2"></i> Açık Kartları Toplu Güncelle</button></div></form>
