@@ -88,3 +88,6 @@ class UretimEmri(Base):
         nullable=True,
         index=True,
     )
+
+    uretim_plani_id = Column(Integer, ForeignKey("uretim_planlari.id"), nullable=True, index=True)
+    plan_asamasi_id = Column(Integer, ForeignKey("uretim_plan_asamalari.id"), nullable=True, index=True)
