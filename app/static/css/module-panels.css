@@ -1,0 +1,24 @@
+.module-workspace{display:grid;grid-template-columns:minmax(0,1fr) 56px;gap:12px;align-items:start;width:100%}
+.module-panel-area{min-width:0;grid-column:1;grid-row:1}
+.module-toolbar{display:flex;grid-column:2;grid-row:1;position:sticky;top:78px;z-index:20;flex-direction:column;gap:9px;align-items:center}
+.module-tool{position:relative;display:flex;align-items:center;justify-content:center;width:56px;height:56px;padding:5px;border:1px solid transparent;border-radius:14px;background:#fff;color:inherit;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.06);transition:.2s ease}
+.module-tool:hover,.module-tool:focus-visible{color:inherit;transform:translateX(-4px);box-shadow:0 10px 24px rgba(0,0,0,.14)}
+.module-tool.is-active{border-color:#0d6efd;background:#f4f8ff;box-shadow:0 7px 20px rgba(13,110,253,.14)}
+.module-tool-icon{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;color:#fff;font-size:20px}
+.module-tool-count{display:none;position:absolute;right:-5px;top:-6px;min-width:20px;padding:2px 5px;border:2px solid #fff;border-radius:999px;background:#172033;color:#fff;font-size:11px;line-height:14px;text-align:center}
+.module-tool::before{content:attr(data-label);position:absolute;right:calc(100% + 10px);top:50%;transform:translate(6px,-50%);padding:7px 10px;border-radius:8px;background:#172033;color:#fff;font-size:.8rem;font-weight:600;white-space:nowrap;opacity:0;visibility:hidden;pointer-events:none;transition:.18s ease;box-shadow:0 7px 18px rgba(0,0,0,.18)}
+.module-tool:hover::before,.module-tool:focus-visible::before{opacity:1;visibility:visible;transform:translate(0,-50%)}
+.module-panel[hidden]{display:none!important}
+.module-panel.is-active{animation:module-panel-in .2s ease-out}
+@keyframes module-panel-in{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+@media(max-width:992px){
+    .module-workspace{grid-template-columns:minmax(0,1fr);gap:10px}
+    .module-toolbar{position:static;grid-column:1;grid-row:1;flex-direction:row;justify-content:flex-start;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x proximity;padding:2px 2px 7px;scrollbar-width:thin}
+    .module-panel-area{grid-column:1;grid-row:2}
+    .module-tool{flex:0 0 50px;width:50px;height:50px;scroll-snap-align:start}
+    .module-tool:hover{transform:translateY(-2px)}
+    .module-tool::before{display:none}
+    .module-tool-icon{width:38px;height:38px;border-radius:11px;font-size:18px}
+    .module-tool-count{display:block}
+}
