@@ -12,13 +12,13 @@ from app.models.uretim_emri import UretimEmri
 from app.models.uretim_plani import UretimPlani, UretimPlanAsamasi
 from app.models.urun import Urun
 from app.models.stok_urun_turu import StokUrunTuru
+from app.product_types import urun_turunu_normalize_et
 
 
 def uretilebilir_urun_mu(urun: Urun, uretim_stok_tur_idleri: set[int] | None = None) -> bool:
     """Eski kayıtların Türkçe tür yazımlarını da üretilebilir kabul eder."""
-    donusum = str.maketrans({"ı": "i", "İ": "i", "ş": "s", "ğ": "g", "ü": "u", "ö": "o", "ç": "c"})
-    tur = "".join(karakter for karakter in str(urun.urun_tipi or "").casefold().translate(donusum) if karakter.isalnum())
-    return tur == "mamul" or "yarimamul" in tur or (
+    tur = urun_turunu_normalize_et(urun.urun_tipi)
+    return tur in {"Mamül", "Yarı Mamül"} or (
         uretim_stok_tur_idleri is not None and urun.stok_urun_turu_id in uretim_stok_tur_idleri
     )
 
@@ -66,18 +66,19 @@ def _siradaki_recete_no(db: Session) -> str:
     return recete_no
 
 
-def recete_kaydet(db: Session, urun_id: int, tahmini_uretim_suresi: float = 0, aciklama: str = "") -> Recete:
+def recete_kaydet(db: Session, urun_id: int, tahmini_uretim_suresi: float = 0, aciklama: str = "") -> tuple[Recete, bool]:
     urun = db.query(Urun).filter(Urun.id == urun_id, Urun.aktif.isnot(False)).first()
     if not urun or not uretilebilir_urun_mu(urun, _uretim_stok_tur_idleri(db)):
         raise ValueError("Reçete çıktısı yarı mamul veya mamul olmalıdır")
     recete = db.query(Recete).filter(Recete.urun_id == urun.id, Recete.aktif.is_(True)).first()
     urun.tahmini_uretim_suresi = max(0, tahmini_uretim_suresi)
+    mevcut_recete = recete is not None
     if recete:
         recete.aciklama = aciklama.strip()[:250]
     else:
         recete = Recete(urun_id=urun.id, recete_no=_siradaki_recete_no(db)[:50], aciklama=aciklama.strip()[:250], aktif=True)
     db.add(recete); db.commit()
-    return recete
+    return recete, mevcut_recete
 
 
 def recete_asamasi_kaydet(db: Session, recete_id: int, sira_no: int, istasyon_id: int, operasyon_adi: str, hedef_cevrim_suresi: float = 0, aciklama: str = "") -> ReceteAsama:
@@ -94,10 +95,10 @@ def recete_asamasi_kaydet(db: Session, recete_id: int, sira_no: int, istasyon_id
     return asama
 
 
-def asama_malzemesi_kaydet(db: Session, asama_id: int, malzeme_id: int, miktar: float, birim: str, fire_orani: float = 0) -> ReceteAsamaMalzeme:
+def asama_malzemesi_kaydet(db: Session, asama_id: int, malzeme_id: int, miktar: int, birim: str, fire_orani: float = 0) -> ReceteAsamaMalzeme:
     asama = db.query(ReceteAsama).filter(ReceteAsama.id == asama_id, ReceteAsama.aktif.is_(True)).first()
     malzeme = db.query(Urun).filter(Urun.id == malzeme_id, Urun.aktif.is_(True)).first()
-    if not asama or not malzeme or miktar <= 0:
+    if not asama or not malzeme or miktar <= 0 or int(miktar) != miktar:
         raise ValueError("Aşama, malzeme ve pozitif miktar zorunludur")
     kayit = db.query(ReceteAsamaMalzeme).filter(ReceteAsamaMalzeme.asama_id == asama.id, ReceteAsamaMalzeme.malzeme_id == malzeme.id).first()
     kayit = kayit or ReceteAsamaMalzeme(asama_id=asama.id, malzeme_id=malzeme.id)
