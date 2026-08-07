@@ -36,6 +36,7 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
             ],
             "mesajlar": [
                 ("konusma_id", "ALTER TABLE mesajlar ADD COLUMN konusma_id INTEGER"),
+                ("konu_id", "ALTER TABLE mesajlar ADD COLUMN konu_id INTEGER"),
             ],
             "firma_ayarlari": [
                 ("logo_yolu", "ALTER TABLE firma_ayarlari ADD COLUMN logo_yolu VARCHAR(300) DEFAULT ''"),
