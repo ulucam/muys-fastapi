@@ -45,8 +45,8 @@ def urun_kaydet(
     try:
         stok_urunu_kaydet(db, kodu, adi, stok_urun_turu_id, stok_urun_sinifi_id, birim, marka, model, mevcut_stok, min_stok, urun_id)
     except ValueError:
-        return RedirectResponse("/receteler?error=urun", status_code=303)
-    return RedirectResponse("/receteler", status_code=303)
+        return RedirectResponse("/receteler?error=urun#module-yeni-kart", status_code=303)
+    return RedirectResponse("/receteler#module-stoklar", status_code=303)
 
 
 @router.post("/urunler/tur/kaydet")
@@ -54,8 +54,8 @@ def tur_kaydet(adi: str = Form(""), db: Session = Depends(get_db), yetki=Depends
     try:
         stok_turu_kaydet(db, adi)
     except ValueError:
-        return RedirectResponse("/receteler?error=tur", status_code=303)
-    return RedirectResponse("/receteler", status_code=303)
+        return RedirectResponse("/receteler?error=tur#module-tanimlar", status_code=303)
+    return RedirectResponse("/receteler#module-tanimlar", status_code=303)
 
 
 @router.post("/urunler/tur/{tur_id}/guncelle")
@@ -63,8 +63,8 @@ def tur_guncelle(tur_id: int, adi: str = Form(""), db: Session = Depends(get_db)
     try:
         stok_turu_kaydet(db, adi, tur_id)
     except ValueError:
-        return RedirectResponse("/receteler?error=tur", status_code=303)
-    return RedirectResponse("/receteler", status_code=303)
+        return RedirectResponse("/receteler?error=tur#module-tanimlar", status_code=303)
+    return RedirectResponse("/receteler#module-tanimlar", status_code=303)
 
 
 @router.post("/urunler/tur/{tur_id}/sil")
@@ -72,8 +72,8 @@ def tur_sil(tur_id: int, urunlerden_kaldir: bool = Form(False), db: Session = De
     try:
         stok_turu_sil(db, tur_id, urunlerden_kaldir)
     except ValueError:
-        return RedirectResponse("/receteler?error=tur_kullanim", status_code=303)
-    return RedirectResponse("/receteler", status_code=303)
+        return RedirectResponse("/receteler?error=tur_kullanim#module-tanimlar", status_code=303)
+    return RedirectResponse("/receteler#module-tanimlar", status_code=303)
 
 
 @router.post("/urunler/sinif/kaydet")
@@ -81,8 +81,8 @@ def sinif_kaydet(adi: str = Form(""), db: Session = Depends(get_db), yetki=Depen
     try:
         stok_sinifi_kaydet(db, adi)
     except ValueError:
-        return RedirectResponse("/receteler?error=sinif", status_code=303)
-    return RedirectResponse("/receteler", status_code=303)
+        return RedirectResponse("/receteler?error=sinif#module-tanimlar", status_code=303)
+    return RedirectResponse("/receteler#module-tanimlar", status_code=303)
 
 
 @router.post("/urunler/sinif/{sinif_id}/guncelle")
@@ -90,8 +90,8 @@ def sinif_guncelle(sinif_id: int, adi: str = Form(""), db: Session = Depends(get
     try:
         stok_sinifi_kaydet(db, adi, sinif_id)
     except ValueError:
-        return RedirectResponse("/receteler?error=sinif", status_code=303)
-    return RedirectResponse("/receteler", status_code=303)
+        return RedirectResponse("/receteler?error=sinif#module-tanimlar", status_code=303)
+    return RedirectResponse("/receteler#module-tanimlar", status_code=303)
 
 
 @router.post("/urunler/sinif/{sinif_id}/sil")
@@ -99,8 +99,8 @@ def sinif_sil(sinif_id: int, urunlerden_kaldir: bool = Form(False), db: Session 
     try:
         stok_sinifi_sil(db, sinif_id, urunlerden_kaldir)
     except ValueError:
-        return RedirectResponse("/receteler?error=sinif_kullanim", status_code=303)
-    return RedirectResponse("/receteler", status_code=303)
+        return RedirectResponse("/receteler?error=sinif_kullanim#module-tanimlar", status_code=303)
+    return RedirectResponse("/receteler#module-tanimlar", status_code=303)
 
 
 @router.get("/receteler", response_class=HTMLResponse)
