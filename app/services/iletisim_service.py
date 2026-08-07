@@ -7,6 +7,7 @@ from app.models.bildirim import Bildirim
 from app.models.mesaj import Mesaj
 from app.models.mesaj_konusu import MesajAlici, MesajKonusu, MesajKonusuYetkili, MesajSilme
 from app.models.user import User
+from app.utils.zaman import turkiye_saati
 
 
 def aktif_kullanicilar(db: Session, haric_id: int):
@@ -188,6 +189,6 @@ def iletisim_ozeti(db: Session, kullanici_id: int) -> dict:
         "okunmamis_mesaj": okunmamis_mesaj,
         "bildirimler": [{
             "id": b.id, "baslik": b.baslik, "mesaj": b.mesaj, "tur": b.tur, "baglanti": b.baglanti,
-            "okundu": b.okundu, "zaman": b.created_at.strftime("%d.%m.%Y %H:%M"),
+            "okundu": b.okundu, "zaman": turkiye_saati(b.created_at).strftime("%d.%m.%Y %H:%M"),
         } for b in bildirimler],
     }
