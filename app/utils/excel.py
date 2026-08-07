@@ -135,7 +135,7 @@ def excel_satirlarini_oku(dosya_icerigi):
                 try:
                     urun = {
                     "kodu": kod, "adi": ad, "marka": metin(veri["Marka"]), "model": metin(veri["Model"]), "urun_tipi": "Hammadde",
-                        "stok_turu_adi": urun_turu, "stok_sinifi_adi": metin(veri["Ürün Sınıfı"]),
+                        "stok_turu_adi": urun_turu, "urun_sinifi_anahtari": metin(veri["Ürün Sınıfı"]),
                         "urun_cinsi": metin(veri["Ürün Cinsi"]),
                         "istasyon_kodlari": metin(veri["İstasyon Kodları"]),
                         "birim": birim or "Adet",
@@ -204,7 +204,7 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
     mevcut_istasyonlar = sablon_verisi["istasyonlar"]
     mevcut_makineler = sablon_verisi["makineler"]
     mevcut_stok_turleri = sablon_verisi.get("stok_turleri", [])
-    mevcut_stok_siniflari = sablon_verisi.get("stok_siniflari", [])
+    mevcut_urun_siniflari = sablon_verisi.get("siniflar", [])
     urun_istasyon_kodlari = sablon_verisi.get("urun_istasyon_kodlari", {})
     kitap = openpyxl.Workbook()
     sistem = kitap.active
@@ -263,14 +263,14 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
             sayfa.column_dimensions[openpyxl.utils.get_column_letter(index)].width = genislik
 
     stok_tur_adlari = {tur.id: tur.adi for tur in mevcut_stok_turleri}
-    stok_sinif_adlari = {sinif.id: sinif.adi for sinif in mevcut_stok_siniflari}
+    urun_sinif_adlari = {sinif.id: f"{sinif.kodu} · {sinif.adi}" for sinif in mevcut_urun_siniflari}
     aktarilacak_urunler = [u for u in mevcut_urunler if u.urun_tipi in ("Hammadde", "TicariMamul")]
     stok = kitap.create_sheet("Hammadde ve Ticari Ürünler")
     stok.append(URUN_SUTUNLARI)
     for urun in aktarilacak_urunler:
         stok.append([
             urun.kodu, urun.adi, urun.marka or "", urun.model or "", stok_tur_adlari.get(urun.stok_urun_turu_id, "Hammadde"),
-            stok_sinif_adlari.get(urun.stok_urun_sinifi_id, ""), urun.urun_cinsi or "",
+            urun_sinif_adlari.get(urun.urun_sinifi_id, ""), urun.urun_cinsi or "",
             ", ".join(urun_istasyon_kodlari.get(urun.id, [])), urun.birim or "Adet",
             urun.mevcut_stok or 0, urun.min_stok or 0, urun.max_stok or 0,
             urun.maliyet or 0, urun.satis_fiyati or 0, urun.aciklama or "",
@@ -278,7 +278,7 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
         ])
     stok.freeze_panes = "A2"
     stok_son_satir = max(501, len(aktarilacak_urunler) + 1)
-    stok.auto_filter.ref = f"A1:O{stok_son_satir}"
+    stok.auto_filter.ref = f"A1:P{stok_son_satir}"
     for hucre in stok[1]:
         hucre.font = openpyxl.styles.Font(bold=True, color="FFFFFF")
         hucre.fill = openpyxl.styles.PatternFill("solid", fgColor="1F4E78")
@@ -290,7 +290,7 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
     tum_ilceler = sorted({ilce for ilceler in iller.values() for ilce in ilceler})
     durumlar = ["Aktif", "Pasif"]
     tur_listesi = [tur.adi for tur in mevcut_stok_turleri]
-    sinif_listesi = [sinif.adi for sinif in mevcut_stok_siniflari]
+    sinif_listesi = [f"{sinif.kodu} · {sinif.adi}" for sinif in mevcut_urun_siniflari if sinif.aktif]
     istasyon_listesi = [istasyon.kodu for istasyon in mevcut_istasyonlar]
     for sira in range(max(len(iller), len(tum_ilceler), len(TURLER), len(tur_listesi), len(sinif_listesi), len(durumlar), len(istasyon_listesi))):
         listeler.append([
