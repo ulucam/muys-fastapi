@@ -10,6 +10,7 @@ from app.database import get_db
 from app.services.dashboard_service import (
     dashboard_verisi,
     puantaj_kaydet as puantaj_kaydet_service,
+    uretim_emri_istasyonunu_ata,
 )
 from app.services.islem_log_service import islem_logla
 from app.models.user import User
@@ -132,7 +133,7 @@ async def uretim_bitir(kayit_id: int, request: Request, db: Session = Depends(ge
 
 @router.post("/uretim/planla")
 async def uretim_planla(request: Request, db: Session = Depends(get_db)):
-    if request.session.get("rol") not in ("Admin", "Üretim", "Ãœretim"):
+    if request.session.get("rol") not in ("Admin", "Yönetici", "YÃ¶netici", "Üretim", "Ãœretim"):
         raise HTTPException(status_code=403, detail="Üretim planlama yetkiniz yok.")
     form = await request.form()
     try:
@@ -146,15 +147,13 @@ async def uretim_planla(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/uretim/{emir_id}/istasyon")
 async def uretim_istasyon_ata(emir_id: int, request: Request, db: Session = Depends(get_db)):
-    if request.session.get("rol") not in ("Admin", "Üretim", "Ãœretim"):
+    if request.session.get("rol") not in ("Admin", "Yönetici", "YÃ¶netici", "Üretim", "Ãœretim"):
         raise HTTPException(status_code=403, detail="İstasyon atamasını yalnızca üretim yönetimi yapabilir.")
     form = await request.form()
-    emir = db.query(UretimEmri).filter(UretimEmri.id == emir_id).first()
-    istasyon = db.query(Istasyon).filter(Istasyon.id == int(form.get("istasyon_id") or 0), Istasyon.aktif.is_(True)).first()
-    if not emir or not istasyon:
-        raise HTTPException(status_code=404, detail="Emir veya istasyon bulunamadı.")
-    emir.istasyon_id = istasyon.id
-    db.commit()
+    try:
+        uretim_emri_istasyonunu_ata(db, emir_id, int(form.get("istasyon_id") or 0))
+    except ValueError:
+        return RedirectResponse("/?istasyon=hata#uretim-emirleri", status_code=303)
     return RedirectResponse("/?istasyon=atandi#uretim-emirleri", status_code=303)
 
 
