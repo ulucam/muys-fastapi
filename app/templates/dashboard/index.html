@@ -85,6 +85,7 @@
             </div>
             {% if not operator_mu %}<span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle"><span class="live-dot"></span> Canlı</span>{% endif %}
         </div>
+        {% if request.query_params.get('istasyon') == 'atandi' %}<div class="alert alert-success py-2"><i class="bi bi-check-circle me-1"></i> İş emri istasyona atandı.</div>{% endif %}
 
         {% if operator_mu %}
         <div class="production-card-grid">
@@ -120,7 +121,7 @@
             {% endfor %}
         </div>
         {% else %}
-        {% if uretim_yonetebilir %}<div class="card border-0 shadow-sm mb-3">
+        {% if uretim_yonetebilir %}<div id="uretim-emirleri" class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-3"><strong><i class="bi bi-calendar2-check me-2"></i>Üretim Planı Başlat</strong><div class="small text-muted">Aşamalı reçeteyi sipariş için veya doğrudan stok için üretime alın.</div></div>
             <div class="card-body"><form method="post" action="/uretim/planla" class="row g-3">
                 <div class="col-md-3"><label class="form-label">Reçete</label><select class="form-select" name="recete_id" required><option value="">Reçete seçin</option>{% for recete in plan_receteleri %}{% set urun = plan_urun_haritasi.get(recete.urun_id) %}<option value="{{ recete.id }}">{{ recete.recete_no }} · {{ urun.adi if urun else '-' }}</option>{% endfor %}</select></div>
