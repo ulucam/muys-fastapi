@@ -1,43 +1,40 @@
 {% extends "base.html" %}
-
+{% from "components/module_toolbar.html" import panel_button, link_button %}
 {% block title %}Siparişler{% endblock %}
-{% block page_title %}📝 Sipariş Yönetimi{% endblock %}
-
 {% block content %}
-
-<div class="kart">
-    <div class="kart-title">📋 Sipariş Listesi</div>
-    {% if musteri_id %}
-    <div class="text-muted text-center mt-3">
-        <strong>{{ musteri.firma_adi if musteri else 'Müşteri bulunamadı' }}</strong>{% if durum %} · {{ durum }} siparişleri{% endif %}
+<div class="container-fluid py-3 px-0">
+    <div class="mb-4">
+        <h3 class="mb-1"><i class="bi bi-clipboard-check"></i> Sipariş Yönetimi</h3>
+        <p class="text-muted mb-0">Siparişleri durumuna göre geniş alanda inceleyin.</p>
+        {% if musteri_id %}<div class="small text-muted mt-2"><strong>{{ musteri.firma_adi if musteri else 'Müşteri bulunamadı' }}</strong>{% if durum %} · {{ durum }} siparişleri{% endif %}</div>{% endif %}
     </div>
-    {% endif %}
-    <div class="row g-3 mt-2">
-        {% for durum_adi in durumlar %}
-        <div class="col-lg-4">
-            <div class="card h-100 border-0 shadow-sm">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <strong>{{ durum_adi }}</strong>
-                    <span class="badge text-bg-secondary">{{ siparisler_duruma_gore[durum_adi]|length }}</span>
-                </div>
-                <div class="list-group list-group-flush">
-                    {% for siparis in siparisler_duruma_gore[durum_adi] %}
-                    <div class="list-group-item">
-                        <div class="fw-semibold">{{ siparis.siparis_no }}</div>
-                        <small class="text-muted">
-                            Sipariş: {{ siparis.siparis_tarihi.strftime('%d.%m.%Y') if siparis.siparis_tarihi else '-' }}
-                            · Teslim: {{ siparis.teslim_tarihi.strftime('%d.%m.%Y') if siparis.teslim_tarihi else '-' }}
-                        </small>
-                        {% if siparis.aciklama %}<small class="d-block text-muted mt-1">{{ siparis.aciklama }}</small>{% endif %}
+
+    <div class="module-workspace" data-module-workspace>
+        <aside class="module-toolbar" aria-label="Sipariş bölümleri">
+            {% for durum_adi in durumlar %}
+                {{ panel_button('durum-' ~ loop.index, durum_adi, 'bi-list-check' if loop.first else ('bi-gear' if loop.index == 2 else 'bi-truck'), 'primary' if loop.first else ('success' if loop.index == 2 else 'warning'), siparisler_duruma_gore[durum_adi]|length, loop.first) }}
+            {% endfor %}
+        </aside>
+
+        <div class="module-panel-area">
+            {% for durum_adi in durumlar %}
+            <section class="module-panel{% if loop.first %} is-active{% endif %}" data-module-panel="durum-{{ loop.index }}" {% if not loop.first %}hidden{% endif %}>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <strong>{{ durum_adi }}</strong><span class="badge text-bg-secondary">{{ siparisler_duruma_gore[durum_adi]|length }}</span>
                     </div>
-                    {% else %}
-                    <div class="list-group-item text-muted text-center py-4">Kayıt yok</div>
-                    {% endfor %}
+                    <div class="list-group list-group-flush">
+                        {% for siparis in siparisler_duruma_gore[durum_adi] %}
+                        <div class="list-group-item py-3 d-flex justify-content-between align-items-center gap-3">
+                            <div><div class="fw-semibold">{{ siparis.siparis_no }}</div><small class="text-muted">Sipariş: {{ siparis.siparis_tarihi.strftime('%d.%m.%Y') if siparis.siparis_tarihi else '-' }} · Teslim: {{ siparis.teslim_tarihi.strftime('%d.%m.%Y') if siparis.teslim_tarihi else '-' }}</small>{% if siparis.aciklama %}<small class="d-block text-muted mt-1">{{ siparis.aciklama }}</small>{% endif %}</div>
+                            <span class="badge text-bg-light">{{ durum_adi }}</span>
+                        </div>
+                        {% else %}<div class="list-group-item text-muted text-center py-5">Bu durumda sipariş bulunmuyor.</div>{% endfor %}
+                    </div>
                 </div>
-            </div>
+            </section>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
 </div>
-
 {% endblock %}
