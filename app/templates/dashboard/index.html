@@ -10,7 +10,10 @@
     </div>
 
     <div class="dashboard-workspace">
-    <aside class="stats-grid" aria-label="Dashboard hızlı menüsü">
+    <aside class="stats-grid" id="dashboardDock" aria-label="Dashboard hızlı menüsü" aria-expanded="false">
+        <button class="dashboard-dock-toggle" id="dashboardDockToggle" type="button" aria-controls="dashboardDock" aria-expanded="false" aria-label="Dashboard kartlarını aç">
+            <i class="bi bi-chevron-left"></i>
+        </button>
         <button class="stat-card" type="button" data-dashboard-target="siparisler" data-label="Aktif Sipariş" aria-label="Aktif Sipariş" title="Aktif Sipariş" aria-pressed="false">
             <div class="stat-icon bg-primary"><i class="bi bi-box-seam"></i></div>
             <div class="stat-body"><h3>{{ aktif_siparis }}</h3><span>Aktif Sipariş</span></div>
@@ -145,6 +148,6 @@
     </div>
     </div>
 </div>
-<script src="/static/js/dashboard.js?v=3"></script>
+<script src="/static/js/dashboard.js?v=4"></script>
 <script src="/static/js/production-dashboard.js?v=1"></script>
 {% endblock %}
