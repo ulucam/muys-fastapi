@@ -309,7 +309,10 @@ def iliskili_kayit_guncelle(db: Session, tip: str, kayit_id: int, form) -> str |
             cakisan = db.query(Urun).filter(Urun.kodu == metin(form.get("kodu")), Urun.id != kayit.id).first()
             if cakisan: raise ValueError("Ürün kodu kullanılıyor")
             kayit.kodu, kayit.adi, kayit.urun_tipi = metin(form.get("kodu")), metin(form.get("adi")), metin(form.get("urun_tipi"))
-            kayit.urun_sinifi_id, kayit.birim, kayit.urun_cinsi = sinif.id if sinif else None, metin(form.get("birim")) or "Adet", metin(form.get("urun_cinsi"))
+            birim = metin(form.get("birim")) or "Adet"
+            if birim not in {"Adet", "Kg"}: raise ValueError("Birim Adet veya Kg olmalıdır")
+            kayit.urun_sinifi_id, kayit.birim, kayit.urun_cinsi = sinif.id if sinif else None, birim, metin(form.get("urun_cinsi"))
+            kayit.tahmini_uretim_suresi = sayi(form.get("tahmini_uretim_suresi") or 0, "Tahmini üretim süresi")
             kayit.mevcut_stok, kayit.min_stok, kayit.aktif = sayi(form.get("mevcut_stok") or 0, "Stok"), sayi(form.get("min_stok") or 0, "Min stok"), form.get("aktif") == "true"
             donus = "urunler"
         elif tip == "recete":
@@ -442,7 +445,10 @@ def manuel_tanim_kaydet(
                 raise ValueError("Ürün kodu, adı, türü ve varsa ürün sınıfı seçimi geçerli olmalı")
             nesne = db.query(Urun).filter(Urun.kodu == kod).first() or Urun(kodu=kod)
             nesne.adi, nesne.urun_tipi, nesne.urun_sinifi_id = metin(form.get("adi")), urun_tipi, sinif.id if sinif else None
-            nesne.birim, nesne.mevcut_stok, nesne.min_stok = metin(form.get("birim")) or "Adet", sayi(form.get("mevcut_stok") or 0, "Mevcut stok"), sayi(form.get("min_stok") or 0, "Min. stok")
+            birim = metin(form.get("birim")) or "Adet"
+            if birim not in {"Adet", "Kg"}: raise ValueError("Birim Adet veya Kg olmalıdır")
+            nesne.birim, nesne.mevcut_stok, nesne.min_stok = birim, sayi(form.get("mevcut_stok") or 0, "Mevcut stok"), sayi(form.get("min_stok") or 0, "Min. stok")
+            nesne.tahmini_uretim_suresi = sayi(form.get("tahmini_uretim_suresi") or 0, "Tahmini üretim süresi")
             nesne.aktif = aktif
         elif tip == "recete":
             ust = db.query(Urun).filter(Urun.kodu == metin(form.get("ust_urun_kodu"))).first()
