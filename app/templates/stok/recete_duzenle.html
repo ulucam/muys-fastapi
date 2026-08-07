@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Reçete Düzenle{% endblock %}
+{% block content %}
+<div class="container-fluid py-3 px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div><h3 class="mb-1"><i class="bi bi-journal-check"></i> Reçete Düzenle</h3><p class="text-muted mb-0">{{ recete.recete_no }} · Ürün, operasyon ve malzeme bilgilerini buradan güncelleyin.</p></div>
+        <a class="btn btn-outline-secondary" href="/receteler#module-uretim-receteleri"><i class="bi bi-arrow-left"></i> Reçetelere Dön</a>
+    </div>
+    {% if request.query_params.get('kaydedildi') %}<div class="alert alert-success">Değişiklikler kaydedildi.</div>{% endif %}
+    {% if request.query_params.get('error') %}<div class="alert alert-danger">İşlem kaydedilemedi. Zorunlu alanları ve sıra numaralarını kontrol edin.</div>{% endif %}
+
+    <div class="card border-0 shadow-sm mb-4"><div class="card-header bg-white"><strong>Reçete Bilgisi</strong></div><div class="card-body">
+        <form method="post" action="/receteler/{{ recete.id }}/guncelle" class="row g-3">
+            <div class="col-md-4"><label class="form-label">Çıktı Ürün</label><select class="form-select" name="urun_id" required>{% for urun in uretilebilir_urunler %}<option value="{{ urun.id }}" {% if urun.id == recete.urun_id %}selected{% endif %}>{{ urun.kodu }} · {{ urun.adi }}</option>{% endfor %}</select></div>
+            {% set urun = urunler|selectattr('id', 'equalto', recete.urun_id)|first %}
+            <div class="col-md-3"><label class="form-label">Tahmini Süre (dk/birim)</label><input class="form-control" name="tahmini_uretim_suresi" type="number" min="0" step="0.1" value="{{ urun.tahmini_uretim_suresi if urun else 0 }}"></div>
+            <div class="col-md-5"><label class="form-label">Açıklama</label><input class="form-control" name="aciklama" value="{{ recete.aciklama or '' }}"></div>
+            <div class="col-12 text-end"><button class="btn btn-primary">Reçete Bilgisini Kaydet</button></div>
+        </form>
+    </div></div>
+
+    <div class="card border-0 shadow-sm"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Operasyonlar ve Malzemeler</strong><span class="badge bg-secondary">{{ asamalar|length }} aşama</span></div><div class="card-body">
+        {% for asama in asamalar %}
+        <details class="border rounded mb-3" open><summary class="p-3 bg-light"><strong>{{ asama.sira_no }}. {{ asama.operasyon_adi }}</strong></summary><div class="p-3">
+            <form method="post" action="/receteler/{{ recete.id }}/asama/{{ asama.id }}/guncelle" class="row g-2 mb-2">
+                <div class="col-4 col-md-1"><label class="form-label small">Sıra</label><input class="form-control" name="sira_no" type="number" min="1" value="{{ asama.sira_no }}" required></div>
+                <div class="col-8 col-md-3"><label class="form-label small">İstasyon</label><select class="form-select" name="istasyon_id" required>{% for istasyon in istasyonlar %}<option value="{{ istasyon.id }}" {% if istasyon.id == asama.istasyon_id %}selected{% endif %}>{{ istasyon.kodu }} · {{ istasyon.adi }}</option>{% endfor %}</select></div>
+                <div class="col-md-3"><label class="form-label small">Operasyon</label><input class="form-control" name="operasyon_adi" value="{{ asama.operasyon_adi }}" required></div>
+                <div class="col-6 col-md-2"><label class="form-label small">Hedef süre</label><input class="form-control" name="hedef_cevrim_suresi" type="number" min="0" step="0.1" value="{{ asama.hedef_cevrim_suresi or 0 }}"></div>
+                <div class="col-6 col-md-3"><label class="form-label small">Not</label><input class="form-control" name="aciklama" value="{{ asama.aciklama or '' }}"></div>
+                <div class="col-12 d-flex justify-content-end gap-2"><button class="btn btn-sm btn-primary">Aşamayı Güncelle</button></div>
+            </form>
+            <form method="post" action="/receteler/{{ recete.id }}/asama/{{ asama.id }}/sil" class="text-end mb-3" onsubmit="return confirm('Bu aşama ve bağlı malzemeleri silinsin mi?')"><button class="btn btn-sm btn-outline-danger">Aşamayı Sil</button></form>
+            <h6 class="border-top pt-3">Bu aşamanın malzemeleri</h6>
+            {% for malzeme in malzemeler if malzeme.asama_id == asama.id %}
+                <form method="post" action="/receteler/asama/{{ asama.id }}/malzeme" class="row g-2 align-items-end mb-2">
+                    <input type="hidden" name="donus_recete_id" value="{{ recete.id }}"><input type="hidden" name="malzeme_id" value="{{ malzeme.malzeme_id }}">
+                    {% set malzeme_urunu = urunler|selectattr('id', 'equalto', malzeme.malzeme_id)|first %}
+                    <div class="col-md-5"><label class="form-label small">Malzeme</label><div class="form-control bg-light">{{ malzeme_urunu.kodu if malzeme_urunu else '-' }} · {{ malzeme_urunu.adi if malzeme_urunu else '-' }}</div></div>
+                    <div class="col-4 col-md-2"><label class="form-label small">Miktar</label><input class="form-control" name="miktar" type="number" step="0.001" min="0.001" value="{{ malzeme.miktar }}"></div>
+                    <div class="col-4 col-md-2"><label class="form-label small">Birim</label><select class="form-select" name="birim"><option value="Adet" {% if malzeme.birim == 'Adet' %}selected{% endif %}>Adet</option><option value="Kg" {% if malzeme.birim == 'Kg' %}selected{% endif %}>Kg</option></select></div>
+                    <div class="col-4 col-md-2"><label class="form-label small">Fire %</label><input class="form-control" name="fire_orani" type="number" min="0" step="0.1" value="{{ malzeme.fire_orani or 0 }}"></div>
+                    <div class="col-md-1 d-flex gap-1"><button class="btn btn-outline-primary" title="Güncelle"><i class="bi bi-check-lg"></i></button><button class="btn btn-outline-danger" type="submit" formaction="/receteler/{{ recete.id }}/asama/{{ asama.id }}/malzeme/{{ malzeme.malzeme_id }}/sil" title="Sil"><i class="bi bi-trash"></i></button></div>
+                </form>
+            {% else %}<p class="text-muted small">Bu aşamaya henüz malzeme eklenmedi.</p>{% endfor %}
+            <form method="post" action="/receteler/asama/{{ asama.id }}/malzeme" class="row g-2 border-top pt-3"><input type="hidden" name="donus_recete_id" value="{{ recete.id }}"><div class="col-md-5"><select class="form-select" name="malzeme_id" required><option value="">Malzeme ekle</option>{% for urun in urunler if urun.id != recete.urun_id %}<option value="{{ urun.id }}">{{ urun.kodu }} · {{ urun.adi }}</option>{% endfor %}</select></div><div class="col-4 col-md-2"><input class="form-control" name="miktar" type="number" step="0.001" min="0.001" placeholder="Miktar" required></div><div class="col-4 col-md-2"><select class="form-select" name="birim"><option>Adet</option><option>Kg</option></select></div><div class="col-4 col-md-2"><input class="form-control" name="fire_orani" type="number" min="0" step="0.1" value="0" placeholder="Fire %"></div><div class="col-md-1"><button class="btn btn-outline-success w-100"><i class="bi bi-plus-lg"></i></button></div></form>
+        </div></details>
+        {% else %}<p class="text-muted">Henüz aşama yok. Reçeteler ekranından ilk aşamayı ekleyin.</p>{% endfor %}
+    </div></div>
+</div>
+{% endblock %}
