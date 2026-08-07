@@ -20,6 +20,8 @@ from app.models.urun import Urun
 from app.models.istasyon import Istasyon
 from app.models.personel import Personel
 from app.models.siparis import Siparis
+from app.models.uretim_plani import UretimPlani, UretimPlanAsamasi
+from app.services.uretim_plan_service import plan_asamasini_tamamla, uretim_plani_olustur
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -83,6 +85,16 @@ def uretim_baslat(emir_id: int, request: Request, db: Session = Depends(get_db))
     emir.durum = "Üretimde"
     if not emir.baslama_tarihi:
         emir.baslama_tarihi = datetime.now()
+    if emir.plan_asamasi_id:
+        plan_asamasi = db.query(UretimPlanAsamasi).filter(UretimPlanAsamasi.id == emir.plan_asamasi_id).first()
+        if plan_asamasi:
+            plan_asamasi.durum = "Üretimde"
+            if not plan_asamasi.baslama_tarihi:
+                plan_asamasi.baslama_tarihi = datetime.now()
+    if emir.uretim_plani_id:
+        plan = db.query(UretimPlani).filter(UretimPlani.id == emir.uretim_plani_id).first()
+        if plan:
+            plan.durum = "Üretimde"
     db.commit()
     return RedirectResponse("/?uretim=basladi#uretim-paneli", status_code=303)
 
@@ -112,8 +124,24 @@ async def uretim_bitir(kayit_id: int, request: Request, db: Session = Depends(ge
         toplam = sum(k.uretilen_miktar or 0 for k in db.query(UretimKaydi).filter(UretimKaydi.uretim_emri_id == emir.id).all())
         if toplam >= emir.miktar:
             emir.durum, emir.bitis_tarihi = "Tamamlandı", datetime.now()
+            emir.aktif = False
+            plan_asamasini_tamamla(db, emir, toplam, sum(k.fire_miktari or 0 for k in db.query(UretimKaydi).filter(UretimKaydi.uretim_emri_id == emir.id).all()))
     db.commit()
     return RedirectResponse("/?uretim=tamamlandi#uretim-paneli", status_code=303)
+
+
+@router.post("/uretim/planla")
+async def uretim_planla(request: Request, db: Session = Depends(get_db)):
+    if request.session.get("rol") not in ("Admin", "Üretim", "Ãœretim"):
+        raise HTTPException(status_code=403, detail="Üretim planlama yetkiniz yok.")
+    form = await request.form()
+    try:
+        uretim_plani_olustur(db, int(form.get("recete_id") or 0), float(form.get("miktar") or 0),
+            form.get("hedef_turu") or "", int(form.get("siparis_kalem_id")) if str(form.get("siparis_kalem_id") or "").isdigit() else None,
+            form.get("aciklama") or "")
+    except (ValueError, TypeError):
+        return RedirectResponse("/?plan=hata#dashboard-uretim", status_code=303)
+    return RedirectResponse("/?plan=hazir#dashboard-uretim", status_code=303)
 
 
 @router.post("/uretim/{emir_id}/istasyon")
@@ -178,6 +206,7 @@ def uretim_durum(request: Request, db: Session = Depends(get_db)):
     return [{
         "id": k.id, "emir_no": emirler[k.uretim_emri_id].emir_no if k.uretim_emri_id in emirler else "-",
         "urun": urunler[emirler[k.uretim_emri_id].urun_id].adi if k.uretim_emri_id in emirler and emirler[k.uretim_emri_id].urun_id in urunler else "-",
+        "operasyon": emirler[k.uretim_emri_id].aciklama if k.uretim_emri_id in emirler else "",
         "operator": personeller[k.personel_id].ad_soyad if k.personel_id in personeller else "-",
         "istasyon": istasyonlar[k.istasyon_id].adi if k.istasyon_id in istasyonlar else "-",
         "durum": k.durum, "baslangic": k.baslangic.strftime("%d.%m.%Y %H:%M"),
