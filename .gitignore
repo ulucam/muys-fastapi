@@ -151,6 +151,16 @@ activemq-data/
 .env
 .envrc
 .venv
+
+# Local databases (dev artifacts, not source)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# macOS
+.DS_Store
+**/.DS_Store
 env/
 venv/
 ENV/
