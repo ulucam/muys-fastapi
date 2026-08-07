@@ -42,7 +42,7 @@ def hammaddeleri_filtrele(db: Session, arama: str = "", urun_id: int | None = No
 
 def stok_tanimlari(db: Session):
     return (
-        db.query(StokUrunTuru).filter(StokUrunTuru.uretilen.is_(False), StokUrunTuru.aktif.is_(True)).order_by(StokUrunTuru.adi).all(),
+        db.query(StokUrunTuru).filter(StokUrunTuru.aktif.is_(True)).order_by(StokUrunTuru.adi).all(),
         db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).order_by(StokUrunSinifi.adi).all(),
     )
 
@@ -85,7 +85,7 @@ def stok_urunu_kaydet(
 ):
     if birim.strip() not in {"Adet", "Kg"}:
         raise ValueError("Birim Adet veya Kg olmalıdır")
-    tur = db.query(StokUrunTuru).filter(StokUrunTuru.id == tur_id, StokUrunTuru.aktif.is_(True), StokUrunTuru.uretilen.is_(False)).first()
+    tur = db.query(StokUrunTuru).filter(StokUrunTuru.id == tur_id, StokUrunTuru.aktif.is_(True)).first()
     sinif = db.query(StokUrunSinifi).filter(StokUrunSinifi.id == sinif_id, StokUrunSinifi.aktif.is_(True)).first() if sinif_id else None
     if db.query(StokUrunSinifi).filter(StokUrunSinifi.aktif.is_(True)).count() == 0:
         raise ValueError("Hammadde kartından önce en az bir takip sınıfı tanımlanmalıdır")
@@ -105,7 +105,8 @@ def stok_urunu_kaydet(
     urun = urun or Urun(kodu=kodu.strip())
     urun.kodu = kodu.strip()
     urun.adi, urun.stok_urun_turu_id, urun.stok_urun_sinifi_id = adi.strip(), tur.id, sinif.id if sinif else None
-    urun.urun_tipi, urun.birim, urun.aktif = ("YariMamul" if tur.uretilen else "Hammadde"), birim.strip(), True
+    urun_tipi = "YariMamul" if tur.uretilen else ("TicariMamul" if "ticari" in tur.adi.casefold() else "Hammadde")
+    urun.urun_tipi, urun.birim, urun.aktif = urun_tipi, birim.strip(), True
     urun.marka, urun.model = marka.strip(), model.strip()
     urun.mevcut_stok, urun.min_stok = mevcut_stok, min_stok
     db.add(urun); db.commit()
