@@ -55,7 +55,7 @@ def mesaj_gonder_route(request: Request, background_tasks: BackgroundTasks, alic
         return RedirectResponse("/mesajlar?durum=hata#module-yeni", status_code=303)
     for hedef_id in hedef_idleri:
         background_tasks.add_task(arka_planda_push_gonder, hedef_id, f"{mesaj_konusu.adi}: Yeni mesaj", f"{request.session.get('kullanici_adi', 'Bir kullanıcı')}: {mesaj.konu}", f"/mesajlar#konusma-{mesaj.id}")
-    return RedirectResponse("/mesajlar?durum=gonderildi#module-giden", status_code=303)
+    return RedirectResponse("/mesajlar?durum=gonderildi#module-sohbetler", status_code=303)
 
 
 @router.post("/mesajlar/{mesaj_id}/yanitla")
