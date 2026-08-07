@@ -51,7 +51,7 @@ class UrunBase(BaseModel):
     adi: str
     aciklama: Optional[str] = None
     birim: Optional[str] = "Adet"
-    urun_tipi: Optional[str] = "Mamul"
+    urun_tipi: Optional[str] = ""
     tahmini_uretim_suresi: Optional[float] = 0
     min_stok: Optional[float] = 0
     mevcut_stok: Optional[float] = 0
