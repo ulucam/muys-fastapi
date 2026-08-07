@@ -7,6 +7,7 @@ from pathlib import Path
 import openpyxl
 from openpyxl.worksheet.datavalidation import DataValidation
 from sqlalchemy.orm import Session
+from app.product_types import URUN_TURLERI, urun_turunu_normalize_et
 
 ILLER_DOSYASI = Path(__file__).resolve().parent.parent / "data" / "iller.js"
 MUSTERI_SUTUNLARI = ["Firma Adı", "Yetkili", "Telefon", "E-Posta", "Vergi Dairesi", "Vergi No", "İl", "İlçe", "Müşteri Türü", "Adres", "Açıklama", "Durum"]
@@ -27,11 +28,14 @@ def metin(deger):
     return str(deger or "").strip()
 
 
-def sayi(deger, alan):
+def sayi(deger, alan, tam_sayi=False):
     if deger in (None, ""):
         return 0.0
     try:
-        return float(deger)
+        sayisal_deger = float(deger)
+        if tam_sayi and not sayisal_deger.is_integer():
+            raise ValueError(f"{alan} tam sayı olmalı")
+        return int(sayisal_deger) if tam_sayi else sayisal_deger
     except (TypeError, ValueError):
         raise ValueError(f"{alan} sayısal olmalı")
 
@@ -115,7 +119,7 @@ def excel_satirlarini_oku(dosya_icerigi):
             veri["_excel_referans_zamani"] = referans_zamani
             satirlar.append(veri)
     urunler = []
-    urun_sayfa_adi = next((ad for ad in ("Hammadde ve Ticari Ürünler", "Stok Ürünleri") if ad in kitap.sheetnames), None)
+    urun_sayfa_adi = next((ad for ad in ("Stok Ürün Kartları", "Hammadde ve Ticari Ürünler", "Stok Ürünleri") if ad in kitap.sheetnames), None)
     if urun_sayfa_adi:
         stok_sayfasi = kitap[urun_sayfa_adi]
         stok_basliklari = [metin(hucre.value) for hucre in stok_sayfasi[1]]
@@ -133,20 +137,21 @@ def excel_satirlarini_oku(dosya_icerigi):
                 urun_turu, birim = metin(veri["Ürün Türü"]), metin(veri["Birim"])
                 if not ad:
                     satir_hatalari.append("Ürün adı zorunlu")
-                if not urun_turu:
-                    satir_hatalari.append("Ürün türü zorunlu")
+                urun_turu = urun_turunu_normalize_et(urun_turu)
+                if metin(veri["Ürün Türü"]) and not urun_turu:
+                    satir_hatalari.append("Ürün türü listeden seçilmeli")
                 if metin(veri["Durum"]) not in ("Aktif", "Pasif"):
                     satir_hatalari.append("Durum Aktif veya Pasif olmalı")
                 try:
                     urun = {
-                    "kodu": kod, "adi": ad, "marka": metin(veri["Marka"]), "model": metin(veri["Model"]), "urun_tipi": "Hammadde",
-                        "stok_turu_adi": urun_turu, "urun_sinifi_anahtari": metin(veri["Ürün Sınıfı"]),
+                    "kodu": kod, "adi": ad, "marka": metin(veri["Marka"]), "model": metin(veri["Model"]), "urun_tipi": urun_turu,
+                        "urun_sinifi_anahtari": metin(veri["Ürün Sınıfı"]),
                         "urun_cinsi": metin(veri["Ürün Cinsi"]),
                         "istasyon_kodlari": metin(veri["İstasyon Kodları"]),
                         "birim": birim or "Adet",
-                        "mevcut_stok": sayi(veri["Mevcut Stok"], "Mevcut stok"),
-                        "min_stok": sayi(veri["Min. Stok"], "Min. stok"),
-                        "max_stok": sayi(veri["Max. Stok"], "Max. stok"),
+                        "mevcut_stok": sayi(veri["Mevcut Stok"], "Mevcut stok", True),
+                        "min_stok": sayi(veri["Min. Stok"], "Min. stok", True),
+                        "max_stok": sayi(veri["Max. Stok"], "Max. stok", True),
                         "maliyet": sayi(veri["Maliyet"], "Maliyet"),
                         "satis_fiyati": sayi(veri["Satış Fiyatı"], "Satış fiyatı"),
                         "aciklama": metin(veri["Açıklama"]),
@@ -270,14 +275,13 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
         for index, genislik in enumerate(genislikler, start=1):
             sayfa.column_dimensions[openpyxl.utils.get_column_letter(index)].width = genislik
 
-    stok_tur_adlari = {tur.id: tur.adi for tur in mevcut_stok_turleri}
     urun_sinif_adlari = {sinif.id: f"{sinif.kodu} · {sinif.adi}" for sinif in mevcut_urun_siniflari}
-    aktarilacak_urunler = [u for u in mevcut_urunler if u.urun_tipi in ("Hammadde", "TicariMamul")]
-    stok = kitap.create_sheet("Hammadde ve Ticari Ürünler")
+    aktarilacak_urunler = mevcut_urunler
+    stok = kitap.create_sheet("Stok Ürün Kartları")
     stok.append(URUN_SUTUNLARI)
     for urun in aktarilacak_urunler:
         stok.append([
-            urun.kodu, urun.adi, urun.marka or "", urun.model or "", stok_tur_adlari.get(urun.stok_urun_turu_id, "Hammadde"),
+            urun.kodu, urun.adi, urun.marka or "", urun.model or "", urun_turunu_normalize_et(urun.urun_tipi),
             urun_sinif_adlari.get(urun.urun_sinifi_id, ""), urun.urun_cinsi or "",
             ", ".join(urun_istasyon_kodlari.get(urun.id, [])), urun.birim or "Adet",
             urun.mevcut_stok or 0, urun.min_stok or 0, urun.max_stok or 0,
@@ -297,7 +301,7 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
     listeler.append(["İller", "İlçeler", "Müşteri Türleri", "Ürün Türleri", "Ürün Sınıfları", "Durumlar", "İstasyon Kodları"])
     tum_ilceler = sorted({ilce for ilceler in iller.values() for ilce in ilceler})
     durumlar = ["Aktif", "Pasif"]
-    tur_listesi = [tur.adi for tur in mevcut_stok_turleri]
+    tur_listesi = list(URUN_TURLERI)
     sinif_listesi = [f"{sinif.kodu} · {sinif.adi}" for sinif in mevcut_urun_siniflari if sinif.aktif]
     istasyon_listesi = [istasyon.kodu for istasyon in mevcut_istasyonlar]
     for sira in range(max(len(iller), len(tum_ilceler), len(TURLER), len(tur_listesi), len(sinif_listesi), len(durumlar), len(istasyon_listesi))):
@@ -317,7 +321,7 @@ def excel_sablonu_olustur(sablon_verisi) -> bytes:
         dogrulama.add(alan)
 
     for formül, alan, bos_birakilabilir in [
-        (f"'Listeler'!$D$2:$D${max(2, len(tur_listesi) + 1)}", f"E2:E{stok_son_satir}", False),
+        (f"'Listeler'!$D$2:$D${max(2, len(tur_listesi) + 1)}", f"E2:E{stok_son_satir}", True),
         (f"'Listeler'!$E$2:$E${max(2, len(sinif_listesi) + 1)}", f"F2:F{stok_son_satir}", True),
         ("'Listeler'!$F$2:$F$3", f"P2:P{stok_son_satir}", False),
     ]:
