@@ -5,6 +5,7 @@ from app.models.recete import Recete
 from app.models.urun import Urun
 from app.models.stok_urun_sinifi import StokUrunSinifi
 from app.models.stok_urun_turu import StokUrunTuru
+from app.product_types import urun_turunu_normalize_et
 
 
 def _stok_turu_anahtari(adi: object) -> str:
@@ -113,12 +114,19 @@ def stok_kurulum_durumu(db: Session) -> dict:
         .filter(Urun.aktif.is_(True), StokUrunTuru.uretilen.is_(False))
         .count()
     )
+    aktif_urunler = db.query(Urun).filter(Urun.aktif.is_(True)).all()
+    yari_mamul_sayisi = sum(urun_turunu_normalize_et(urun.urun_tipi) == "Yarı Mamül" for urun in aktif_urunler)
+    mamul_sayisi = sum(urun_turunu_normalize_et(urun.urun_tipi) == "Mamül" for urun in aktif_urunler)
     return {
         "turler_hazir": tur_sayisi > 0,
         "siniflar_hazir": sinif_sayisi > 0,
         "hammadde_hazir": hammadde_sayisi > 0,
         "hammadde_eklenebilir": tur_sayisi > 0 and sinif_sayisi > 0,
         "yari_mamul_eklenebilir": hammadde_sayisi > 0,
+        "yari_mamul_hazir": yari_mamul_sayisi > 0,
+        "mamul_hazir": mamul_sayisi > 0,
+        "yari_mamul_sayisi": yari_mamul_sayisi,
+        "mamul_sayisi": mamul_sayisi,
     }
 
 
