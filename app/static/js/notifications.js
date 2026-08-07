@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
     const feed = document.getElementById("notificationFeed");
     const notificationBadge = document.getElementById("notificationBadge");
-    const messageBadge = document.getElementById("messageBadge");
     const markRead = document.getElementById("markNotificationsRead");
     if (!feed) return;
 
@@ -17,7 +16,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     function render(data) {
         badge(notificationBadge, Number(data.okunmamis_bildirim || 0));
-        badge(messageBadge, Number(data.okunmamis_mesaj || 0));
         if ("setAppBadge" in navigator) {
             const total = Number(data.okunmamis_bildirim || 0) + Number(data.okunmamis_mesaj || 0);
             if (total) navigator.setAppBadge(total).catch(function () {});
