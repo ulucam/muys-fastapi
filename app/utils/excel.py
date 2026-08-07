@@ -8,6 +8,7 @@ import openpyxl
 from openpyxl.worksheet.datavalidation import DataValidation
 from sqlalchemy.orm import Session
 from app.product_types import URUN_TURLERI, urun_turunu_normalize_et
+from app.utils.helpers import kod_uret, metin, sayi as helpers_sayi
 
 ILLER_DOSYASI = Path(__file__).resolve().parent.parent / "data" / "iller.js"
 MUSTERI_SUTUNLARI = ["Firma Adı", "Yetkili", "Telefon", "E-Posta", "Vergi Dairesi", "Vergi No", "İl", "İlçe", "Müşteri Türü", "Adres", "Açıklama", "Durum"]
@@ -24,49 +25,21 @@ def il_ilce_verisi():
         return json.load(dosya)
 
 
-def metin(deger):
-    return str(deger or "").strip()
-
-
 def sayi(deger, alan, tam_sayi=False):
-    if deger in (None, ""):
-        return 0.0
-    try:
-        sayisal_deger = float(deger)
-        if tam_sayi and not sayisal_deger.is_integer():
-            raise ValueError(f"{alan} tam sayı olmalı")
-        return int(sayisal_deger) if tam_sayi else sayisal_deger
-    except (TypeError, ValueError):
-        raise ValueError(f"{alan} sayısal olmalı")
+    """Excel hücrelerinde boş değeri 0.0 olarak yorumlayan sayı dönüştürücü."""
+    return helpers_sayi(deger, alan, tam_sayi=tam_sayi, bos_ta_sifir=True)
 
 
 def sonraki_musteri_kodu(db: Session, kullanilan_kodlar: set[str]) -> str:
     """İçe aktarım süresince tekrar etmeyen bir müşteri kodu üretir."""
-    en_yuksek_numara = 0
-    for kod in kullanilan_kodlar:
-        if kod and kod.startswith("M") and kod[1:].isdigit():
-            en_yuksek_numara = max(en_yuksek_numara, int(kod[1:]))
-
-    sira = en_yuksek_numara + 1
-    kod = f"M{sira:06}"
-    while kod in kullanilan_kodlar:
-        sira += 1
-        kod = f"M{sira:06}"
+    kod = kod_uret(kullanilan_kodlar, "M", 6)
     kullanilan_kodlar.add(kod)
     return kod
 
 
 def sonraki_personel_kodu(kullanilan_kodlar: set[str]) -> str:
     """Excel aktarımında yeni personel için P000001 biçiminde kod üretir."""
-    en_yuksek_numara = 0
-    for kod in kullanilan_kodlar:
-        if kod and kod.startswith("P") and kod[1:].isdigit():
-            en_yuksek_numara = max(en_yuksek_numara, int(kod[1:]))
-    sira = en_yuksek_numara + 1
-    kod = f"P{sira:06}"
-    while kod in kullanilan_kodlar:
-        sira += 1
-        kod = f"P{sira:06}"
+    kod = kod_uret(kullanilan_kodlar, "P", 6)
     kullanilan_kodlar.add(kod)
     return kod
 

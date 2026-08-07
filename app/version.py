@@ -1,3 +1,4 @@
+import json
 from functools import lru_cache
 from urllib.request import Request, urlopen
 
@@ -19,7 +20,6 @@ def guncel_surumu_al() -> str:
             },
         )
         with urlopen(istek, timeout=2) as yanit:
-            import json
             return json.load(yanit).get("tag_name") or YEREL_SURUM
     except Exception:
         return YEREL_SURUM
