@@ -1,8 +1,26 @@
 document.addEventListener("DOMContentLoaded", () => {
     const buttons = [...document.querySelectorAll("[data-dashboard-target]")];
     const panels = [...document.querySelectorAll("[data-dashboard-panel]")];
+    const dock = document.getElementById("dashboardDock");
+    const dockToggle = document.getElementById("dashboardDockToggle");
 
     if (!buttons.length || !panels.length) return;
+
+    const setDockOpen = (open) => {
+        if (!dock || !dockToggle) return;
+        dock.classList.toggle("is-open", open);
+        dock.setAttribute("aria-expanded", String(open));
+        dockToggle.setAttribute("aria-expanded", String(open));
+        dockToggle.setAttribute("aria-label", open ? "Dashboard kartlarını kapat" : "Dashboard kartlarını aç");
+        const icon = dockToggle.querySelector("i");
+        if (icon) icon.className = open ? "bi bi-chevron-right" : "bi bi-chevron-left";
+        window.localStorage.setItem("muys-dashboard-dock-open", open ? "1" : "0");
+    };
+
+    if (dockToggle) {
+        dockToggle.addEventListener("click", () => setDockOpen(!dock.classList.contains("is-open")));
+        setDockOpen(window.localStorage.getItem("muys-dashboard-dock-open") === "1");
+    }
 
     const panelMatches = (panel, target) =>
         (panel.dataset.dashboardPanel || "").split(/\s+/).includes(target);
@@ -49,6 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
         button.addEventListener("click", () => {
             if (button.classList.contains("is-active")) closePanels();
             else showPanel(button.dataset.dashboardTarget);
+            if (window.matchMedia("(max-width: 767.98px)").matches) setDockOpen(false);
         });
     });
 
