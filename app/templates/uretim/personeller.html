@@ -1,26 +1,24 @@
 {% extends "base.html" %}
+{% from "components/module_toolbar.html" import link_button, dock_toggle %}
 {% block title %}Personeller{% endblock %}
 {% block content %}
-<div class="container-fluid py-3">
+<div class="container-fluid py-3 px-0">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div><h3 class="mb-1"><i class="bi bi-person-badge"></i> Personeller</h3><p class="text-muted mb-0">Departman, görev ve üretim ilişkilerini görüntüleyin.</p></div>
-        <div class="d-flex gap-2">
-            {% if kullanici_rol in ['Admin', 'Yönetici'] %}<button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#personelEkle"><i class="bi bi-person-plus"></i> Personel Ekle</button>{% endif %}
-        </div>
     </div>
 
-    <ul class="nav nav-tabs mb-4">
-        <li class="nav-item">
-            <a class="nav-link {% if aktif_sekme == 'personel' %}active{% endif %}" href="/personeller?sekme=personel">
-                <i class="bi bi-people"></i> Personel Listesi
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if aktif_sekme == 'puantaj' %}active{% endif %}" href="/personeller?sekme=puantaj&tarih={{ puantaj_tarihi.isoformat() }}">
-                <i class="bi bi-calendar-check"></i> Puantaj
-            </a>
-        </li>
-    </ul>
+    <div class="module-workspace" data-module-workspace>
+        <aside class="module-toolbar" aria-label="Personel bölümleri">
+            {{ dock_toggle('Personel bölümleri') }}
+            {{ link_button('/personeller?sekme=personel', 'Personel Listesi', 'bi-people', 'primary', none, aktif_sekme == 'personel') }}
+            {{ link_button('/personeller?sekme=puantaj&tarih=' ~ puantaj_tarihi.isoformat(), 'Puantaj', 'bi-calendar-check', 'success', none, aktif_sekme == 'puantaj') }}
+            {% if kullanici_rol in ['Admin', 'Yönetici'] and aktif_sekme == 'personel' %}
+            <button class="module-tool" type="button" data-bs-toggle="collapse" data-bs-target="#personelEkle" data-label="Personel Ekle" aria-label="Personel Ekle" title="Personel Ekle" aria-expanded="false">
+                <span class="module-tool-icon bg-warning"><i class="bi bi-person-plus"></i></span>
+            </button>
+            {% endif %}
+        </aside>
+        <div class="module-panel-area">
 
     {% if aktif_sekme == 'personel' %}
     {% if kullanici_rol in ['Admin', 'Yönetici'] %}
@@ -134,5 +132,7 @@
         {% if kullanici_rol in ['Admin', 'Yönetici'] %}<div class="card-footer bg-white text-end py-3"><button class="btn btn-success" type="submit"><i class="bi bi-check2-circle me-1"></i> Puantajı Kaydet</button></div></form>{% endif %}
     </div>
     {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}
