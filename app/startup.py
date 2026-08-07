@@ -2,6 +2,7 @@ from app import models  # noqa: F401 - tüm tabloları SQLAlchemy metadata'ya ka
 from app.database import Base, SessionLocal, engine
 from app.migrations import uyumluluk_migrationlarini_uygula
 from app.setup import setup_database
+from app.services.uretim_tanimlari_service import urun_turlerini_standartlastir
 
 
 def uygulamayi_hazirla() -> None:
@@ -10,5 +11,6 @@ def uygulamayi_hazirla() -> None:
     db = SessionLocal()
     try:
         setup_database(db)
+        urun_turlerini_standartlastir(db)
     finally:
         db.close()
