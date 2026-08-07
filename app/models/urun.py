@@ -121,6 +121,9 @@ class Urun(Base):
         nullable=True,
     )
 
+    # Yarı mamul/mamul için bir birimin tahmini üretim süresi (dakika).
+    tahmini_uretim_suresi = Column(Float, default=0, nullable=False)
+
     marka = Column(String(100), default="", nullable=True)
     model = Column(String(100), default="", nullable=True)
 
