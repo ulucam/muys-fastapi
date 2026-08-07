@@ -152,7 +152,13 @@ def stok_urunu_kaydet(
     urun.kodu = kodu.strip()
     urun.adi, urun.stok_urun_turu_id, urun.stok_urun_sinifi_id = adi.strip(), tur.id, sinif.id if sinif else None
     from app.product_types import urun_turunu_normalize_et
-    urun_tipi = "Yarı Mamül" if tur.uretilen else (urun_turunu_normalize_et(tur.adi) or "Hammadde")
+    tur_anahtari = _stok_turu_anahtari(tur.adi)
+    if tur_anahtari == "yarimamul":
+        urun_tipi = "Yarı Mamül"
+    elif tur_anahtari == "mamul":
+        urun_tipi = "Mamül"
+    else:
+        urun_tipi = "Yarı Mamül" if tur.uretilen else (urun_turunu_normalize_et(tur.adi) or "Hammadde")
     urun.urun_tipi, urun.birim, urun.aktif = urun_tipi, birim.strip(), True
     urun.marka, urun.model = marka.strip(), model.strip()
     urun.mevcut_stok, urun.min_stok = mevcut_stok, min_stok
