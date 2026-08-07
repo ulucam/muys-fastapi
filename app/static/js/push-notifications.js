@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let publicKey = "";
     let registration = null;
     let subscription = null;
+    let feedback = "";
     const supported = window.isSecureContext && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
     const iosNeedsInstall = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.matchMedia("(display-mode: standalone)").matches;
 
@@ -22,16 +23,18 @@ document.addEventListener("DOMContentLoaded", function () {
         button.textContent = subscription ? "Kapat" : "Bildirimleri Aç";
         button.classList.toggle("btn-outline-danger", Boolean(subscription));
         button.classList.toggle("btn-outline-primary", !subscription);
-        if (!supported) status.textContent = "Bu tarayıcı veya bağlantı desteklemiyor.";
+        if (feedback) status.textContent = feedback;
+        else if (!supported) status.textContent = "Bu tarayıcı veya bağlantı desteklemiyor.";
         else if (!publicKey) status.textContent = "Sunucu VAPID anahtarları bekleniyor.";
+        else if (Notification.permission === "denied") status.textContent = "Bildirim izni engellenmiş; Apple Ayarlar > Bildirimler'den MÜYS'e izin verin.";
         else if (subscription) status.textContent = "Bu cihazda bildirimler açık.";
         else if (iosNeedsInstall) status.textContent = "iPhone'da önce Ana Ekrana Ekle ile kurun.";
         else status.textContent = "Bu cihazda bildirimler kapalı.";
     }
-    async function saveSubscription(value) {
+    async function saveSubscription(value, sendTest) {
         const response = await fetch("/api/push/abone-ol", {
             method: "POST", headers: {"Content-Type": "application/json", "X-Requested-With": "MUYS-PWA"},
-            body: JSON.stringify({subscription: value.toJSON(), cihaz_adi: deviceName()}),
+            body: JSON.stringify({subscription: value.toJSON(), cihaz_adi: deviceName(), test_bildirimi: Boolean(sendTest)}),
         });
         if (!response.ok) throw new Error("Abonelik kaydedilemedi");
     }
@@ -39,7 +42,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const permission = await Notification.requestPermission();
         if (permission !== "granted") throw new Error("Bildirim izni verilmedi");
         subscription = await registration.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: base64Key(publicKey)});
-        try { await saveSubscription(subscription); }
+        try { await saveSubscription(subscription, true); }
         catch (error) { await subscription.unsubscribe(); subscription = null; throw error; }
     }
     async function disable() {
@@ -59,14 +62,18 @@ document.addEventListener("DOMContentLoaded", function () {
         publicKey = data.public_key || "";
         registration = await navigator.serviceWorker.register("/sw.js", {scope: "/"});
         subscription = await registration.pushManager.getSubscription();
-        if (subscription && publicKey) await saveSubscription(subscription).catch(function () {});
+        if (subscription && publicKey) await saveSubscription(subscription, false).catch(function () {});
         render();
     }
     button.addEventListener("click", async function () {
         button.disabled = true;
         status.textContent = "İşlem yapılıyor...";
-        try { if (subscription) await disable(); else await enable(); }
-        catch (error) { status.textContent = error.message || "Bildirim ayarı değiştirilemedi."; }
+        feedback = "";
+        try {
+            if (subscription) { await disable(); feedback = "Bu cihazdaki bildirimler kapatıldı."; }
+            else { await enable(); feedback = "Bildirimler açıldı; test bildirimi gönderiliyor."; }
+        }
+        catch (error) { feedback = error.message || "Bildirim ayarı değiştirilemedi."; }
         finally { render(); }
     });
     initialize().catch(function () { status.textContent = "Bildirim durumu alınamadı."; });
