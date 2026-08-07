@@ -27,6 +27,8 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
             ],
             "uretim_emirleri": [
                 ("istasyon_id", "ALTER TABLE uretim_emirleri ADD COLUMN istasyon_id INTEGER REFERENCES istasyonlar(id)"),
+                ("uretim_plani_id", "ALTER TABLE uretim_emirleri ADD COLUMN uretim_plani_id INTEGER REFERENCES uretim_planlari(id)"),
+                ("plan_asamasi_id", "ALTER TABLE uretim_emirleri ADD COLUMN plan_asamasi_id INTEGER REFERENCES uretim_plan_asamalari(id)"),
             ],
             "siparisler": [
                 ("onay_durumu", "ALTER TABLE siparisler ADD COLUMN onay_durumu VARCHAR(20) NOT NULL DEFAULT 'Onay Bekliyor'"),
