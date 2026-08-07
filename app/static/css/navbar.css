@@ -75,8 +75,8 @@
 .message-bubble.is-sent{align-self:flex-end;background:#dbeafe}
 .message-bubble.is-received{align-self:flex-start}
 .message-bubble-meta{margin-bottom:4px;font-size:11px;color:#64748b}
-.push-settings{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 15px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:12px}
-.push-settings strong{font-size:13px;color:#334155}
+.message-preview{max-width:720px;overflow:hidden;color:#64748b;text-overflow:ellipsis;white-space:nowrap}
+.min-width-0{min-width:0}
 
 .live-activity{
     display:flex;
