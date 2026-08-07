@@ -14,6 +14,7 @@ from app.routes import (
     kullanicilar,
     musteriler,
     profil,
+    push,
     siparis_sayfasi,
     stok_sayfalari,
     uretim_tanimlari,
@@ -50,6 +51,7 @@ async def firma_bilgisi_ekle(request, call_next):
 app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(iletisim.router)
+app.include_router(push.router)
 app.include_router(kullanicilar.router)
 app.include_router(musteriler.router)
 app.include_router(ayarlar.router)
