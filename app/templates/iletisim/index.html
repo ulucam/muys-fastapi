@@ -3,47 +3,50 @@
 {% block title %}Mesajlar{% endblock %}
 {% block content %}
 <div class="container-fluid py-3 px-0">
-    <div class="mb-4"><h3 class="mb-1"><i class="bi bi-chat-dots"></i> Mesajlar</h3><p class="text-muted mb-0">Sistem kullanıcılarıyla güvenli uygulama içi iletişim kurun.</p></div>
-    {% if durum in ['gonderildi', 'yanitlandi'] %}<div class="alert alert-success">{{ 'Cevabınız gönderildi.' if durum == 'yanitlandi' else 'Mesaj gönderildi.' }}</div>{% elif durum in ['hata', 'yanit_hata'] %}<div class="alert alert-danger">Mesaj gönderilemedi. Alıcı ve içeriği kontrol edin.</div>{% endif %}
+    <div class="mb-3"><h3 class="mb-1"><i class="bi bi-chat-dots"></i> Mesajlar</h3><p class="text-muted mb-0">Konu bazlı kurum içi mesajlaşma</p></div>
+    {% if durum in ['gonderildi', 'yanitlandi'] %}<div class="alert alert-success py-2">Mesaj gönderildi.</div>{% elif durum %}<div class="alert alert-danger py-2">İşlem tamamlanamadı; alanları kontrol edin.</div>{% endif %}
+
     <div class="module-workspace" data-module-workspace>
-        <aside class="module-toolbar" aria-label="Mesaj kutuları">
-            {{ panel_button('gelen', 'Gelen Kutusu', 'bi-inbox', 'primary', okunmamis, true) }}
-            {{ panel_button('giden', 'Gönderilenler', 'bi-send', 'success', giden|length) }}
-            {{ panel_button('yeni', 'Yeni Mesaj', 'bi-pencil-square', 'dark') }}
+        <aside class="module-toolbar" aria-label="Mesaj bölümleri">
+            {{ panel_button('sohbetler', 'Sohbetler', 'bi-chat-left-text', 'primary', okunmamis, true) }}
+            {{ panel_button('yeni', 'Yeni Mesaj', 'bi-pencil-square', 'success') }}
+            {{ panel_button('giden', 'Gönderilenler', 'bi-send', 'dark', giden|length) }}
+            {% if kullanici_rol == 'Admin' %}{{ panel_button('konular', 'Konu Yetkilileri', 'bi-tags', 'warning') }}{% endif %}
         </aside>
         <div class="module-panel-area">
-            <section class="module-panel is-active" data-module-panel="gelen">
-                <div class="card border-0 shadow-sm"><div class="card-header bg-white py-3"><strong>Gelen Kutusu</strong> <span class="badge bg-primary">{{ okunmamis }} okunmamış</span></div>
-                    <div class="list-group list-group-flush">{% for konusma in konusmalar %}{% set son_yazar = kullanicilar.get(konusma.son.gonderen_id) %}
-                        <button class="list-group-item list-group-item-action py-3{% if konusma.okunmamis %} bg-primary-subtle{% endif %}" type="button" data-conversation-open="conversationSource{{ konusma.id }}" data-conversation-title="{{ konusma.ilk.konu }}" id="konusma-{{ konusma.id }}">
-                            <div class="d-flex justify-content-between align-items-start gap-3"><div class="min-width-0"><strong>{{ konusma.ilk.konu }}</strong><div class="small text-muted">{{ son_yazar.ad_soyad if son_yazar else 'Silinmiş kullanıcı' }} · {{ konusma.mesajlar|length }} mesaj · {{ konusma.son.created_at.strftime('%d.%m.%Y %H:%M') }}</div><div class="message-preview mt-1">{{ konusma.son.icerik }}</div></div><div class="d-flex align-items-center gap-2">{% if konusma.okunmamis %}<span class="badge bg-primary">{{ konusma.okunmamis }} yeni</span>{% endif %}<i class="bi bi-chevron-right text-muted"></i></div></div>
+            <section class="module-panel is-active" data-module-panel="sohbetler">
+                <div class="chat-layout card border-0 shadow-sm" id="chatLayout">
+                    <div class="chat-list-pane"><div class="chat-pane-header"><strong>Sohbetler</strong><span class="badge bg-primary">{{ okunmamis }} yeni</span></div><div class="chat-list">
+                        {% for konusma in konusmalar %}{% set konu = mesaj_konu_haritasi.get(konusma.ilk.konu_id) %}{% set son_yazar = kullanicilar.get(konusma.son.gonderen_id) %}
+                        <button class="chat-list-item{% if konusma.okunmamis %} is-unread{% endif %}" type="button" data-chat-open="chatSource{{ konusma.id }}" id="konusma-{{ konusma.id }}">
+                            <span class="chat-avatar bg-{{ konu.renk if konu else 'secondary' }}"><i class="bi bi-chat-text"></i></span><span class="chat-list-body"><span class="d-flex justify-content-between gap-2"><strong>{{ konusma.ilk.konu }}</strong><small>{{ konusma.son.created_at.strftime('%H:%M') }}</small></span><span class="chat-topic">{{ konu.adi if konu else 'Genel' }} · {{ son_yazar.ad_soyad if son_yazar else '-' }}</span><span class="chat-preview">{{ konusma.son.icerik }}</span></span>{% if konusma.okunmamis %}<span class="chat-unread">{{ konusma.okunmamis }}</span>{% endif %}
                         </button>
-                        <div class="d-none" id="conversationSource{{ konusma.id }}">
-                            {% if konusma.okunmamis %}<form method="post" action="/mesajlar/{{ konusma.son.id }}/okundu" class="text-end mb-2"><button class="btn btn-sm btn-outline-primary">Tümünü Okundu Yap</button></form>{% endif %}
-                            <div class="conversation-thread">{% for mesaj in konusma.mesajlar %}{% set yazar = kullanicilar.get(mesaj.gonderen_id) %}<div class="message-bubble {% if mesaj.gonderen_id == oturum_kullanici_id %}is-sent{% else %}is-received{% endif %}"><div class="message-bubble-meta">{{ yazar.ad_soyad if yazar else 'Silinmiş kullanıcı' }} · {{ mesaj.created_at.strftime('%d.%m.%Y %H:%M') }}</div><div class="message-content">{{ mesaj.icerik }}</div></div>{% endfor %}</div>
-                            <form method="post" action="/mesajlar/{{ konusma.son.id }}/yanitla" class="d-flex flex-column flex-sm-row gap-2 mt-3"><textarea class="form-control" name="icerik" rows="2" maxlength="5000" placeholder="Cevabınızı yazın..." required></textarea><button class="btn btn-primary align-self-sm-end"><i class="bi bi-reply"></i> Cevapla</button></form>
+                        <div class="d-none" id="chatSource{{ konusma.id }}" data-chat-title="{{ konusma.ilk.konu }}" data-chat-topic="{{ konu.adi if konu else 'Genel' }}">
+                            <div class="conversation-thread">{% for mesaj in konusma.mesajlar %}{% set yazar = kullanicilar.get(mesaj.gonderen_id) %}<div class="message-bubble {% if mesaj.gonderen_id == oturum_kullanici_id %}is-sent{% else %}is-received{% endif %}"><div class="message-bubble-meta">{{ yazar.ad_soyad if yazar else '-' }} · {{ mesaj.created_at.strftime('%d.%m.%Y %H:%M') }}</div><div class="message-content">{{ mesaj.icerik }}</div></div>{% endfor %}</div>
+                            <form method="post" action="/mesajlar/{{ konusma.son.id }}/yanitla" class="chat-reply"><textarea class="form-control" name="icerik" rows="2" maxlength="5000" placeholder="Mesaj yazın" required></textarea><button class="btn btn-primary"><i class="bi bi-send"></i></button></form>
+                            {% if konusma.okunmamis %}<form method="post" action="/mesajlar/{{ konusma.son.id }}/okundu" class="text-end mt-2"><button class="btn btn-sm btn-link">Okundu yap</button></form>{% endif %}
                         </div>
-                    {% else %}<div class="list-group-item text-center text-muted py-5">Henüz bir konuşma bulunmuyor.</div>{% endfor %}</div>
+                        {% else %}<div class="text-center text-muted py-5">Sohbet bulunmuyor.</div>{% endfor %}
+                    </div></div>
+                    <div class="chat-content-pane"><div class="chat-pane-header"><button class="btn btn-sm btn-light chat-back" id="chatBack" type="button"><i class="bi bi-arrow-left"></i></button><div><strong id="chatTitle">Bir sohbet seçin</strong><small id="chatTopic" class="d-block text-muted"></small></div></div><div class="chat-content" id="chatContent"><div class="chat-empty"><i class="bi bi-chat-square-text"></i><span>Mesajları görmek için soldan bir sohbet seçin.</span></div></div></div>
                 </div>
             </section>
-            <section class="module-panel" data-module-panel="giden" hidden>
-                <div class="card border-0 shadow-sm"><div class="card-header bg-white py-3"><strong>Gönderilenler</strong></div>
-                    <div class="list-group list-group-flush">{% for mesaj in giden %}{% set alici = kullanicilar.get(mesaj.alici_id) %}<article class="list-group-item py-3"><strong>{{ mesaj.konu }}</strong><div class="small text-muted">{{ alici.ad_soyad if alici else 'Silinmiş kullanıcı' }} · {{ mesaj.created_at.strftime('%d.%m.%Y %H:%M') }} · {{ 'Okundu' if mesaj.okundu else 'Bekliyor' }}</div><div class="mt-2 message-content">{{ mesaj.icerik }}</div></article>{% else %}<div class="list-group-item text-center text-muted py-5">Gönderilmiş mesaj bulunmuyor.</div>{% endfor %}</div>
-                </div>
-            </section>
-            <section class="module-panel" data-module-panel="yeni" hidden>
-                <div class="card border-0 shadow-sm"><div class="card-header bg-white py-3"><strong>Yeni Mesaj</strong></div><div class="card-body">
-                    <form method="post" action="/mesajlar/gonder" class="row g-3">
-                        <div class="col-12 col-md-5"><label class="form-label">Alıcı</label><select class="form-select" name="alici_id" required><option value="">Kullanıcı seçin</option>{% for kullanici in alici_secenekleri %}<option value="{{ kullanici.id }}">{{ kullanici.ad_soyad }} · {{ kullanici.rol }}</option>{% endfor %}</select></div>
-                        <div class="col-12 col-md-7"><label class="form-label">Konu</label><input class="form-control" name="konu" maxlength="150" required></div>
-                        <div class="col-12"><label class="form-label">Mesaj</label><textarea class="form-control" name="icerik" rows="8" maxlength="5000" required></textarea><div class="form-text">En fazla 5000 karakter.</div></div>
-                        <div class="col-12 text-end"><button class="btn btn-success"><i class="bi bi-send me-1"></i> Mesajı Gönder</button></div>
-                    </form>
-                </div></div>
-            </section>
+
+            <section class="module-panel" data-module-panel="yeni" hidden><div class="card border-0 shadow-sm"><div class="card-header bg-white py-3"><strong>Yeni Mesaj</strong></div><div class="card-body"><form method="post" action="/mesajlar/gonder" class="row g-3">
+                <div class="col-md-4"><label class="form-label">Konu Kategorisi</label><select class="form-select" name="konu_id" required><option value="">Konu seçin</option>{% for konu in mesaj_konulari %}<option value="{{ konu.id }}">{{ konu.adi }}</option>{% endfor %}</select><div class="form-text">Bu konunun yetkilileri de mesajı görür.</div></div>
+                <div class="col-md-4"><label class="form-label">Ana Alıcı</label><select class="form-select" name="alici_id" required><option value="">Kullanıcı seçin</option>{% for kullanici in alici_secenekleri %}<option value="{{ kullanici.id }}">{{ kullanici.ad_soyad }} · {{ kullanici.rol }}</option>{% endfor %}</select></div>
+                <div class="col-md-4"><label class="form-label">Başlık</label><input class="form-control" name="baslik" maxlength="150" required></div>
+                <div class="col-12"><label class="form-label">Mesaj</label><textarea class="form-control" name="icerik" rows="7" maxlength="5000" required></textarea></div><div class="col-12 text-end"><button class="btn btn-success"><i class="bi bi-send me-1"></i> Gönder</button></div>
+            </form></div></div></section>
+
+            <section class="module-panel" data-module-panel="giden" hidden><div class="card border-0 shadow-sm"><div class="card-header bg-white py-3"><strong>Gönderilen Mesajlar</strong></div><div class="list-group list-group-flush">{% for mesaj in giden %}{% set konu = mesaj_konu_haritasi.get(mesaj.konu_id) %}<div class="list-group-item py-3"><div class="d-flex justify-content-between"><strong>{{ mesaj.konu }}</strong><span class="badge bg-{{ konu.renk if konu else 'secondary' }}">{{ konu.adi if konu else 'Genel' }}</span></div><div class="small text-muted">{{ mesaj.created_at.strftime('%d.%m.%Y %H:%M') }}</div><div class="message-preview mt-1">{{ mesaj.icerik }}</div></div>{% else %}<div class="text-center text-muted py-5">Gönderilen mesaj yok.</div>{% endfor %}</div></div></section>
+
+            {% if kullanici_rol == 'Admin' %}<section class="module-panel" data-module-panel="konular" hidden><div class="card border-0 shadow-sm"><div class="card-header bg-white py-3"><strong>Konu ve Yetkili Personeller</strong></div><div class="card-body">
+                <form method="post" action="/mesaj-konulari/kaydet" class="row g-2 border rounded p-3 mb-3"><div class="col-md-3"><input class="form-control" name="adi" placeholder="Yeni konu" required></div><div class="col-md-2"><select class="form-select" name="renk"><option value="primary">Mavi</option><option value="success">Yeşil</option><option value="warning">Sarı</option><option value="danger">Kırmızı</option></select></div><div class="col-md-5"><select class="form-select" name="kullanici_idleri" multiple required>{% for k in tum_aktif_kullanicilar %}<option value="{{ k.id }}">{{ k.ad_soyad }} · {{ k.rol }}</option>{% endfor %}</select><div class="form-text">Ctrl/Cmd ile birden fazla yetkili seçin.</div></div><div class="col-md-2"><button class="btn btn-primary w-100">Konu Ekle</button></div></form>
+                {% for konu in mesaj_konulari %}<form method="post" action="/mesaj-konulari/kaydet" class="row g-2 border-bottom py-3"><input type="hidden" name="konu_id" value="{{ konu.id }}"><div class="col-md-3"><input class="form-control" name="adi" value="{{ konu.adi }}" required></div><div class="col-md-2"><select class="form-select" name="renk">{% for renk in ['primary','info','warning','success','danger','dark'] %}<option value="{{ renk }}" {% if konu.renk == renk %}selected{% endif %}>{{ renk }}</option>{% endfor %}</select></div><div class="col-md-5"><select class="form-select" name="kullanici_idleri" multiple>{% for k in tum_aktif_kullanicilar %}<option value="{{ k.id }}" {% if k.id in konu_yetkilileri.get(konu.id, []) %}selected{% endif %}>{{ k.ad_soyad }} · {{ k.rol }}</option>{% endfor %}</select></div><div class="col-md-2"><button class="btn btn-outline-primary w-100">Güncelle</button></div></form>{% endfor %}
+            </div></div></section>{% endif %}
         </div>
     </div>
 </div>
-<div class="modal fade" id="conversationModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="conversationModalTitle">Konuşma</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div><div class="modal-body" id="conversationModalBody"></div></div></div></div>
-<script src="/static/js/messages.js?v=1"></script>
+<script src="/static/js/messages.js?v=2"></script>
 {% endblock %}
