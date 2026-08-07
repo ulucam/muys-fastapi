@@ -34,6 +34,9 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
                 ("onay_tarihi", "ALTER TABLE siparisler ADD COLUMN onay_tarihi TIMESTAMP"),
                 ("onaylayan_kullanici_id", "ALTER TABLE siparisler ADD COLUMN onaylayan_kullanici_id INTEGER REFERENCES kullanicilar(id)"),
             ],
+            "mesajlar": [
+                ("konusma_id", "ALTER TABLE mesajlar ADD COLUMN konusma_id INTEGER"),
+            ],
             "firma_ayarlari": [
                 ("logo_yolu", "ALTER TABLE firma_ayarlari ADD COLUMN logo_yolu VARCHAR(300) DEFAULT ''"),
             ],
@@ -51,6 +54,9 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
                 connection.execute(text(f"ALTER TABLE firma_ayarlari ADD COLUMN logo_verisi {ikili_tur}"))
             if "logo_mime_turu" not in firma_sutunlari:
                 connection.execute(text("ALTER TABLE firma_ayarlari ADD COLUMN logo_mime_turu VARCHAR(100) DEFAULT ''"))
+
+        if "mesajlar" in denetleyici.get_table_names():
+            connection.execute(text("UPDATE mesajlar SET konusma_id = id WHERE konusma_id IS NULL"))
 
         # Eski operatörlerin tekil istasyon bilgisini yeni çoklu ilişki tablosuna taşır.
         tablolar = set(denetleyici.get_table_names())
