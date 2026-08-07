@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.recete import Recete
@@ -32,6 +33,12 @@ def stok_tum_tanimlari(db: Session):
         db.query(StokUrunTuru).order_by(StokUrunTuru.adi).all(),
         db.query(StokUrunSinifi).order_by(StokUrunSinifi.adi).all(),
     )
+
+
+def stok_tanim_kullanimlari(db: Session) -> dict[str, dict[int, int]]:
+    turler = dict(db.query(Urun.stok_urun_turu_id, func.count(Urun.id)).filter(Urun.stok_urun_turu_id.isnot(None)).group_by(Urun.stok_urun_turu_id).all())
+    siniflar = dict(db.query(Urun.stok_urun_sinifi_id, func.count(Urun.id)).filter(Urun.stok_urun_sinifi_id.isnot(None)).group_by(Urun.stok_urun_sinifi_id).all())
+    return {"turler": turler, "siniflar": siniflar}
 
 
 def stok_kurulum_durumu(db: Session) -> dict:
@@ -80,7 +87,9 @@ def stok_urunu_kaydet(
 def stok_turu_kaydet(db: Session, adi: str, tur_id: int | None = None):
     temiz_ad = adi.strip()
     tur = db.query(StokUrunTuru).filter(StokUrunTuru.id == tur_id, StokUrunTuru.uretilen.is_(False)).first() if tur_id else None
-    cakisan = db.query(StokUrunTuru).filter(StokUrunTuru.adi == temiz_ad, StokUrunTuru.id != (tur.id if tur else 0)).first()
+    if tur_id and not tur:
+        raise ValueError("Güncellenecek tür bulunamadı")
+    cakisan = next((kayit for kayit in db.query(StokUrunTuru).all() if kayit.id != (tur.id if tur else 0) and kayit.adi.casefold() == temiz_ad.casefold()), None)
     if not temiz_ad or cakisan:
         raise ValueError("Tür adı zorunludur ve benzersiz olmalıdır")
     tur = tur or StokUrunTuru(uretilen=False)
@@ -92,13 +101,43 @@ def stok_turu_kaydet(db: Session, adi: str, tur_id: int | None = None):
 def stok_sinifi_kaydet(db: Session, adi: str, sinif_id: int | None = None):
     temiz_ad = adi.strip()
     sinif = db.query(StokUrunSinifi).filter(StokUrunSinifi.id == sinif_id).first() if sinif_id else None
-    cakisan = db.query(StokUrunSinifi).filter(StokUrunSinifi.adi == temiz_ad, StokUrunSinifi.id != (sinif.id if sinif else 0)).first()
+    if sinif_id and not sinif:
+        raise ValueError("Güncellenecek sınıf bulunamadı")
+    cakisan = next((kayit for kayit in db.query(StokUrunSinifi).all() if kayit.id != (sinif.id if sinif else 0) and kayit.adi.casefold() == temiz_ad.casefold()), None)
     if not temiz_ad or cakisan:
         raise ValueError("Sınıf adı zorunludur ve benzersiz olmalıdır")
     sinif = sinif or StokUrunSinifi()
     sinif.adi, sinif.aktif = temiz_ad, True
     db.add(sinif); db.commit()
     return sinif
+
+
+def stok_turu_sil(db: Session, tur_id: int, urunlerden_kaldir: bool = False) -> int:
+    tur = db.query(StokUrunTuru).filter(StokUrunTuru.id == tur_id, StokUrunTuru.uretilen.is_(False)).first()
+    if not tur:
+        raise ValueError("Silinecek tür bulunamadı")
+    urunler = db.query(Urun).filter(Urun.stok_urun_turu_id == tur.id).all()
+    if urunler and not urunlerden_kaldir:
+        raise ValueError("Tür ürünlerde kullanılıyor")
+    for urun in urunler:
+        urun.stok_urun_turu_id = None
+    db.delete(tur)
+    db.commit()
+    return len(urunler)
+
+
+def stok_sinifi_sil(db: Session, sinif_id: int, urunlerden_kaldir: bool = False) -> int:
+    sinif = db.query(StokUrunSinifi).filter(StokUrunSinifi.id == sinif_id).first()
+    if not sinif:
+        raise ValueError("Silinecek sınıf bulunamadı")
+    urunler = db.query(Urun).filter(Urun.stok_urun_sinifi_id == sinif.id).all()
+    if urunler and not urunlerden_kaldir:
+        raise ValueError("Sınıf ürünlerde kullanılıyor")
+    for urun in urunler:
+        urun.stok_urun_sinifi_id = None
+    db.delete(sinif)
+    db.commit()
+    return len(urunler)
 
 
 def receteleri_listele(db: Session):
