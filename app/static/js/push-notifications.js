@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
     const button = document.getElementById("pushToggle");
     const status = document.getElementById("pushStatus");
-    if (!button || !status) return;
 
     let publicKey = "";
     let registration = null;
@@ -19,6 +18,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return [navigator.platform || "", navigator.userAgent || ""].filter(Boolean).join(" ").slice(0, 200);
     }
     function render() {
+        if (!button || !status) return;
         button.disabled = !supported || !publicKey || iosNeedsInstall;
         button.textContent = subscription ? "Kapat" : "Bildirimleri Aç";
         button.classList.toggle("btn-outline-danger", Boolean(subscription));
@@ -65,16 +65,20 @@ document.addEventListener("DOMContentLoaded", function () {
         if (subscription && publicKey) await saveSubscription(subscription, false).catch(function () {});
         render();
     }
-    button.addEventListener("click", async function () {
-        button.disabled = true;
-        status.textContent = "İşlem yapılıyor...";
-        feedback = "";
-        try {
-            if (subscription) { await disable(); feedback = "Bu cihazdaki bildirimler kapatıldı."; }
-            else { await enable(); feedback = "Bildirimler açıldı; test bildirimi gönderiliyor."; }
-        }
-        catch (error) { feedback = error.message || "Bildirim ayarı değiştirilemedi."; }
-        finally { render(); }
+    if (button && status) {
+        button.addEventListener("click", async function () {
+            button.disabled = true;
+            status.textContent = "İşlem yapılıyor...";
+            feedback = "";
+            try {
+                if (subscription) { await disable(); feedback = "Bu cihazdaki bildirimler kapatıldı."; }
+                else { await enable(); feedback = "Bildirimler açıldı; test bildirimi gönderiliyor."; }
+            }
+            catch (error) { feedback = error.message || "Bildirim ayarı değiştirilemedi."; }
+            finally { render(); }
+        });
+    }
+    initialize().catch(function () {
+        if (status) status.textContent = "Bildirim durumu alınamadı.";
     });
-    initialize().catch(function () { status.textContent = "Bildirim durumu alınamadı."; });
 });
