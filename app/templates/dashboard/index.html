@@ -121,11 +121,25 @@
         </div>
         {% else %}
         {% if uretim_yonetebilir %}<div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white py-3"><strong><i class="bi bi-calendar2-check me-2"></i>Üretim Planı Başlat</strong><div class="small text-muted">Aşamalı reçeteyi sipariş için veya doğrudan stok için üretime alın.</div></div>
+            <div class="card-body"><form method="post" action="/uretim/planla" class="row g-3">
+                <div class="col-md-3"><label class="form-label">Reçete</label><select class="form-select" name="recete_id" required><option value="">Reçete seçin</option>{% for recete in plan_receteleri %}{% set urun = plan_urun_haritasi.get(recete.urun_id) %}<option value="{{ recete.id }}">{{ recete.recete_no }} · {{ urun.adi if urun else '-' }}</option>{% endfor %}</select></div>
+                <div class="col-md-2"><label class="form-label">Hedef</label><select class="form-select" name="hedef_turu" id="planHedefTuru" required><option value="Stok">Stoğa Çalış</option><option value="Siparis">Siparişe Çalış</option></select></div>
+                <div class="col-md-3"><label class="form-label">Sipariş Kalemi</label><select class="form-select" name="siparis_kalem_id"><option value="">Stok üretiminde boş bırakın</option>{% for kalem in bekleyen_siparis_kalemleri %}{% set siparis = plan_siparis_haritasi.get(kalem.siparis_id) %}{% set urun = plan_urun_haritasi.get(kalem.urun_id) %}<option value="{{ kalem.id }}">{{ siparis.siparis_no if siparis else '-' }} · {{ urun.adi if urun else '-' }} · {{ kalem.miktar }} {{ kalem.birim }}</option>{% endfor %}</select></div>
+                <div class="col-md-2"><label class="form-label">Miktar</label><input class="form-control" type="number" step="0.001" min="0.001" name="miktar" required></div>
+                <div class="col-md-2 d-flex align-items-end"><button class="btn btn-success w-100"><i class="bi bi-play-circle me-1"></i>Planı Başlat</button></div>
+                <div class="col-12"><input class="form-control" name="aciklama" maxlength="500" placeholder="Plan açıklaması (isteğe bağlı)"></div>
+            </form></div>
+        </div>
+        <div class="card border-0 shadow-sm mb-3"><div class="card-header bg-white py-3"><strong>Aktif Üretim Planları</strong></div><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Plan</th><th>Ürün</th><th>Hedef</th><th>Miktar</th><th>Durum</th></tr></thead><tbody>{% for plan in uretim_planlari %}{% set urun = plan_urun_haritasi.get(plan.urun_id) %}<tr><td><strong>{{ plan.plan_no }}</strong></td><td>{{ urun.adi if urun else '-' }}</td><td>{{ 'Sipariş' if plan.hedef_turu == 'Siparis' else 'Stok' }}</td><td>{{ plan.miktar }}</td><td><span class="badge {% if plan.durum == 'Tamamlandı' %}bg-success{% elif plan.durum == 'Üretimde' %}bg-warning text-dark{% else %}bg-primary{% endif %}">{{ plan.durum }}</span></td></tr>{% else %}<tr><td colspan="5" class="text-center text-muted py-3">Üretim planı bulunmuyor.</td></tr>{% endfor %}</tbody></table></div></div>
+        {% endif %}
+        {% if uretim_yonetebilir %}<div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-3"><strong>Üretim Emirlerini İstasyona Ata</strong></div>
             <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Emir</th><th>Ürün</th><th>Hedef</th><th>Durum</th><th>İstasyon</th></tr></thead><tbody>
                 {% for emir in uretim_emirleri %}<tr><td><strong>{{ emir.emir_no }}</strong></td><td>{{ urunler.get(emir.urun_id).adi if urunler.get(emir.urun_id) else '-' }}</td><td>{{ '%g'|format(emir.miktar) }}</td><td>{{ emir.durum }}</td><td><form class="d-flex gap-2" method="post" action="/uretim/{{ emir.id }}/istasyon"><select class="form-select form-select-sm" name="istasyon_id" required><option value="">Seçin</option>{% for id, istasyon in istasyonlar.items() %}<option value="{{ id }}" {% if emir.istasyon_id == id %}selected{% endif %}>{{ istasyon.adi }}</option>{% endfor %}</select><button class="btn btn-sm btn-outline-primary" type="submit">Ata</button></form></td></tr>{% else %}<tr><td colspan="5" class="text-center text-muted py-4">Aktif üretim emri bulunmuyor.</td></tr>{% endfor %}
             </tbody></table></div>
         </div>{% endif %}
+        <div class="card border-0 shadow-sm mb-3"><div class="card-header bg-white py-3 d-flex justify-content-between"><strong><i class="bi bi-broadcast me-2 text-success"></i>Canlı İstasyonlar ve Çalışanlar</strong><span class="badge bg-success">Canlı</span></div><div class="card-body"><div id="canli-istasyonlar" class="live-station-grid"><div class="text-muted text-center py-3">Canlı istasyon verileri yükleniyor...</div></div></div></div>
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between"><strong>Operatör Hareketleri</strong><span id="uretim-son-guncelleme" class="small text-muted"></span></div>
             <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Durum</th><th>Operatör</th><th>İstasyon</th><th>İş / Ürün</th><th>Başlangıç</th><th>Süre</th><th>Üretim / Fire</th></tr></thead><tbody id="canli-uretim-body"><tr><td colspan="7" class="text-center text-muted py-4">Veriler yükleniyor...</td></tr></tbody></table></div>
@@ -153,5 +167,5 @@
     </div>
 </div>
 <script src="/static/js/dashboard.js?v=4"></script>
-<script src="/static/js/production-dashboard.js?v=1"></script>
+<script src="/static/js/production-dashboard.js?v=2"></script>
 {% endblock %}
