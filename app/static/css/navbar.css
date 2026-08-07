@@ -130,13 +130,15 @@
 }
 
 .activity-panel{
+    flex-direction:column;
     width:min(360px, calc(100vw - 24px));
-    max-height:390px;
+    max-height:min(520px, calc(100vh - 80px));
     overflow:hidden;
     border:0;
     border-radius:12px;
     box-shadow:0 12px 28px rgba(15, 23, 42, .18);
 }
+.activity-panel.show{ display:flex; }
 
 .activity-panel-header{
     display:flex;
@@ -148,9 +150,10 @@
 
 .activity-panel-header small{ color:#64748b; }
 
-.activity-feed{ max-height:320px; overflow-y:auto; }
+.activity-feed{ min-height:0; flex:1 1 auto; overflow-y:auto; overscroll-behavior:contain; }
 
 .activity-history-link{
+    flex:0 0 auto;
     display:block;
     padding:11px 15px;
     border-top:1px solid #e2e8f0;
