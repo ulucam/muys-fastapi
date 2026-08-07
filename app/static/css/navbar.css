@@ -77,6 +77,19 @@
 .message-bubble-meta{margin-bottom:4px;font-size:11px;color:#64748b}
 .message-preview{max-width:720px;overflow:hidden;color:#64748b;text-overflow:ellipsis;white-space:nowrap}
 .min-width-0{min-width:0}
+.chat-layout{display:grid;grid-template-columns:minmax(260px,34%) minmax(0,1fr);height:calc(100vh - 175px);min-height:520px;overflow:hidden}
+.chat-list-pane{min-width:0;border-right:1px solid #e2e8f0;background:#fff;overflow:hidden}
+.chat-content-pane{display:flex;min-width:0;flex-direction:column;background:#eef3f7}
+.chat-pane-header{display:flex;align-items:center;justify-content:space-between;gap:10px;height:64px;padding:10px 15px;border-bottom:1px solid #e2e8f0;background:#fff}
+.chat-list{height:calc(100% - 64px);overflow-y:auto}
+.chat-list-item{display:flex;position:relative;align-items:center;gap:10px;width:100%;padding:12px;border:0;border-bottom:1px solid #f1f5f9;background:#fff;text-align:left}
+.chat-list-item:hover,.chat-list-item.is-active{background:#f1f5f9}.chat-list-item.is-unread{background:#eff6ff}
+.chat-avatar{display:flex;flex:0 0 42px;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;color:#fff}
+.chat-list-body{min-width:0;flex:1}.chat-list-body>span{display:block}.chat-list-body strong,.chat-preview{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-topic{font-size:11px;color:#64748b}.chat-preview{font-size:13px;color:#64748b}.chat-unread{min-width:20px;padding:2px 5px;border-radius:10px;background:#2563eb;color:#fff;font-size:11px;text-align:center}
+.chat-content{display:flex;height:calc(100% - 64px);padding:18px;flex-direction:column;overflow-y:auto}.chat-empty{display:flex;height:100%;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:#94a3b8}.chat-empty i{font-size:3rem}
+.chat-reply{display:flex;position:sticky;bottom:-18px;gap:8px;margin:18px -18px -18px;padding:12px;background:#fff;border-top:1px solid #e2e8f0}.chat-reply textarea{resize:none}.chat-back{display:none}
+@media(max-width:768px){.chat-layout{display:block;height:calc(100vh - 155px);min-height:480px}.chat-list-pane,.chat-content-pane{height:100%}.chat-content-pane{display:none}.chat-layout.chat-open .chat-list-pane{display:none}.chat-layout.chat-open .chat-content-pane{display:flex}.chat-back{display:inline-flex}.chat-content{padding:12px}.chat-reply{bottom:-12px;margin:14px -12px -12px}.message-bubble{max-width:88%}}
 
 .live-activity{
     display:flex;
