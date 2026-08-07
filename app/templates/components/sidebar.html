@@ -38,14 +38,20 @@
 
         {% if kullanici_rol not in ["Operatör", "Patron"] %}
         <li>
+            <a href="/stok">
+                <i class="bi bi-box-seam"></i>
+                <span>Stok</span>
+            </a>
+        </li>
+        <li>
 
             <a class="menu-toggle"
                data-bs-toggle="collapse"
-               href="#stokMenu">
+               href="#uretimMenu">
 
-                <i class="bi bi-box-seam"></i>
+                <i class="bi bi-gear-wide-connected"></i>
 
-                <span>Stok</span>
+                <span>Üretim</span>
 
                 <i class="bi bi-chevron-down ms-auto"></i>
 
@@ -53,17 +59,7 @@
 
 
             <div class="collapse"
-                 id="stokMenu">
-
-
-                <a href="/urunler"
-                   class="submenu">
-
-                    <i class="bi bi-box"></i>
-
-                    Ürünler
-
-                </a>
+                 id="uretimMenu">
 
 
                 <a href="/receteler"
