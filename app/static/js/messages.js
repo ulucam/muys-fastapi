@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const title = document.getElementById("chatTitle");
     const topic = document.getElementById("chatTopic");
     const back = document.getElementById("chatBack");
+    const deleteForm = document.getElementById("chatDeleteForm");
     if (!layout || !content) return;
 
     function openChat(button, updateHash) {
@@ -12,6 +13,10 @@ document.addEventListener("DOMContentLoaded", function () {
         document.querySelectorAll("[data-chat-open]").forEach(function (item) { item.classList.toggle("is-active", item === button); });
         title.textContent = source.dataset.chatTitle || "Sohbet";
         topic.textContent = source.dataset.chatTopic || "";
+        if (deleteForm && source.dataset.conversationId) {
+            deleteForm.action = "/mesajlar/konusma/" + source.dataset.conversationId + "/sil";
+            deleteForm.classList.remove("d-none");
+        }
         content.innerHTML = source.innerHTML;
         layout.classList.add("chat-open");
         content.scrollTop = content.scrollHeight;
