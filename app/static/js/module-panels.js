@@ -1,7 +1,24 @@
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("[data-module-workspace]").forEach((workspace) => {
+        const toolbar = workspace.querySelector(".module-toolbar");
+        const dockToggle = workspace.querySelector("[data-module-dock-toggle]");
         const buttons = [...workspace.querySelectorAll("[data-module-target]")];
         const panels = [...workspace.querySelectorAll("[data-module-panel]")];
+
+        const setDockOpen = (open) => {
+            if (!toolbar || !dockToggle) return;
+            toolbar.classList.toggle("is-open", open);
+            dockToggle.setAttribute("aria-expanded", String(open));
+            dockToggle.setAttribute("aria-label", `${toolbar.getAttribute("aria-label") || "Bölüm"} menüsünü ${open ? "kapat" : "aç"}`);
+            const icon = dockToggle.querySelector("i");
+            if (icon) icon.className = `bi ${open ? "bi-chevron-right" : "bi-chevron-left"}`;
+        };
+
+        if (dockToggle) {
+            dockToggle.addEventListener("click", () => setDockOpen(!toolbar.classList.contains("is-open")));
+            setDockOpen(false);
+        }
+
         if (!buttons.length || !panels.length) return;
 
         const showPanel = (target, updateHash = true) => {
