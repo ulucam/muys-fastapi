@@ -265,6 +265,12 @@ grid-template-columns:1fr;
     }
     .stat-card:hover{transform:none}
 }
+.live-station-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.live-station-card{overflow:hidden;border:1px solid #dbe5ef;border-radius:12px;background:#f8fafc}
+.live-station-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#eaf7ef;color:#166534}
+.live-station-head span{font-size:11px;font-weight:700}
+.live-worker{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid #e2e8f0}
+.live-worker>i{color:#198754}.live-worker small{display:block;overflow:hidden;color:#64748b;text-overflow:ellipsis;white-space:nowrap}.live-worker-time{font-size:11px;color:#475569}
 
 /* Bootstrap collapse normalde blok olarak açılır; tablo ayrıntı satırının
    sütun yapısını koruması için tablo satırı görünümü kullanılır. */
