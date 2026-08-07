@@ -12,6 +12,7 @@ class Mesaj(Base):
     gonderen_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=False, index=True)
     alici_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=False, index=True)
     konusma_id = Column(Integer, ForeignKey("mesajlar.id"), nullable=True, index=True)
+    konu_id = Column(Integer, ForeignKey("mesaj_konulari.id"), nullable=True, index=True)
     konu = Column(String(150), nullable=False)
     icerik = Column(Text, nullable=False)
     okundu = Column(Boolean, default=False, nullable=False, index=True)
