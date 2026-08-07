@@ -11,22 +11,22 @@
 
     <div class="dashboard-workspace">
     <aside class="stats-grid" aria-label="Dashboard hızlı menüsü">
-        <button class="stat-card" type="button" data-dashboard-target="siparisler" aria-pressed="false">
+        <button class="stat-card" type="button" data-dashboard-target="siparisler" data-label="Aktif Sipariş" aria-label="Aktif Sipariş" title="Aktif Sipariş" aria-pressed="false">
             <div class="stat-icon bg-primary"><i class="bi bi-box-seam"></i></div>
             <div class="stat-body"><h3>{{ aktif_siparis }}</h3><span>Aktif Sipariş</span></div>
             <i class="bi bi-chevron-left stat-card-arrow"></i>
         </button>
-        <button class="stat-card is-active" type="button" data-dashboard-target="uretim" aria-pressed="true">
+        <button class="stat-card is-active" type="button" data-dashboard-target="uretim" data-label="Üretimde" aria-label="Üretimde" title="Üretimde" aria-pressed="true">
             <div class="stat-icon bg-success"><i class="bi bi-gear"></i></div>
             <div class="stat-body"><h3>{{ uretimde }}</h3><span>Üretimde</span></div>
             <i class="bi bi-chevron-left stat-card-arrow"></i>
         </button>
-        <button class="stat-card" type="button" data-dashboard-target="teslim" aria-pressed="false">
+        <button class="stat-card" type="button" data-dashboard-target="teslim" data-label="Teslim Bekleyen" aria-label="Teslim Bekleyen" title="Teslim Bekleyen" aria-pressed="false">
             <div class="stat-icon bg-warning"><i class="bi bi-truck"></i></div>
             <div class="stat-body"><h3>{{ teslim_bekleyen }}</h3><span>Teslim Bekleyen</span></div>
             <i class="bi bi-chevron-left stat-card-arrow"></i>
         </button>
-        <button class="stat-card" type="button" data-dashboard-target="devamsiz" aria-pressed="false">
+        <button class="stat-card" type="button" data-dashboard-target="devamsiz" data-label="Devamsız" aria-label="Devamsız" title="Devamsız" aria-pressed="false">
             <div class="stat-icon bg-danger"><i class="bi bi-person-x"></i></div>
             <div class="stat-body"><h3>{{ devamsiz_sayisi }}</h3><span>Devamsız</span></div>
             <i class="bi bi-chevron-left stat-card-arrow"></i>
