@@ -189,12 +189,16 @@ def uretim_recetesi_guncelle(recete_id: int, urun_id: int = Form(...), tahmini_u
 
 @router.post("/receteler/{recete_id}/asama")
 def uretim_recetesi_asama_kaydet(recete_id: int, sira_no: int = Form(...), istasyon_id: int = Form(...),
-    operasyon_adi: str = Form(""), hedef_cevrim_suresi: float = Form(0), aciklama: str = Form(""),
+    operasyon_adi: str = Form(""), hedef_cevrim_suresi: float = Form(0), aciklama: str = Form(""), donus_duzenle: bool = Form(False),
     db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
     try:
         recete_asamasi_kaydet(db, recete_id, sira_no, istasyon_id, operasyon_adi, hedef_cevrim_suresi, aciklama)
     except ValueError:
+        if donus_duzenle:
+            return RedirectResponse(f"/receteler/{recete_id}/duzenle?error=asama", status_code=303)
         return RedirectResponse("/receteler?error=asama#module-uretim-receteleri", status_code=303)
+    if donus_duzenle:
+        return RedirectResponse(f"/receteler/{recete_id}/duzenle?kaydedildi=1", status_code=303)
     return RedirectResponse("/receteler#module-uretim-receteleri", status_code=303)
 
 
