@@ -1,8 +1,17 @@
 {% extends "base.html" %}
+{% from "components/module_toolbar.html" import link_button %}
 {% block title %}Ürünler{% endblock %}
 {% block content %}
-<div class="container-fluid py-3">
+<div class="container-fluid py-3 px-0">
     <div class="mb-4"><h3 class="mb-1"><i class="bi bi-box-seam"></i> Ürünler</h3><p class="text-muted mb-0">Stok miktarlarını ve temel ürün özelliklerini sade listede görüntüleyin.</p></div>
+    <div class="module-workspace">
+    <aside class="module-toolbar" aria-label="Stok bölümleri">
+        {{ link_button('/urunler', 'Tüm Ürünler', 'bi-table', 'primary', urunler|length) }}
+        {{ link_button('/receteler#module-stoklar', 'Stok Kartları', 'bi-box-seam', 'success') }}
+        {{ link_button('/receteler#module-yeni-kart', 'Yeni Hammadde', 'bi-plus-lg', 'dark') }}
+        {{ link_button('/receteler#module-tanimlar', 'Tür ve Sınıflar', 'bi-tags', 'warning') }}
+    </aside>
+    <div class="module-panel-area">
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white"><strong>Ürün Stokları</strong> <span class="badge bg-secondary">{{ urunler|length }}</span></div>
         <div class="table-responsive"><table class="table table-hover align-middle mb-0">
@@ -16,6 +25,8 @@
             </tr>
             {% else %}<tr><td colspan="4" class="text-center text-muted py-5">Henüz ürün bulunmuyor.</td></tr>{% endfor %}</tbody>
         </table></div>
+    </div>
+    </div>
     </div>
 </div>
 {% endblock %}
