@@ -4,6 +4,7 @@ from app.models.user import User
 from app.password import sifre_olustur
 from app.models.stok_urun_turu import StokUrunTuru
 from app.models.rol_sinifi import RolSinifi
+from app.models.mesaj_konusu import MesajKonusu, MesajKonusuYetkili
 
 
 def setup_database(db: Session):
@@ -62,6 +63,16 @@ def setup_database(db: Session):
             db.commit()
         else:
             print("✅ Admin hesabı mevcut; değiştirilmedi.")
+
+        varsayilan_konular = [("Genel", "primary"), ("Sipariş", "info"), ("Stok", "warning"), ("Üretim", "success"), ("Acil", "danger")]
+        for ad, renk in varsayilan_konular:
+            konu = db.query(MesajKonusu).filter(MesajKonusu.adi == ad).first()
+            if not konu:
+                konu = MesajKonusu(adi=ad, renk=renk, aktif=True)
+                db.add(konu); db.flush()
+            if not db.query(MesajKonusuYetkili).filter(MesajKonusuYetkili.konu_id == konu.id, MesajKonusuYetkili.kullanici_id == admin.id).first():
+                db.add(MesajKonusuYetkili(konu_id=konu.id, kullanici_id=admin.id))
+        db.commit()
 
     except Exception as e:
 
