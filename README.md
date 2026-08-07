@@ -24,81 +24,41 @@ işlemlerini tek bir sistem üzerinden yönetmektir.
 MUYS/
 │
 ├── app/
-│   │
 │   ├── main.py                  # FastAPI başlangıç dosyası
 │   ├── database.py              # Engine, SessionLocal, Base, get_db()
-│   ├── config.py                # Uygulama ayarları
-│   ├── dependencies.py          # Ortak Depends() fonksiyonları
+│   ├── config.py                # Uygulama ayarları (.env)
+│   ├── dependencies.py          # Ortak Depends() fonksiyonları (yetki kontrolü)
+│   ├── templating.py            # Paylaşılan Jinja2 şablon motoru
+│   ├── password.py              # pwdlib/Argon2 parola hashleme
+│   ├── product_types.py         # Ürün türü sözlüğü ve normalizasyonu
+│   ├── migrations.py            # Geriye uyumlu ALTER TABLE migrationları
+│   ├── startup.py               # Uygulama açılış hazırlıkları
+│   ├── setup.py                 # Varsayılan rol/admin/veri kurulumu
 │   │
-│   ├── models/
-│   │   ├── __init__.py
-│   │   ├── user.py
-│   │   ├── musteri.py
-│   │   ├── urun.py
-│   │   ├── siparis.py           # Siparis + SiparisKalem
-│   │   ├── recete.py            # Recete + ReceteDetay
-│   │   ├── stok.py              # Stok + StokHareket
-│   │   ├── uretim.py
-│   │   ├── sevkiyat.py          # Sevkiyat + SevkiyatDetay
-│   │   └── makine.py
+│   ├── models/                  # SQLAlchemy tabloları (her dosya kendi tabloları)
+│   ├── routes/                  # Sayfa ve API endpointleri
+│   ├── services/                # İş kuralları (SQL burada yazılır)
+│   ├── schemas.py               # Pydantic modelleri
+│   ├── excel/                   # Excel içe aktarım yardımcıları
+│   ├── utils/                   # Yardımcı fonksiyonlar
+│   │   ├── excel.py             # Excel şablon/aktarım işlemleri
+│   │   ├── barcode.py           # EAN-13 barkod kontrol rakamı
+│   │   ├── pdf.py               # Bağımlılıksız metin PDF üretici
+│   │   ├── helpers.py           # Genel yardımcılar (metin, sayı, kod)
+│   │   ├── zaman.py             # Türkiye saati dönüşümleri
+│   │   └── uretim_excel.py      # Üretim Excel okuma/şablon
 │   │
-│   ├── routers/
-│   │   ├── auth.py
-│   │   ├── dashboard.py
-│   │   ├── musteriler.py
-│   │   ├── urunler.py
-│   │   ├── siparisler.py
-│   │   ├── receteler.py
-│   │   ├── uretim.py
-│   │   ├── stok.py
-│   │   └── sevkiyat.py
-│   │
-│   ├── services/
-│   │   ├── auth_service.py
-│   │   ├── siparis_service.py
-│   │   ├── stok_service.py
-│   │   ├── uretim_service.py
-│   │   ├── recete_service.py
-│   │   └── sevkiyat_service.py
-│   │
-│   ├── schemas/
-│   │   ├── user.py
-│   │   ├── musteri.py
-│   │   ├── urun.py
-│   │   ├── siparis.py
-│   │   ├── recete.py
-│   │   ├── stok.py
-│   │   └── sevkiyat.py
-│   │
-│   ├── templates/
-│   │   ├── base.html
-│   │   ├── auth/
-│   │   ├── dashboard/
-│   │   ├── musteriler/
-│   │   ├── urunler/
-│   │   ├── siparisler/
-│   │   ├── receteler/
-│   │   ├── uretim/
-│   │   ├── stok/
-│   │   └── sevkiyat/
-│   │
-│   ├── static/
-│   │   ├── css/
-│   │   ├── js/
-│   │   ├── img/
-│   │   └── icons/
-│   │
-│   └── utils/
-│       ├── excel.py
-│       ├── barcode.py
-│       ├── pdf.py
-│       └── helpers.py
+│   ├── templates/               # HTML şablonları (Jinja2)
+│   └── static/                  # CSS, JS, resim, ikon
 │
-├── .env
+├── scripts/
+│   └── generate_vapid_keys.py   # Web Push VAPID anahtar üretici
+├── tests/                       # Pytest testleri
+├── .env.example
 ├── .gitignore
 ├── requirements.txt
-├── README.md
-└── run.py
+├── pyproject.toml
+└── render.yaml
 ```
 
 ---
@@ -162,9 +122,10 @@ Ortak kullanılan Depends() fonksiyonları burada bulunur.
 
 Örnek:
 
-* get_db()
-* get_current_user()
-* admin kontrolü
+* `yetki_kontrol(izinli_roller)` — rol bazlı erişim denetimi
+* `kullanici_yonetim_kontrol` — kullanıcı yönetimi yetki denetimi
+
+`app/security.py` geriye uyumluluk için bu fonksiyonları yeniden dışa aktarır.
 
 ---
 
@@ -183,7 +144,7 @@ siparis.py
 
 ---
 
-## routers/
+## routes/
 
 Sayfaları ve API endpointlerini yönetir.
 
@@ -210,7 +171,7 @@ Programın asıl beyni burasıdır.
 
 ---
 
-## schemas/
+## schemas.py
 
 Pydantic modelleridir.
 
@@ -243,10 +204,11 @@ Yardımcı fonksiyonlar.
 
 Örnek:
 
-* Excel işlemleri
-* PDF oluşturma
-* Barkod oluşturma
-* Genel yardımcı fonksiyonlar
+* Excel işlemleri (`excel.py`)
+* Barkod oluşturma (`barcode.py` — EAN-13)
+* PDF oluşturma (`pdf.py`)
+* Genel yardımcı fonksiyonlar (`helpers.py`)
+* Türkiye saati dönüşümleri (`zaman.py`)
 
 ---
 
@@ -338,3 +300,17 @@ Uygulama PWA ve Web Push desteğine sahiptir. Cihaz bildirimlerini etkinleştirm
 VAPID anahtarları sabit tutulmalıdır. Anahtarlar değiştirilirse mevcut cihazların yeniden abone olması gerekir. `VAPID_PRIVATE_KEY` repoya eklenmez.
 
 Render Blueprint dosyası bu üç değeri `sync: false` olarak tanımlar. Render Dashboard'da servis için **Environment** bölümüne gidip üretilen değerleri bir kez kaydedin ve servisi yeniden deploy edin. Otomatik veritabanı anahtarı yalnızca ortam değişkenleri bulunmadığında yedek olarak kullanılır.
+
+---
+
+# Testler
+
+Testler `pytest` ile çalıştırılır:
+
+```bash
+pip install -r requirements.txt
+pip install pytest
+pytest
+```
+
+Testler bellek içi SQLite kullanır; harici veritabanı veya donanım gerektirmez.
