@@ -131,8 +131,6 @@ def excel_satirlarini_oku(dosya_icerigi):
                 satir_hatalari = []
                 kod, ad = metin(veri["Ürün Kodu"]), metin(veri["Ürün Adı"])
                 urun_turu, birim = metin(veri["Ürün Türü"]), metin(veri["Birim"])
-                if not kod:
-                    satir_hatalari.append("Ürün kodu zorunlu")
                 if not ad:
                     satir_hatalari.append("Ürün adı zorunlu")
                 if not urun_turu:
@@ -194,10 +192,10 @@ def excel_satirlarini_oku(dosya_icerigi):
         ("Personel Listesi", "Personeller", "Çalışanlar"), PERSONEL_SUTUNLARI, "Personeller", ["Ad Soyad"]
     )
     istasyonlar = liste_sayfasi_oku(
-        ("İstasyon Listesi", "İstasyonlar", "İstasyon"), ISTASYON_SUTUNLARI, "İstasyonlar"
+        ("İstasyon Listesi", "İstasyonlar", "İstasyon"), ISTASYON_SUTUNLARI, "İstasyonlar", ["İstasyon Adı"]
     )
     makineler = liste_sayfasi_oku(
-        ("Makine Listesi", "Makineler", "Makine"), MAKINE_SUTUNLARI, "Makineler"
+        ("Makine Listesi", "Makineler", "Makine"), MAKINE_SUTUNLARI, "Makineler", ["Makine Adı", "İstasyon Kodu"]
     )
     for sira, makine in enumerate(makineler, start=2):
         if not metin(makine["İstasyon Kodu"]):
