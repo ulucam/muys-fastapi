@@ -1,7 +1,8 @@
 {% extends "base.html" %}
+{% from "components/module_toolbar.html" import panel_button, link_button %}
 {% block title %}Reçeteler ve Ürün Tanımları{% endblock %}
 {% block content %}
-<div class="container-fluid py-3">
+<div class="container-fluid py-3 px-0">
     <div class="mb-4">
         <h3 class="mb-1"><i class="bi bi-journal-text"></i> Reçeteler ve Ürün Tanımları</h3>
         <p class="text-muted mb-0">Hammadde tanımlarını ve yarı mamul reçete bağlamını bu alandan yönetin.</p>
@@ -11,12 +12,21 @@
 
     <div class="card border-0 shadow-sm mb-4"><div class="card-body"><div class="d-flex flex-wrap align-items-center gap-2"><strong class="me-2">Kurulum Sırası:</strong><span class="badge {{ 'bg-success' if kurulum.turler_hazir else 'bg-secondary' }}">1. Türler</span><i class="bi bi-arrow-right text-muted"></i><span class="badge {{ 'bg-success' if kurulum.siniflar_hazir else 'bg-secondary' }}">2. Sınıflar</span><i class="bi bi-arrow-right text-muted"></i><span class="badge {{ 'bg-success' if kurulum.hammadde_hazir else 'bg-secondary' }}">3. Hammaddeler</span><i class="bi bi-arrow-right text-muted"></i><span class="badge bg-secondary">4. Yarı Mamuller</span><i class="bi bi-arrow-right text-muted"></i><span class="badge bg-secondary">5. Mamuller</span></div>{% if not kurulum.hammadde_eklenebilir %}<div class="alert alert-warning mt-3 mb-0">Hammadde kartı açılmadan önce en az bir hammadde türü ve takip sınıfı tanımlayın.</div>{% endif %}</div></div>
 
+    <div class="module-workspace" data-module-workspace>
+    <aside class="module-toolbar" aria-label="Stok bölümleri">
+        {{ panel_button('stoklar', 'Stok Kartları', 'bi-box-seam', 'primary', urunler|length, true) }}
+        {{ panel_button('yeni-kart', 'Yeni Hammadde', 'bi-plus-lg', 'success') }}
+        {{ panel_button('tanimlar', 'Tür ve Sınıflar', 'bi-tags', 'warning') }}
+        {{ link_button('/urunler', 'Tüm Ürünler', 'bi-table', 'dark') }}
+    </aside>
+    <div class="module-panel-area">
+
+    <section class="module-panel" data-module-panel="tanimlar" hidden>
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <strong><i class="bi bi-tags me-1"></i> Tür ve Sınıf Tanımları</strong>
-            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#stokTanimlari">Aç / Kapat</button>
         </div>
-        <div class="collapse" id="stokTanimlari"><div class="card-body"><div class="row g-4">
+        <div class="card-body"><div class="row g-4">
             <div class="col-12 col-lg-6">
                 <div class="border rounded p-3 h-100">
                     <h6>Hammadde Türleri</h6>
@@ -31,9 +41,11 @@
                     <div class="vstack gap-2">{% for sinif in siniflar %}{% set kullanim = tanim_kullanimlari.siniflar.get(sinif.id, 0) %}<form method="post" action="/urunler/sinif/{{ sinif.id }}/guncelle" class="d-flex flex-wrap gap-2"><input class="form-control form-control-sm flex-grow-1" name="adi" value="{{ sinif.adi }}" required><button class="btn btn-sm btn-outline-primary" type="submit">Güncelle</button>{% if kullanim %}<span class="badge bg-light text-dark align-self-center">{{ kullanim }} ürün</span><button class="btn btn-sm btn-outline-danger" type="submit" formaction="/urunler/sinif/{{ sinif.id }}/sil" name="urunlerden_kaldir" value="true" onclick="return confirm('Bu sınıf {{ kullanim }} üründen kaldırılıp silinsin mi?')">Ürünlerden kaldır ve sil</button>{% else %}<button class="btn btn-sm btn-outline-danger" type="submit" formaction="/urunler/sinif/{{ sinif.id }}/sil" onclick="return confirm('Bu sınıf silinsin mi?')"><i class="bi bi-trash"></i></button>{% endif %}</form>{% else %}<span class="text-muted">Henüz sınıf tanımlanmamış.</span>{% endfor %}</div>
                 </div>
             </div>
-        </div></div></div>
+        </div></div>
     </div>
+    </section>
 
+    <section class="module-panel" data-module-panel="yeni-kart" hidden>
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white"><strong><i class="bi bi-plus-circle me-1"></i> Yeni Hammadde / Stok Kartı</strong></div>
         <div class="card-body"><form method="post" action="/urunler">
@@ -50,7 +62,9 @@
             <div class="col-12 text-end"><button class="btn btn-success" type="submit"><i class="bi bi-check2-circle me-1"></i> Kartı Kaydet</button></div></fieldset>
         </form></div>
     </div>
+    </section>
 
+    <section class="module-panel is-active" data-module-panel="stoklar">
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white"><strong>Stok Kartları</strong> <span class="badge bg-secondary">{{ urunler|length }}</span></div>
         <div class="table-responsive"><table class="table table-hover align-middle mb-0">
@@ -76,6 +90,9 @@
                 </form></div></td></tr>
             {% else %}<tr><td colspan="3" class="text-center text-muted py-5">Stok kartı bulunamadı.</td></tr>{% endfor %}</tbody>
         </table></div>
+    </div>
+    </section>
+    </div>
     </div>
 </div>
 {% endblock %}
