@@ -25,6 +25,17 @@ def metin(deger):
     return str(deger or "").strip()
 
 
+def otomatik_kod(db: Session, model, onek: str) -> str:
+    """Kullanıcıya gösterilmeyen teknik kodları boş kayıtlarda üretir."""
+    kullanilan = {kod for (kod,) in db.query(model.kodu).all() if kod}
+    sira = 1
+    kod = f"{onek}-{sira:04d}"
+    while kod in kullanilan:
+        sira += 1
+        kod = f"{onek}-{sira:04d}"
+    return kod
+
+
 def sayi(deger, alan, tam_sayi=False):
     try:
         return int(deger) if tam_sayi else float(deger)
@@ -376,16 +387,16 @@ def manuel_tanim_kaydet(
             if "makine_idleri" in form:
                 personel_makinelerini_guncelle(db, nesne.id, form.getlist("makine_idleri"))
         elif tip == "istasyon":
-            kod = metin(form.get("kodu"))
+            kod = metin(form.get("kodu")) or otomatik_kod(db, Istasyon, "IST")
             nesne = db.query(Istasyon).filter(Istasyon.kodu == kod).first() or Istasyon(kodu=kod)
-            if not kod or not metin(form.get("adi")):
-                raise ValueError("İstasyon kodu ve adı zorunlu")
+            if not metin(form.get("adi")):
+                raise ValueError("İstasyon adı zorunlu")
             nesne.adi, nesne.bolum, nesne.aciklama, nesne.aktif = metin(form.get("adi")), metin(form.get("bolum")), metin(form.get("aciklama")), aktif
         elif tip == "makine":
-            kod, istasyon_kodu = metin(form.get("kodu")), metin(form.get("istasyon_kodu"))
+            kod, istasyon_kodu = metin(form.get("kodu")) or otomatik_kod(db, Makine, "MKN"), metin(form.get("istasyon_kodu"))
             istasyon = db.query(Istasyon).filter(Istasyon.kodu == istasyon_kodu).first()
-            if not kod or not metin(form.get("adi")) or not istasyon:
-                raise ValueError("Makine kodu, adı ve istasyon seçimi zorunlu")
+            if not metin(form.get("adi")) or not istasyon:
+                raise ValueError("Makine adı ve istasyon seçimi zorunlu")
             nesne = db.query(Makine).filter(Makine.kodu == kod).first() or Makine(kodu=kod)
             nesne.adi, nesne.istasyon_id, nesne.model, nesne.kapasite, nesne.aktif = metin(form.get("adi")), istasyon.id, metin(form.get("model")), metin(form.get("kapasite")), aktif
         elif tip == "atama":
@@ -396,8 +407,8 @@ def manuel_tanim_kaydet(
             nesne = db.query(PersonelMakine).filter(PersonelMakine.personel_id == personel.id, PersonelMakine.makine_id == makine.id).first() or PersonelMakine(personel_id=personel.id, makine_id=makine.id)
             nesne.rol, nesne.hedef_performans, nesne.aktif = metin(form.get("rol")) or "Operatör", sayi(form.get("hedef_performans") or 100, "Hedef performans"), aktif
         elif tip == "sinif":
-            kod = metin(form.get("kodu"))
             orijinal_kodu = metin(form.get("orijinal_kodu"))
+            kod = metin(form.get("kodu")) or (orijinal_kodu if orijinal_kodu else otomatik_kod(db, UrunSinifi, "AILE"))
             if orijinal_kodu:
                 nesne = db.query(UrunSinifi).filter(UrunSinifi.kodu == orijinal_kodu).first()
                 if not nesne:
@@ -410,8 +421,8 @@ def manuel_tanim_kaydet(
                 nesne.kodu = kod
             else:
                 nesne = db.query(UrunSinifi).filter(UrunSinifi.kodu == kod).first() or UrunSinifi(kodu=kod)
-            if not kod or not metin(form.get("adi")):
-                raise ValueError("Sınıf kodu ve adı zorunlu")
+            if not metin(form.get("adi")):
+                raise ValueError("Ürün ailesi adı zorunlu")
             nesne.adi, nesne.aciklama, nesne.aktif = metin(form.get("adi")), metin(form.get("aciklama")), aktif
         elif tip == "operasyon":
             sinif = db.query(UrunSinifi).filter(UrunSinifi.kodu == metin(form.get("sinif_kodu"))).first()
@@ -444,10 +455,10 @@ def manuel_tanim_kaydet(
                 for makine in secili_makineler:
                     db.add(UrunSinifOperasyonMakine(operasyon_id=nesne.id, makine_id=makine.id))
         elif tip == "urun":
-            kod, sinif_kodu, urun_tipi = metin(form.get("kodu")), metin(form.get("sinif_kodu")), metin(form.get("urun_tipi"))
+            kod, sinif_kodu, urun_tipi = metin(form.get("kodu")) or otomatik_kod(db, Urun, "URUN"), metin(form.get("sinif_kodu")), metin(form.get("urun_tipi"))
             sinif = db.query(UrunSinifi).filter(UrunSinifi.kodu == sinif_kodu).first() if sinif_kodu else None
-            if not kod or not metin(form.get("adi")) or urun_tipi not in URUN_TIPLERI or (sinif_kodu and not sinif):
-                raise ValueError("Ürün kodu, adı, türü ve varsa ürün sınıfı seçimi geçerli olmalı")
+            if not metin(form.get("adi")) or urun_tipi not in URUN_TIPLERI or (sinif_kodu and not sinif):
+                raise ValueError("Ürün adı, türü ve varsa ürün ailesi seçimi geçerli olmalı")
             nesne = db.query(Urun).filter(Urun.kodu == kod).first() or Urun(kodu=kod)
             nesne.adi, nesne.urun_tipi, nesne.urun_sinifi_id = metin(form.get("adi")), urun_tipi, sinif.id if sinif else None
             birim = metin(form.get("birim")) or "Adet"
