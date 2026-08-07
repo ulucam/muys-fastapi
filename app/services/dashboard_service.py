@@ -13,6 +13,7 @@ from app.models.uretim_emri import UretimEmri
 from app.models.uretim_kaydi import UretimKaydi
 from app.models.urun import Urun
 from app.services.puantaj_service import puantajlari_kaydet
+from app.services.uretim_plan_service import planlama_verisi
 
 SIPARIS_DURUMLARI = ("Beklemede", "Üretimde", "Sevke Hazır")
 
@@ -66,7 +67,8 @@ def dashboard_verisi(db: Session, secili_tarih: date, rol: str | None, kullanici
         "devamsiz_sayisi": len(devamsiz_izinli_personeller), "uretim_emirleri": uretim_emirleri,
         "uretim_kayitlari": uretim_kayitlari, "aktif_uretim_kayitlari": aktif_kayitlar,
         "urunler": urunler, "istasyonlar": istasyonlar, "personel_haritasi": personel_haritasi,
-        "emir_haritasi": emir_haritasi, "operator_personel_id": kullanici.personel_id if kullanici else None}
+        "emir_haritasi": emir_haritasi, "operator_personel_id": kullanici.personel_id if kullanici else None,
+        **planlama_verisi(db)}
 
 
 def puantaj_kaydet(db: Session, secili_tarih: date, form, rol: str | None, kullanici_id: int | None) -> int:
