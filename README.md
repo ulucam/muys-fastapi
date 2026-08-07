@@ -322,3 +322,17 @@ MÜYS yalnızca bir stok veya sipariş programı değildir.
 Amaç;
 
 üretimden sevkiyata kadar tüm süreci tek merkezden yönetebilen, ileride makine ve tablet entegrasyonuna açık, modüler ve uzun yıllar geliştirilebilecek profesyonel bir üretim yönetim sistemi oluşturmaktır.
+
+---
+
+# Web Push Kurulumu
+
+Uygulama PWA ve Web Push desteğine sahiptir. Cihaz bildirimlerini etkinleştirmek için:
+
+1. Bağımlılıkları kurun: `pip install -r requirements.txt`
+2. Anahtarları bir kez üretin: `python scripts/generate_vapid_keys.py`
+3. Çıktıdaki `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` ve `VAPID_SUBJECT` değerlerini `.env` veya Render ortam değişkenlerine ekleyin.
+4. Uygulamayı HTTPS üzerinden yayınlayın.
+5. Kullanıcı navbar bildirim menüsündeki **Bildirimleri Aç** düğmesine basarak cihazını kaydeder.
+
+VAPID anahtarları sabit tutulmalıdır. Anahtarlar değiştirilirse mevcut cihazların yeniden abone olması gerekir. `VAPID_PRIVATE_KEY` repoya eklenmez.
