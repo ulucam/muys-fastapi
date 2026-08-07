@@ -11,13 +11,25 @@ from app.models.stok_hareket import StokHareket
 from app.models.uretim_emri import UretimEmri
 from app.models.uretim_plani import UretimPlani, UretimPlanAsamasi
 from app.models.urun import Urun
+from app.models.stok_urun_turu import StokUrunTuru
 
 
-def uretilebilir_urun_mu(urun: Urun) -> bool:
+def uretilebilir_urun_mu(urun: Urun, uretim_stok_tur_idleri: set[int] | None = None) -> bool:
     """Eski kayıtların Türkçe tür yazımlarını da üretilebilir kabul eder."""
     donusum = str.maketrans({"ı": "i", "İ": "i", "ş": "s", "ğ": "g", "ü": "u", "ö": "o", "ç": "c"})
     tur = "".join(karakter for karakter in str(urun.urun_tipi or "").casefold().translate(donusum) if karakter.isalnum())
-    return tur == "mamul" or "yarimamul" in tur
+    return tur == "mamul" or "yarimamul" in tur or (
+        uretim_stok_tur_idleri is not None and urun.stok_urun_turu_id in uretim_stok_tur_idleri
+    )
+
+
+def _uretim_stok_tur_idleri(db: Session) -> set[int]:
+    """Eski stok kartlarında üretim bilgisi stok türünde tutulmuş olabilir."""
+    return {
+        tur_id for (tur_id,) in db.query(StokUrunTuru.id).filter(
+            StokUrunTuru.uretilen.is_(True), StokUrunTuru.aktif.isnot(False)
+        ).all()
+    }
 
 
 def uretim_tanim_verisi(db: Session) -> dict:
@@ -27,12 +39,13 @@ def uretim_tanim_verisi(db: Session) -> dict:
     # Eski veritabanlarında aktif sütunu boş kalmış ürünler üretilebilir kabul edilir;
     # yalnızca açıkça pasife alınan kartlar listeden çıkarılır.
     aktif_urunler = db.query(Urun).filter(Urun.aktif.isnot(False)).order_by(Urun.adi).all()
+    uretim_stok_tur_idleri = _uretim_stok_tur_idleri(db)
     return {
         "uretim_receteleri": receteler,
         "recete_asamalari": asamalar,
         "asama_malzemeleri": malzemeler,
         "tum_urunler": aktif_urunler,
-        "uretilebilir_urunler": [urun for urun in aktif_urunler if uretilebilir_urun_mu(urun)],
+        "uretilebilir_urunler": [urun for urun in aktif_urunler if uretilebilir_urun_mu(urun, uretim_stok_tur_idleri)],
         "aktif_istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.adi).all(),
         "urun_haritasi": {u.id: u for u in db.query(Urun).all()},
         "istasyon_haritasi": {i.id: i for i in db.query(Istasyon).all()},
@@ -55,7 +68,7 @@ def _siradaki_recete_no(db: Session) -> str:
 
 def recete_kaydet(db: Session, urun_id: int, tahmini_uretim_suresi: float = 0, aciklama: str = "") -> Recete:
     urun = db.query(Urun).filter(Urun.id == urun_id, Urun.aktif.isnot(False)).first()
-    if not urun or not uretilebilir_urun_mu(urun):
+    if not urun or not uretilebilir_urun_mu(urun, _uretim_stok_tur_idleri(db)):
         raise ValueError("Reçete çıktısı yarı mamul veya mamul olmalıdır")
     recete = db.query(Recete).filter(Recete.urun_id == urun.id, Recete.aktif.is_(True)).first()
     urun.tahmini_uretim_suresi = max(0, tahmini_uretim_suresi)
@@ -109,7 +122,7 @@ def recete_duzenleme_verisi(db: Session, recete_id: int) -> dict | None:
         "asamalar": asamalar,
         "malzemeler": malzemeler,
         "urunler": db.query(Urun).filter(Urun.aktif.isnot(False)).order_by(Urun.adi).all(),
-        "uretilebilir_urunler": [urun for urun in db.query(Urun).filter(Urun.aktif.isnot(False)).order_by(Urun.adi).all() if uretilebilir_urun_mu(urun)],
+        "uretilebilir_urunler": [urun for urun in db.query(Urun).filter(Urun.aktif.isnot(False)).order_by(Urun.adi).all() if uretilebilir_urun_mu(urun, _uretim_stok_tur_idleri(db))],
         "istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.adi).all(),
     }
 
@@ -118,7 +131,7 @@ def recete_guncelle(db: Session, recete_id: int, urun_id: int, tahmini_uretim_su
     recete = db.query(Recete).filter(Recete.id == recete_id, Recete.aktif.is_(True)).first()
     urun = db.query(Urun).filter(Urun.id == urun_id, Urun.aktif.isnot(False)).first()
     cakisan = db.query(Recete).filter(Recete.urun_id == urun_id, Recete.id != recete_id, Recete.aktif.is_(True)).first()
-    if not recete or not urun or not uretilebilir_urun_mu(urun) or cakisan:
+    if not recete or not urun or not uretilebilir_urun_mu(urun, _uretim_stok_tur_idleri(db)) or cakisan:
         raise ValueError("Geçerli ve başka aktif reçetesi olmayan bir üretim ürünü seçin")
     recete.urun_id, recete.aciklama = urun.id, aciklama.strip()[:250]
     urun.tahmini_uretim_suresi = max(0, tahmini_uretim_suresi)
