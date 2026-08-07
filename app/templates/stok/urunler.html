@@ -5,7 +5,7 @@
 <div class="container-fluid py-3 px-0">
     <div class="mb-4">
         <h3 class="mb-1"><i class="bi bi-journal-text"></i> Reçeteler ve Ürün Tanımları</h3>
-        <p class="text-muted mb-0">Hammadde tanımlarını ve yarı mamul reçete bağlamını bu alandan yönetin.</p>
+        <p class="text-muted mb-0">Yarı mamul ve mamül reçetelerini, ürün ailesi altındaki varyantlarıyla yönetin.</p>
     </div>
 
     {% if hata %}<div class="alert alert-danger">{{ hata }}</div>{% endif %}
@@ -41,6 +41,7 @@
                 <details class="border rounded" {% if loop.first %}open{% endif %}>
                     <summary class="p-3 bg-light d-flex justify-content-between align-items-center"><span><strong>{{ recete.recete_no }}</strong> · {{ recete_urunu.adi if recete_urunu else '-' }}{% if recete_urunu and recete_urunu.tahmini_uretim_suresi %}<small class="text-muted ms-2">~{{ recete_urunu.tahmini_uretim_suresi }} dk/{{ recete_urunu.birim }}</small>{% endif %}</span><span class="badge bg-info">{{ recete_asamalari|selectattr('recete_id','equalto',recete.id)|list|length }} aşama</span></summary>
                     <div class="p-3">
+                        <div class="text-end mb-3"><a class="btn btn-sm btn-outline-primary" href="/receteler/{{ recete.id }}/duzenle"><i class="bi bi-pencil-square"></i> Reçeteyi Düzenle</a></div>
                         <form method="post" action="/receteler/{{ recete.id }}/asama" class="row g-2 border rounded p-3 mb-3">
                             <div class="col-4 col-md-1"><label class="form-label">Sıra</label><input class="form-control" type="number" name="sira_no" min="1" required></div>
                             <div class="col-8 col-md-3"><label class="form-label">İstasyon</label><select class="form-select" name="istasyon_id" required><option value="">Seçin</option>{% for istasyon in aktif_istasyonlar %}<option value="{{ istasyon.id }}">{{ istasyon.kodu }} · {{ istasyon.adi }}</option>{% endfor %}</select></div>
