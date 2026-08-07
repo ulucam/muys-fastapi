@@ -27,3 +27,4 @@ email-validator==2.2.0
 pwdlib==0.3.0
 argon2-cffi==25.1.0
 openpyxl==3.1.2
+pywebpush==2.2.0
