@@ -21,6 +21,12 @@ from app.services.stok_service import (
     stok_urunu_kaydet,
     stok_urunlerini_listele,
 )
+from app.services.uretim_plan_service import (
+    asama_malzemesi_kaydet,
+    recete_asamasi_kaydet,
+    recete_kaydet,
+    uretim_tanim_verisi,
+)
 
 router = APIRouter(tags=["Stok"])
 templates = Jinja2Templates(directory="app/templates")
@@ -111,6 +117,39 @@ def receteler(request: Request, error: str | None = None, db: Session = Depends(
     data["turler"], data["siniflar"] = stok_tanimlari(db)
     data["kurulum"] = stok_kurulum_durumu(db)
     data["tanim_kullanimlari"] = stok_tanim_kullanimlari(db)
+    data.update(uretim_tanim_verisi(db))
     kullanim_hatasi = error in ("tur_kullanim", "sinif_kullanim")
     data["hata"] = ("Tanım ürünlerde kullanılıyor. Ürünlerden kaldırıp sil seçeneğini kullanın." if kullanim_hatasi else "Kayıt yapılamadı. Zorunlu alanları ve benzersiz ad/kod bilgisini kontrol edin.") if error else None
     return templates.TemplateResponse("stok/urunler.html", data)
+
+
+@router.post("/receteler/kaydet")
+def uretim_recetesi_kaydet(urun_id: int = Form(...), recete_no: str = Form(""), aciklama: str = Form(""),
+    db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+    try:
+        recete_kaydet(db, urun_id, recete_no, aciklama)
+    except ValueError:
+        return RedirectResponse("/receteler?error=recete#module-uretim-receteleri", status_code=303)
+    return RedirectResponse("/receteler#module-uretim-receteleri", status_code=303)
+
+
+@router.post("/receteler/{recete_id}/asama")
+def uretim_recetesi_asama_kaydet(recete_id: int, sira_no: int = Form(...), istasyon_id: int = Form(...),
+    operasyon_adi: str = Form(""), hedef_cevrim_suresi: float = Form(0), aciklama: str = Form(""),
+    db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+    try:
+        recete_asamasi_kaydet(db, recete_id, sira_no, istasyon_id, operasyon_adi, hedef_cevrim_suresi, aciklama)
+    except ValueError:
+        return RedirectResponse("/receteler?error=asama#module-uretim-receteleri", status_code=303)
+    return RedirectResponse("/receteler#module-uretim-receteleri", status_code=303)
+
+
+@router.post("/receteler/asama/{asama_id}/malzeme")
+def uretim_asama_malzeme_kaydet(asama_id: int, malzeme_id: int = Form(...), miktar: float = Form(...),
+    birim: str = Form("Adet"), fire_orani: float = Form(0), db: Session = Depends(get_db),
+    yetki=Depends(yetki_kontrol(STOK))):
+    try:
+        asama_malzemesi_kaydet(db, asama_id, malzeme_id, miktar, birim, fire_orani)
+    except ValueError:
+        return RedirectResponse("/receteler?error=malzeme#module-uretim-receteleri", status_code=303)
+    return RedirectResponse("/receteler#module-uretim-receteleri", status_code=303)
