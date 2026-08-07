@@ -45,11 +45,12 @@ def _siradaki_recete_no(db: Session) -> str:
     return recete_no
 
 
-def recete_kaydet(db: Session, urun_id: int, aciklama: str = "") -> Recete:
+def recete_kaydet(db: Session, urun_id: int, tahmini_uretim_suresi: float = 0, aciklama: str = "") -> Recete:
     urun = db.query(Urun).filter(Urun.id == urun_id, Urun.aktif.is_(True)).first()
     if not urun or urun.urun_tipi not in {"YariMamul", "Mamul"}:
         raise ValueError("Reçete çıktısı yarı mamul veya mamul olmalıdır")
     recete_no = _siradaki_recete_no(db)
+    urun.tahmini_uretim_suresi = max(0, tahmini_uretim_suresi)
     recete = Recete(urun_id=urun.id, recete_no=recete_no[:50], aciklama=aciklama.strip()[:250], aktif=True)
     db.add(recete); db.commit()
     return recete
@@ -76,7 +77,10 @@ def asama_malzemesi_kaydet(db: Session, asama_id: int, malzeme_id: int, miktar: 
         raise ValueError("Aşama, malzeme ve pozitif miktar zorunludur")
     kayit = db.query(ReceteAsamaMalzeme).filter(ReceteAsamaMalzeme.asama_id == asama.id, ReceteAsamaMalzeme.malzeme_id == malzeme.id).first()
     kayit = kayit or ReceteAsamaMalzeme(asama_id=asama.id, malzeme_id=malzeme.id)
-    kayit.miktar, kayit.birim, kayit.fire_orani = miktar, (birim.strip() or malzeme.birim or "Adet")[:20], max(0, fire_orani)
+    secili_birim = birim.strip()
+    if secili_birim not in {"Adet", "Kg"}:
+        raise ValueError("Birim Adet veya Kg olmalıdır")
+    kayit.miktar, kayit.birim, kayit.fire_orani = miktar, secili_birim, max(0, fire_orani)
     db.add(kayit); db.commit()
     return kayit
 
