@@ -13,18 +13,24 @@ from app.models.uretim_plani import UretimPlani, UretimPlanAsamasi
 from app.models.urun import Urun
 
 
+def uretilebilir_urun_mu(urun: Urun) -> bool:
+    """Eski kayıtların Türkçe tür yazımlarını da üretilebilir kabul eder."""
+    donusum = str.maketrans({"ı": "i", "İ": "i", "ş": "s", "ğ": "g", "ü": "u", "ö": "o", "ç": "c"})
+    tur = "".join(karakter for karakter in str(urun.urun_tipi or "").casefold().translate(donusum) if karakter.isalnum())
+    return tur in {"yarimamul", "mamul"}
+
+
 def uretim_tanim_verisi(db: Session) -> dict:
     receteler = db.query(Recete).filter(Recete.aktif.is_(True)).order_by(Recete.updated_at.desc()).all()
     asamalar = db.query(ReceteAsama).filter(ReceteAsama.aktif.is_(True)).order_by(ReceteAsama.recete_id, ReceteAsama.sira_no).all()
     malzemeler = db.query(ReceteAsamaMalzeme).order_by(ReceteAsamaMalzeme.asama_id, ReceteAsamaMalzeme.id).all()
+    aktif_urunler = db.query(Urun).filter(Urun.aktif.is_(True)).order_by(Urun.adi).all()
     return {
         "uretim_receteleri": receteler,
         "recete_asamalari": asamalar,
         "asama_malzemeleri": malzemeler,
-        "tum_urunler": db.query(Urun).filter(Urun.aktif.is_(True)).order_by(Urun.adi).all(),
-        "uretilebilir_urunler": db.query(Urun).filter(
-            Urun.aktif.is_(True), Urun.urun_tipi.in_(("YariMamul", "Mamul"))
-        ).order_by(Urun.adi).all(),
+        "tum_urunler": aktif_urunler,
+        "uretilebilir_urunler": [urun for urun in aktif_urunler if uretilebilir_urun_mu(urun)],
         "aktif_istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.adi).all(),
         "urun_haritasi": {u.id: u for u in db.query(Urun).all()},
         "istasyon_haritasi": {i.id: i for i in db.query(Istasyon).all()},
@@ -47,11 +53,14 @@ def _siradaki_recete_no(db: Session) -> str:
 
 def recete_kaydet(db: Session, urun_id: int, tahmini_uretim_suresi: float = 0, aciklama: str = "") -> Recete:
     urun = db.query(Urun).filter(Urun.id == urun_id, Urun.aktif.is_(True)).first()
-    if not urun or urun.urun_tipi not in {"YariMamul", "Mamul"}:
+    if not urun or not uretilebilir_urun_mu(urun):
         raise ValueError("Reçete çıktısı yarı mamul veya mamul olmalıdır")
-    recete_no = _siradaki_recete_no(db)
+    recete = db.query(Recete).filter(Recete.urun_id == urun.id, Recete.aktif.is_(True)).first()
     urun.tahmini_uretim_suresi = max(0, tahmini_uretim_suresi)
-    recete = Recete(urun_id=urun.id, recete_no=recete_no[:50], aciklama=aciklama.strip()[:250], aktif=True)
+    if recete:
+        recete.aciklama = aciklama.strip()[:250]
+    else:
+        recete = Recete(urun_id=urun.id, recete_no=_siradaki_recete_no(db)[:50], aciklama=aciklama.strip()[:250], aktif=True)
     db.add(recete); db.commit()
     return recete
 
@@ -83,6 +92,68 @@ def asama_malzemesi_kaydet(db: Session, asama_id: int, malzeme_id: int, miktar: 
     kayit.miktar, kayit.birim, kayit.fire_orani = miktar, secili_birim, max(0, fire_orani)
     db.add(kayit); db.commit()
     return kayit
+
+
+def recete_duzenleme_verisi(db: Session, recete_id: int) -> dict | None:
+    recete = db.query(Recete).filter(Recete.id == recete_id, Recete.aktif.is_(True)).first()
+    if not recete:
+        return None
+    asamalar = db.query(ReceteAsama).filter(ReceteAsama.recete_id == recete.id).order_by(ReceteAsama.sira_no).all()
+    malzemeler = db.query(ReceteAsamaMalzeme).filter(
+        ReceteAsamaMalzeme.asama_id.in_([asama.id for asama in asamalar]) if asamalar else False
+    ).all() if asamalar else []
+    return {
+        "recete": recete,
+        "asamalar": asamalar,
+        "malzemeler": malzemeler,
+        "urunler": db.query(Urun).filter(Urun.aktif.is_(True)).order_by(Urun.adi).all(),
+        "uretilebilir_urunler": [urun for urun in db.query(Urun).filter(Urun.aktif.is_(True)).order_by(Urun.adi).all() if uretilebilir_urun_mu(urun)],
+        "istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.adi).all(),
+    }
+
+
+def recete_guncelle(db: Session, recete_id: int, urun_id: int, tahmini_uretim_suresi: float, aciklama: str) -> Recete:
+    recete = db.query(Recete).filter(Recete.id == recete_id, Recete.aktif.is_(True)).first()
+    urun = db.query(Urun).filter(Urun.id == urun_id, Urun.aktif.is_(True)).first()
+    cakisan = db.query(Recete).filter(Recete.urun_id == urun_id, Recete.id != recete_id, Recete.aktif.is_(True)).first()
+    if not recete or not urun or not uretilebilir_urun_mu(urun) or cakisan:
+        raise ValueError("Geçerli ve başka aktif reçetesi olmayan bir üretim ürünü seçin")
+    recete.urun_id, recete.aciklama = urun.id, aciklama.strip()[:250]
+    urun.tahmini_uretim_suresi = max(0, tahmini_uretim_suresi)
+    db.commit()
+    return recete
+
+
+def recete_asamasi_guncelle(db: Session, recete_id: int, asama_id: int, sira_no: int, istasyon_id: int, operasyon_adi: str, hedef_cevrim_suresi: float, aciklama: str) -> ReceteAsama:
+    asama = db.query(ReceteAsama).filter(ReceteAsama.id == asama_id, ReceteAsama.recete_id == recete_id).first()
+    istasyon = db.query(Istasyon).filter(Istasyon.id == istasyon_id, Istasyon.aktif.is_(True)).first()
+    cakisan = db.query(ReceteAsama).filter(ReceteAsama.recete_id == recete_id, ReceteAsama.sira_no == sira_no, ReceteAsama.id != asama_id).first()
+    if not asama or not istasyon or sira_no < 1 or not operasyon_adi.strip() or cakisan:
+        raise ValueError("Aşama sıra, istasyon ve operasyon bilgilerini kontrol edin")
+    asama.sira_no, asama.istasyon_id = sira_no, istasyon.id
+    asama.operasyon_adi, asama.hedef_cevrim_suresi = operasyon_adi.strip()[:150], max(0, hedef_cevrim_suresi)
+    asama.aciklama = aciklama.strip()[:500]
+    db.commit()
+    return asama
+
+
+def recete_asamasi_sil(db: Session, recete_id: int, asama_id: int) -> None:
+    asama = db.query(ReceteAsama).filter(ReceteAsama.id == asama_id, ReceteAsama.recete_id == recete_id).first()
+    if not asama:
+        raise ValueError("Reçete aşaması bulunamadı")
+    db.query(ReceteAsamaMalzeme).filter(ReceteAsamaMalzeme.asama_id == asama.id).delete()
+    db.delete(asama)
+    db.commit()
+
+
+def asama_malzemesi_sil(db: Session, asama_id: int, malzeme_id: int) -> None:
+    kayit = db.query(ReceteAsamaMalzeme).filter(
+        ReceteAsamaMalzeme.asama_id == asama_id, ReceteAsamaMalzeme.malzeme_id == malzeme_id
+    ).first()
+    if not kayit:
+        raise ValueError("Aşama malzemesi bulunamadı")
+    db.delete(kayit)
+    db.commit()
 
 
 def _siradaki_plan_no(db: Session) -> str:
