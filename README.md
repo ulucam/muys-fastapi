@@ -336,3 +336,5 @@ Uygulama PWA ve Web Push desteğine sahiptir. Cihaz bildirimlerini etkinleştirm
 5. Kullanıcı navbar bildirim menüsündeki **Bildirimleri Aç** düğmesine basarak cihazını kaydeder.
 
 VAPID anahtarları sabit tutulmalıdır. Anahtarlar değiştirilirse mevcut cihazların yeniden abone olması gerekir. `VAPID_PRIVATE_KEY` repoya eklenmez.
+
+Render Blueprint dosyası bu üç değeri `sync: false` olarak tanımlar. Render Dashboard'da servis için **Environment** bölümüne gidip üretilen değerleri bir kez kaydedin ve servisi yeniden deploy edin. Otomatik veritabanı anahtarı yalnızca ortam değişkenleri bulunmadığında yedek olarak kullanılır.
