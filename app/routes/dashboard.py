@@ -155,7 +155,7 @@ async def uretim_istasyon_ata(emir_id: int, request: Request, db: Session = Depe
         raise HTTPException(status_code=404, detail="Emir veya istasyon bulunamadı.")
     emir.istasyon_id = istasyon.id
     db.commit()
-    return RedirectResponse("/?istasyon=atandi#uretim-paneli", status_code=303)
+    return RedirectResponse("/?istasyon=atandi#uretim-emirleri", status_code=303)
 
 
 @router.post("/siparis/{siparis_id}/onay")
