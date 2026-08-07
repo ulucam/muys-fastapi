@@ -22,6 +22,7 @@ from app.services.push_service import arka_planda_push_gonder
 from app.roles import ADMIN
 from app.security import yetki_kontrol
 from app.services.islem_log_service import islem_logla
+from app.utils.zaman import turkiye_saati
 
 router = APIRouter(tags=["İletişim"])
 templates = Jinja2Templates(directory="app/templates")
@@ -44,6 +45,7 @@ def mesajlar(request: Request, durum: str | None = None, db: Session = Depends(g
     data["alici_secenekleri"] = aktif_kullanicilar(db, kullanici_id)
     data["tum_aktif_kullanicilar"] = aktif_kullanicilar(db, 0)
     data["durum"] = durum
+    data["yerel_saat"] = turkiye_saati
     return templates.TemplateResponse("iletisim/index.html", data)
 
 
