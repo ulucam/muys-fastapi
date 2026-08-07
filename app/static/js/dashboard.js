@@ -32,8 +32,24 @@ document.addEventListener("DOMContentLoaded", () => {
         if (updateHash) history.replaceState(null, "", `#dashboard-${target}`);
     };
 
+    const closePanels = () => {
+        buttons.forEach((button) => {
+            button.classList.remove("is-active");
+            button.setAttribute("aria-pressed", "false");
+        });
+        panels.forEach((panel) => {
+            panel.hidden = true;
+            panel.classList.remove("is-active");
+        });
+        history.replaceState(null, "", `${location.pathname}${location.search}`);
+        document.dispatchEvent(new CustomEvent("dashboard:panel-change", { detail: { target: null } }));
+    };
+
     buttons.forEach((button) => {
-        button.addEventListener("click", () => showPanel(button.dataset.dashboardTarget));
+        button.addEventListener("click", () => {
+            if (button.classList.contains("is-active")) closePanels();
+            else showPanel(button.dataset.dashboardTarget);
+        });
     });
 
     const hashTarget = location.hash.replace("#dashboard-", "");
