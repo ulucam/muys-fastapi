@@ -25,4 +25,5 @@ from app.models.stok_urun_sinifi import StokUrunSinifi
 from app.models.urun_istasyon import UrunIstasyon
 from app.models.bildirim import Bildirim
 from app.models.mesaj import Mesaj
+from app.models.push_aboneligi import PushAboneligi
 from app.models.rol_sinifi import RolSinifi
