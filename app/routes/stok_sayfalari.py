@@ -11,10 +11,13 @@ from app.services.stok_service import (
     hammaddeleri_listele,
     receteleri_listele,
     stok_sinifi_kaydet,
+    stok_sinifi_sil,
+    stok_tanim_kullanimlari,
     stok_kurulum_durumu,
     stok_tanimlari,
     stok_tum_tanimlari,
     stok_turu_kaydet,
+    stok_turu_sil,
     stok_urunu_kaydet,
     stok_urunlerini_listele,
 )
@@ -47,7 +50,16 @@ def urun_kaydet(
 
 
 @router.post("/urunler/tur/kaydet")
-def tur_kaydet(adi: str = Form(""), tur_id: int | None = Form(None), db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+def tur_kaydet(adi: str = Form(""), db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+    try:
+        stok_turu_kaydet(db, adi)
+    except ValueError:
+        return RedirectResponse("/receteler?error=tur", status_code=303)
+    return RedirectResponse("/receteler", status_code=303)
+
+
+@router.post("/urunler/tur/{tur_id}/guncelle")
+def tur_guncelle(tur_id: int, adi: str = Form(""), db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
     try:
         stok_turu_kaydet(db, adi, tur_id)
     except ValueError:
@@ -55,12 +67,39 @@ def tur_kaydet(adi: str = Form(""), tur_id: int | None = Form(None), db: Session
     return RedirectResponse("/receteler", status_code=303)
 
 
+@router.post("/urunler/tur/{tur_id}/sil")
+def tur_sil(tur_id: int, urunlerden_kaldir: bool = Form(False), db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+    try:
+        stok_turu_sil(db, tur_id, urunlerden_kaldir)
+    except ValueError:
+        return RedirectResponse("/receteler?error=tur_kullanim", status_code=303)
+    return RedirectResponse("/receteler", status_code=303)
+
+
 @router.post("/urunler/sinif/kaydet")
-def sinif_kaydet(adi: str = Form(""), sinif_id: int | None = Form(None), db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+def sinif_kaydet(adi: str = Form(""), db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+    try:
+        stok_sinifi_kaydet(db, adi)
+    except ValueError:
+        return RedirectResponse("/receteler?error=sinif", status_code=303)
+    return RedirectResponse("/receteler", status_code=303)
+
+
+@router.post("/urunler/sinif/{sinif_id}/guncelle")
+def sinif_guncelle(sinif_id: int, adi: str = Form(""), db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
     try:
         stok_sinifi_kaydet(db, adi, sinif_id)
     except ValueError:
         return RedirectResponse("/receteler?error=sinif", status_code=303)
+    return RedirectResponse("/receteler", status_code=303)
+
+
+@router.post("/urunler/sinif/{sinif_id}/sil")
+def sinif_sil(sinif_id: int, urunlerden_kaldir: bool = Form(False), db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(STOK))):
+    try:
+        stok_sinifi_sil(db, sinif_id, urunlerden_kaldir)
+    except ValueError:
+        return RedirectResponse("/receteler?error=sinif_kullanim", status_code=303)
     return RedirectResponse("/receteler", status_code=303)
 
 
@@ -71,5 +110,7 @@ def receteler(request: Request, error: str | None = None, db: Session = Depends(
     data["urunler"] = hammaddeleri_listele(db)
     data["turler"], data["siniflar"] = stok_tanimlari(db)
     data["kurulum"] = stok_kurulum_durumu(db)
-    data["hata"] = "Kayıt yapılamadı. Zorunlu alanları ve benzersiz ad/kod bilgisini kontrol edin." if error else None
+    data["tanim_kullanimlari"] = stok_tanim_kullanimlari(db)
+    kullanim_hatasi = error in ("tur_kullanim", "sinif_kullanim")
+    data["hata"] = ("Tanım ürünlerde kullanılıyor. Ürünlerden kaldırıp sil seçeneğini kullanın." if kullanim_hatasi else "Kayıt yapılamadı. Zorunlu alanları ve benzersiz ad/kod bilgisini kontrol edin.") if error else None
     return templates.TemplateResponse("stok/urunler.html", data)
