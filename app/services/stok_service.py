@@ -7,6 +7,50 @@ from app.models.stok_urun_sinifi import StokUrunSinifi
 from app.models.stok_urun_turu import StokUrunTuru
 
 
+def _stok_turu_anahtari(adi: object) -> str:
+    donusum = str.maketrans({"ı": "i", "İ": "i", "ş": "s", "ğ": "g", "ü": "u", "ö": "o", "ç": "c"})
+    return "".join(harf for harf in str(adi or "").casefold().translate(donusum) if harf.isalnum())
+
+
+def stok_turlerini_standartlastir(db: Session) -> int:
+    """Eski stok türlerini tek standarda taşır ve yinelenen tanımları kaldırır."""
+    standartlar = {
+        "Hammadde": ({"hammadde", "hammaddeler", "hammaddeturu", "hammedde"}, False, None),
+        "Sarf Malzeme": ({"sarfmalzeme", "sarf", "sarfmalzemesi"}, False, None),
+        "ÜRETİM": ({"uretim", "uretimturu", "uretimtur"}, True, None),
+        "Ticari Mamül": ({"ticarimamul", "ticarimal", "ticarimamulurun"}, False, None),
+        "YARI MAMÜL": ({"yarimamul", "yarimamulurun"}, True, "Yarı Mamül"),
+        "MAMÜL": ({"mamul", "mamulurun"}, True, "Mamül"),
+    }
+    degisen = 0
+    for standart_ad, (takma_adlar, uretilen, urun_tipi) in standartlar.items():
+        adaylar = [tur for tur in db.query(StokUrunTuru).order_by(StokUrunTuru.id).all() if _stok_turu_anahtari(tur.adi) in takma_adlar]
+        if not adaylar:
+            db.add(StokUrunTuru(adi=standart_ad, uretilen=uretilen, aktif=True))
+            degisen += 1
+            continue
+        hedef = next((tur for tur in adaylar if tur.adi == standart_ad), adaylar[0])
+        if hedef.adi != standart_ad or hedef.uretilen != uretilen or not hedef.aktif:
+            hedef.adi, hedef.uretilen, hedef.aktif = standart_ad, uretilen, True
+            degisen += 1
+        for yinelenen in adaylar:
+            if yinelenen.id == hedef.id:
+                continue
+            db.query(Urun).filter(Urun.stok_urun_turu_id == yinelenen.id).update(
+                {Urun.stok_urun_turu_id: hedef.id}, synchronize_session=False
+            )
+            db.delete(yinelenen)
+            degisen += 1
+        if urun_tipi:
+            degisen += db.query(Urun).filter(
+                Urun.stok_urun_turu_id == hedef.id,
+                Urun.urun_tipi != urun_tipi,
+            ).update({Urun.urun_tipi: urun_tipi}, synchronize_session=False)
+    if degisen:
+        db.commit()
+    return degisen
+
+
 def stok_urunlerini_listele(db: Session):
     return db.query(Urun).order_by(Urun.adi).all()
 
