@@ -10,11 +10,11 @@
 
             <h2 class="fw-bold">
                 <i class="bi bi-clock-history text-warning"></i>
-                İşlem Geçmişi
+                {{ 'İşlem Geçmişi' if tum_loglari_gorebilir else 'İşlem Geçmişim' }}
             </h2>
 
             <p class="text-muted mb-0">
-                Sistemde yapılan tüm işlemler burada görüntülenir.
+                {{ 'Tüm kullanıcıların işlemlerini filtreleyebilirsiniz.' if tum_loglari_gorebilir else 'Yalnızca kendi işlemleriniz görüntülenir.' }}
             </p>
 
         </div>
@@ -35,36 +35,7 @@
 
         <div class="card-body">
 
-            <div class="row mb-3">
-
-                <div class="col-md-4">
-
-                    <input type="text"
-                           class="form-control"
-                           placeholder="Kullanıcı ara...">
-
-                </div>
-
-                <div class="col-md-4">
-
-                    <input type="date"
-                           class="form-control">
-
-                </div>
-
-                <div class="col-md-4 text-end">
-
-                    <button class="btn btn-primary">
-
-                        <i class="bi bi-search"></i>
-
-                        Filtrele
-
-                    </button>
-
-                </div>
-
-            </div>
+            {% if tum_loglari_gorebilir %}<form method="get" class="row g-2 mb-3"><div class="col-md-3"><select class="form-select" name="kullanici_adi"><option value="">Tüm kullanıcılar</option>{% for deger in log_kullanici_secimleri %}<option value="{{ deger }}" {% if deger == secili_log_kullanicisi %}selected{% endif %}>{{ deger }}</option>{% endfor %}</select></div><div class="col-md-3"><select class="form-select" name="modul"><option value="">Tüm modüller</option>{% for deger in log_modul_secimleri %}<option value="{{ deger }}" {% if deger == secili_log_modulu %}selected{% endif %}>{{ deger }}</option>{% endfor %}</select></div><div class="col-md-4"><select class="form-select" name="islem"><option value="">Tüm işlemler</option>{% for deger in log_islem_secimleri %}<option value="{{ deger }}" {% if deger == secili_log_islemi %}selected{% endif %}>{{ deger }}</option>{% endfor %}</select></div><div class="col-md-2"><button class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Filtrele</button></div></form>{% endif %}
 
 
 
