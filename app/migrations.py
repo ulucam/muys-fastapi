@@ -28,6 +28,10 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
                 ("istasyon_id", "ALTER TABLE kullanicilar ADD COLUMN istasyon_id INTEGER REFERENCES istasyonlar(id)"),
                 ("personel_id", "ALTER TABLE kullanicilar ADD COLUMN personel_id INTEGER REFERENCES personeller(id)"),
             ],
+            "rol_siniflari": [
+                ("yedekleme_yapabilir", "ALTER TABLE rol_siniflari ADD COLUMN yedekleme_yapabilir BOOLEAN NOT NULL DEFAULT FALSE"),
+                ("loglarini_gorebilir", "ALTER TABLE rol_siniflari ADD COLUMN loglarini_gorebilir BOOLEAN NOT NULL DEFAULT FALSE"),
+            ],
             "uretim_emirleri": [
                 ("istasyon_id", "ALTER TABLE uretim_emirleri ADD COLUMN istasyon_id INTEGER REFERENCES istasyonlar(id)"),
                 ("uretim_plani_id", "ALTER TABLE uretim_emirleri ADD COLUMN uretim_plani_id INTEGER REFERENCES uretim_planlari(id)"),
@@ -45,6 +49,9 @@ def uyumluluk_migrationlarini_uygula(engine: Engine) -> None:
             ],
             "firma_ayarlari": [
                 ("logo_yolu", "ALTER TABLE firma_ayarlari ADD COLUMN logo_yolu VARCHAR(300) DEFAULT ''"),
+                ("islem_loglari_aktif", "ALTER TABLE firma_ayarlari ADD COLUMN islem_loglari_aktif BOOLEAN NOT NULL DEFAULT TRUE"),
+                ("otomatik_yedekleme_aktif", "ALTER TABLE firma_ayarlari ADD COLUMN otomatik_yedekleme_aktif BOOLEAN NOT NULL DEFAULT FALSE"),
+                ("bakim_modu_aktif", "ALTER TABLE firma_ayarlari ADD COLUMN bakim_modu_aktif BOOLEAN NOT NULL DEFAULT FALSE"),
             ],
         }
         for tablo, sutun_migrationlari in migrationlar.items():
