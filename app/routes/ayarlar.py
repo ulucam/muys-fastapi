@@ -11,7 +11,7 @@ from app.utils.excel import (
 from app.context import template_data
 from app.database import get_db
 from app.roles import ADMIN, YONETIM
-from app.security import yetki_kontrol
+from app.security import kendi_loglarini_gorme_kontrol, yedekleme_kontrol, yetki_kontrol
 from app.services.ayarlar_service import (
     excel_indirme_logu,
     excel_sablon_verileri,
@@ -20,6 +20,9 @@ from app.services.ayarlar_service import (
     firma_ozeti_getir,
     loglari_listele,
     son_excel_aktarimi,
+    sistem_ayarlari_getir,
+    sistem_ayarlarini_kaydet,
+    sistem_yedegi_olustur,
 )
 from app.services.excel_aktarim_service import (
     aktarimi_onayla,
@@ -53,7 +56,7 @@ async def ayarlar(request: Request):
 
 
 @router.get("/ayarlar/excel", response_class=HTMLResponse)
-async def excel(request: Request, db: Session = Depends(get_db)):
+async def excel(request: Request, db: Session = Depends(get_db), yetki=Depends(yedekleme_kontrol)):
     data = template_data(request)
     data["son_aktarim"] = son_excel_aktarimi(db)
     return templates.TemplateResponse(
@@ -63,7 +66,7 @@ async def excel(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/ayarlar/excel/sablon")
-def excel_sablon(request: Request, db: Session = Depends(get_db)):
+def excel_sablon(request: Request, db: Session = Depends(get_db), yetki=Depends(yedekleme_kontrol)):
     sablon_verisi = excel_sablon_verileri(db)
     mevcut_musteriler = sablon_verisi["musteriler"]
     mevcut_urunler = sablon_verisi["urunler"]
@@ -88,7 +91,7 @@ def excel_sablon(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/ayarlar/excel/onizleme", response_class=HTMLResponse)
-async def excel_onizleme(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def excel_onizleme(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db), yetki=Depends(yedekleme_kontrol)):
     dosya_adi = file.filename or "adsız dosya"
     kullanici_adi = request.session.get("kullanici_adi", "Sistem")
     ip_adresi = request.client.host if request.client else ""
@@ -120,7 +123,7 @@ async def excel_onizleme(request: Request, file: UploadFile = File(...), db: Ses
 
 
 @router.post("/ayarlar/excel/onayla")
-def excel_onayla(request: Request, db: Session = Depends(get_db)):
+def excel_onayla(request: Request, db: Session = Depends(get_db), yetki=Depends(yedekleme_kontrol)):
     token = request.session.get("excel_onay_token")
     if aktarimi_onayla(
         db, token, request.session.get("kullanici_adi", "Sistem"),
@@ -131,11 +134,23 @@ def excel_onayla(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/ayarlar/yedek", response_class=HTMLResponse)
-async def yedek(request: Request):
+async def yedek(request: Request, yetki=Depends(yedekleme_kontrol)):
 
     return templates.TemplateResponse(
         "ayarlar/yedek.html",
         template_data(request)
+    )
+
+
+@router.post("/ayarlar/yedek/olustur")
+def yedek_olustur(request: Request, db: Session = Depends(get_db), yetki=Depends(yedekleme_kontrol)):
+    dosya_icerigi, dosya_adi, satir_sayisi = sistem_yedegi_olustur(db)
+    from app.services.islem_log_service import islem_logla
+    islem_logla(db, request, "Yedek", "Sistem yedeği oluşturuldu", f"{satir_sayisi} kayıt", commit=True)
+    return Response(
+        dosya_icerigi,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{dosya_adi}"', "Cache-Control": "no-store"},
     )
 
 
@@ -144,10 +159,15 @@ async def loglar(
     request: Request,
     sayfa: int = 1,
     db: Session = Depends(get_db),
-    yetki=Depends(yetki_kontrol(ADMIN)),
+    yetki=Depends(kendi_loglarini_gorme_kontrol),
 ):
     data = template_data(request)
-    data.update(loglari_listele(db, sayfa=sayfa))
+    admin_mi = request.session.get("rol") == "Admin"
+    kullanici_adi = request.query_params.get("kullanici_adi", "") if admin_mi else request.session.get("kullanici_adi", "")
+    modul = request.query_params.get("modul", "") if admin_mi else ""
+    islem = request.query_params.get("islem", "") if admin_mi else ""
+    data.update(loglari_listele(db, sayfa=sayfa, kullanici_adi=kullanici_adi, modul=modul, islem=islem))
+    data["tum_loglari_gorebilir"] = admin_mi
 
     return templates.TemplateResponse("ayarlar/loglar.html", data)
 
@@ -201,7 +221,24 @@ def firma_logo(db: Session = Depends(get_db)):
 
 
 @router.get("/ayarlar/sistem", response_class=HTMLResponse)
-async def sistem(request: Request):
+async def sistem(request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(ADMIN))):
     data = template_data(request)
     data["sistem_bilgileri"] = sistem_bilgileri()
+    data["sistem_ayarlari"] = sistem_ayarlari_getir(db)
     return templates.TemplateResponse("ayarlar/sistem.html", data)
+
+
+@router.post("/ayarlar/sistem")
+async def sistem_kaydet(
+    request: Request,
+    islem_loglari_aktif: bool = Form(False),
+    otomatik_yedekleme_aktif: bool = Form(False),
+    bakim_modu_aktif: bool = Form(False),
+    db: Session = Depends(get_db),
+    yetki=Depends(yetki_kontrol(ADMIN)),
+):
+    sistem_ayarlarini_kaydet(
+        db, request.session.get("kullanici_adi", "Admin"), request.client.host if request.client else "",
+        islem_loglari_aktif, otomatik_yedekleme_aktif, bakim_modu_aktif,
+    )
+    return RedirectResponse("/ayarlar/sistem?kaydedildi=1", status_code=303)
