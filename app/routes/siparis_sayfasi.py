@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.context import template_data
 from app.database import get_db
-from app.roles import SIPARIS
+from app.roles import SIPARIS, SIPARIS_YONET
 from app.security import yetki_kontrol
 from app.services.siparis_service import SIPARIS_DURUMLARI, siparis_form_verisi, siparis_formunu_kaydet, siparis_sayfasi_verisi
 
@@ -31,13 +31,14 @@ def siparisler(
         "durum": durum,
         "durumlar": durumlar,
         "siparisler_duruma_gore": siparisler_duruma_gore,
+        "siparis_duzenleyebilir": request.session.get("rol") in SIPARIS_YONET,
         **siparis_form_verisi(db),
     })
     return templates.TemplateResponse("siparisler/index.html", data)
 
 
 @router.post("/siparisler/kaydet")
-async def siparis_kaydet(request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(SIPARIS))):
+async def siparis_kaydet(request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(SIPARIS_YONET))):
     try:
         siparis_formunu_kaydet(db, None, await request.form())
     except (TypeError, ValueError):
@@ -46,7 +47,7 @@ async def siparis_kaydet(request: Request, db: Session = Depends(get_db), yetki=
 
 
 @router.get("/siparisler/{siparis_id}/duzenle", response_class=HTMLResponse)
-def siparis_duzenle(siparis_id: int, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(SIPARIS))):
+def siparis_duzenle(siparis_id: int, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(SIPARIS_YONET))):
     data = siparis_form_verisi(db, siparis_id)
     if not data["siparis"]:
         return RedirectResponse("/siparisler", status_code=303)
@@ -56,7 +57,7 @@ def siparis_duzenle(siparis_id: int, request: Request, db: Session = Depends(get
 
 
 @router.post("/siparisler/{siparis_id}/guncelle")
-async def siparis_guncelle(siparis_id: int, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(SIPARIS))):
+async def siparis_guncelle(siparis_id: int, request: Request, db: Session = Depends(get_db), yetki=Depends(yetki_kontrol(SIPARIS_YONET))):
     try:
         siparis_formunu_kaydet(db, siparis_id, await request.form())
     except (TypeError, ValueError):
