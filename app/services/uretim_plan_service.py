@@ -222,6 +222,30 @@ def uretim_plani_olustur(db: Session, recete_id: int, miktar: float, hedef_turu:
     return plan
 
 
+def urun_icin_uretim_plani_olustur(
+    db: Session, urun_id: int, miktar: float, hedef_turu: str,
+    siparis_kalem_id: int | None = None, aciklama: str = "",
+) -> UretimPlani:
+    """Planlamada reçeteyi kullanıcıya seçtirmeden ürünün aktif reçetesini kullanır."""
+    recete = db.query(Recete).filter(Recete.urun_id == urun_id, Recete.aktif.is_(True)).first()
+    if not recete:
+        raise ValueError("Seçilen ürün için aktif üretim reçetesi bulunamadı")
+    return uretim_plani_olustur(db, recete.id, miktar, hedef_turu, siparis_kalem_id, aciklama)
+
+
+def secimden_uretim_plani_olustur(
+    db: Session, hedef_turu: str, miktar: float, siparis_kalem_id: int | None,
+    stok_urun_id: int | None, aciklama: str = "",
+) -> UretimPlani:
+    """Sipariş kalemi veya stok ürünü seçimine göre doğru reçeteyi çözer."""
+    if hedef_turu == "Siparis":
+        kalem = db.query(SiparisKalem).filter(SiparisKalem.id == siparis_kalem_id, SiparisKalem.aktif.is_(True)).first()
+        if not kalem:
+            raise ValueError("Geçerli bir sipariş kalemi seçin")
+        return urun_icin_uretim_plani_olustur(db, kalem.urun_id, miktar, hedef_turu, kalem.id, aciklama)
+    return urun_icin_uretim_plani_olustur(db, stok_urun_id or 0, miktar, hedef_turu, None, aciklama)
+
+
 def uretim_planini_iptal_et(db: Session, plan_id: int) -> UretimPlani:
     """İptalde ara çıktıyı ilgili operasyonun yarı mamul kartına aktarır."""
     plan = db.query(UretimPlani).filter(UretimPlani.id == plan_id, UretimPlani.aktif.is_(True)).first()
@@ -321,8 +345,17 @@ def plan_asamasini_tamamla(db: Session, emir: UretimEmri, uretilen_miktar: float
 
 def planlama_verisi(db: Session) -> dict:
     receteler = db.query(Recete).filter(Recete.aktif.is_(True)).order_by(Recete.recete_no).all()
-    kalemler = db.query(SiparisKalem).filter(SiparisKalem.aktif.is_(True), SiparisKalem.durum != "Tamamlandı").order_by(SiparisKalem.created_at.desc()).all()
+    recete_urun_idleri = {recete.urun_id for recete in receteler}
+    urunler = {u.id: u for u in db.query(Urun).all()}
+    kalemler = [kalem for kalem in db.query(SiparisKalem).filter(
+        SiparisKalem.aktif.is_(True), SiparisKalem.durum != "Tamamlandı"
+    ).order_by(SiparisKalem.created_at.desc()).all() if kalem.urun_id in recete_urun_idleri]
+    stok_uretim_urunleri = [
+        urun for urun_id, urun in urunler.items() if urun_id in recete_urun_idleri and urun.aktif is not False
+        and (urun_turunu_normalize_et(urun.urun_tipi) == "Mamül" or (urun.urun_tipi or "").strip().casefold() == "yedek parça")
+    ]
     return {"plan_receteleri": receteler, "bekleyen_siparis_kalemleri": kalemler,
+        "stok_uretim_urunleri": sorted(stok_uretim_urunleri, key=lambda urun: urun.adi.casefold()),
         "uretim_planlari": db.query(UretimPlani).filter(UretimPlani.aktif.is_(True)).order_by(UretimPlani.created_at.desc()).limit(50).all(),
-        "plan_urun_haritasi": {u.id: u for u in db.query(Urun).all()},
+        "plan_urun_haritasi": urunler,
         "plan_siparis_haritasi": {s.id: s for s in db.query(Siparis).all()}}
