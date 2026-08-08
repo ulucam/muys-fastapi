@@ -223,7 +223,7 @@ def uretim_recetesi_asama_sil(recete_id: int, asama_id: int, db: Session = Depen
 
 
 @router.post("/receteler/asama/{asama_id}/malzeme")
-def uretim_asama_malzeme_kaydet(asama_id: int, malzeme_id: int = Form(...), miktar: int = Form(...),
+def uretim_asama_malzeme_kaydet(asama_id: int, malzeme_id: int = Form(...), miktar: float = Form(...),
     birim: str = Form("Adet"), fire_orani: float = Form(0), donus_recete_id: int | None = Form(None), db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(STOK))):
     try:
