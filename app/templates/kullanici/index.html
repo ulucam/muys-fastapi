@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container-fluid px-0">
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <div><h3 class="mb-1">Kullanıcılar</h3><p class="text-muted mb-0">Personel hesapları ve rol atamaları</p></div>
+    <div><h3 class="mb-1">Kullanıcılar</h3><p class="text-muted mb-0">Personel hesapları ve rol atamaları</p></div>{% if kullanici_rol == "Admin" or kullanici_ekleyebilir %}<a class="btn btn-success" href="/kullanicilar/ekle"><i class="bi bi-person-plus me-1"></i> Yeni Kullanıcı Aç</a>{% endif %}
   </div>
 
   <div class="module-workspace" data-module-workspace>
