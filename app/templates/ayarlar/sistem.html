@@ -52,12 +52,14 @@
                 </div>
 
                 <div class="card-body">
+                    {% if request.query_params.get('kaydedildi') %}<div class="alert alert-success py-2">Sistem ayarları kaydedildi.</div>{% endif %}
+                    <form method="post" action="/ayarlar/sistem">
 
                     <div class="form-check form-switch mb-3">
 
                         <input class="form-check-input"
-                               type="checkbox"
-                               checked>
+                               type="checkbox" name="islem_loglari_aktif" value="true"
+                               {% if sistem_ayarlari.islem_loglari_aktif %}checked{% endif %}>
 
                         <label class="form-check-label">
 
@@ -71,7 +73,8 @@
 
                         <input class="form-check-input"
                                type="checkbox"
-                               checked>
+                               name="otomatik_yedekleme_aktif" value="true"
+                               {% if sistem_ayarlari.otomatik_yedekleme_aktif %}checked{% endif %}>
 
                         <label class="form-check-label">
 
@@ -84,7 +87,8 @@
                     <div class="form-check form-switch">
 
                         <input class="form-check-input"
-                               type="checkbox">
+                               type="checkbox" name="bakim_modu_aktif" value="true"
+                               {% if sistem_ayarlari.bakim_modu_aktif %}checked{% endif %}>
 
                         <label class="form-check-label">
 
@@ -93,6 +97,9 @@
                         </label>
 
                     </div>
+                    <div class="alert alert-warning small"><i class="bi bi-exclamation-triangle me-1"></i>Bakım modu açıldığında Admin dışındaki aktif oturumlar kapatılır ve yeni girişler engellenir.</div>
+                    <div class="text-end"><button class="btn btn-danger" type="submit"><i class="bi bi-save2 me-1"></i>Ayarları Kaydet</button></div>
+                    </form>
 
                 </div>
 
