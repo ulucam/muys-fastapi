@@ -1,5 +1,10 @@
+from datetime import datetime
+from io import BytesIO
+import json
 from pathlib import Path
+from zipfile import ZIP_DEFLATED, ZipFile
 
+from sqlalchemy import MetaData, select
 from sqlalchemy.orm import Session
 
 from app.models.firma_ayarlari import FirmaAyarlari
@@ -21,12 +26,22 @@ def son_excel_aktarimi(db: Session):
     return db.query(IslemLogu).filter(IslemLogu.modul == "Excel").order_by(IslemLogu.created_at.desc()).first()
 
 
-def loglari_listele(db: Session, sayfa: int = 1, sayfa_basina: int = 50) -> dict:
-    toplam_kayit = db.query(IslemLogu).count()
+def loglari_listele(
+    db: Session, sayfa: int = 1, sayfa_basina: int = 50, kullanici_adi: str = "",
+    modul: str = "", islem: str = "",
+) -> dict:
+    sorgu = db.query(IslemLogu)
+    if kullanici_adi:
+        sorgu = sorgu.filter(IslemLogu.kullanici_adi == kullanici_adi)
+    if modul:
+        sorgu = sorgu.filter(IslemLogu.modul == modul)
+    if islem:
+        sorgu = sorgu.filter(IslemLogu.islem == islem)
+    toplam_kayit = sorgu.count()
     sayfa_sayisi = max(1, (toplam_kayit + sayfa_basina - 1) // sayfa_basina)
     sayfa = min(max(1, sayfa), sayfa_sayisi)
     loglar = (
-        db.query(IslemLogu)
+        sorgu
         .order_by(IslemLogu.created_at.desc())
         .offset((sayfa - 1) * sayfa_basina)
         .limit(sayfa_basina)
@@ -37,11 +52,81 @@ def loglari_listele(db: Session, sayfa: int = 1, sayfa_basina: int = 50) -> dict
         "log_sayfasi": sayfa,
         "log_sayfa_sayisi": sayfa_sayisi,
         "log_toplam_kayit": toplam_kayit,
+        "log_kullanici_secimleri": [deger for (deger,) in db.query(IslemLogu.kullanici_adi).distinct().order_by(IslemLogu.kullanici_adi).all()],
+        "log_modul_secimleri": [deger for (deger,) in db.query(IslemLogu.modul).distinct().order_by(IslemLogu.modul).all()],
+        "log_islem_secimleri": [deger for (deger,) in db.query(IslemLogu.islem).distinct().order_by(IslemLogu.islem).all()],
+        "secili_log_kullanicisi": kullanici_adi,
+        "secili_log_modulu": modul,
+        "secili_log_islemi": islem,
     }
 
 
 def firma_getir(db: Session):
     return db.query(FirmaAyarlari).first()
+
+
+def sistem_ayarlari_getir(db: Session) -> FirmaAyarlari:
+    """Sistem ayarlarını firma ayarlarıyla aynı tekil kayıtta tutar."""
+    ayarlar = firma_getir(db)
+    if not ayarlar:
+        ayarlar = FirmaAyarlari()
+        db.add(ayarlar)
+        db.commit()
+        db.refresh(ayarlar)
+    return ayarlar
+
+
+def sistem_ayarlarini_kaydet(
+    db: Session,
+    kullanici_adi: str,
+    ip_adresi: str,
+    islem_loglari_aktif: bool,
+    otomatik_yedekleme_aktif: bool,
+    bakim_modu_aktif: bool,
+) -> FirmaAyarlari:
+    ayarlar = sistem_ayarlari_getir(db)
+    ayarlar.islem_loglari_aktif = islem_loglari_aktif
+    ayarlar.otomatik_yedekleme_aktif = otomatik_yedekleme_aktif
+    ayarlar.bakim_modu_aktif = bakim_modu_aktif
+    islem_logla_veri(
+        db, kullanici_adi, ip_adresi, "Ayarlar", "Sistem ayarları güncellendi",
+        f"Log: {'açık' if islem_loglari_aktif else 'kapalı'}, otomatik yedek: {'açık' if otomatik_yedekleme_aktif else 'kapalı'}, bakım: {'açık' if bakim_modu_aktif else 'kapalı'}",
+        zorla=True,
+    )
+    db.commit()
+    return ayarlar
+
+
+def bakim_modu_aktif_mi(db: Session) -> bool:
+    ayarlar = firma_getir(db)
+    return bool(ayarlar and ayarlar.bakim_modu_aktif)
+
+
+def _json_degerine_cevir(deger):
+    if isinstance(deger, datetime):
+        return {"__tip__": "datetime", "deger": deger.isoformat()}
+    if isinstance(deger, bytes):
+        return {"__tip__": "bytes", "deger": deger.hex()}
+    return deger
+
+
+def sistem_yedegi_olustur(db: Session) -> tuple[bytes, str, int]:
+    """Veritabanından taşınabilir, okunabilir ZIP/JSON yedeği üretir."""
+    metadata = MetaData()
+    metadata.reflect(bind=db.bind)
+    veri = {"surum": 1, "olusturma_zamani": datetime.utcnow().isoformat(), "tablolar": {}}
+    toplam_satir = 0
+    for tablo in metadata.sorted_tables:
+        satirlar = []
+        for satir in db.execute(select(tablo)).mappings():
+            satirlar.append({anahtar: _json_degerine_cevir(deger) for anahtar, deger in satir.items()})
+        veri["tablolar"][tablo.name] = satirlar
+        toplam_satir += len(satirlar)
+    tampon = BytesIO()
+    with ZipFile(tampon, "w", ZIP_DEFLATED) as dosya:
+        dosya.writestr("muys-yedek.json", json.dumps(veri, ensure_ascii=False, indent=2))
+    dosya_adi = f"muys-yedek-{datetime.now():%Y%m%d-%H%M%S}.zip"
+    return tampon.getvalue(), dosya_adi, toplam_satir
 
 
 def firma_adi_getir(db: Session) -> str:
