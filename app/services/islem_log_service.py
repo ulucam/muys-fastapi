@@ -4,6 +4,7 @@ from fastapi import Request
 from sqlalchemy.orm import Session
 
 from app.models.islem_logu import IslemLogu
+from app.models.firma_ayarlari import FirmaAyarlari
 from app.models.user import User
 
 
@@ -27,7 +28,11 @@ def islem_logla_veri(
     islem: str,
     detay: str = "",
     commit: bool = False,
+    zorla: bool = False,
 ):
+    ayarlar = db.query(FirmaAyarlari.islem_loglari_aktif).first()
+    if not zorla and ayarlar and not ayarlar[0]:
+        return
     db.add(IslemLogu(
         kullanici_adi=kullanici_adi,
         modul=modul,
