@@ -12,6 +12,8 @@ class RolSinifi(Base):
     adi = Column(String(30), unique=True, nullable=False, index=True)
     seviye = Column(Integer, nullable=False, default=10)
     kullanici_ekleyebilir = Column(Boolean, nullable=False, default=False)
+    yedekleme_yapabilir = Column(Boolean, nullable=False, default=False)
+    loglarini_gorebilir = Column(Boolean, nullable=False, default=False)
     yetkiler = Column(Text, nullable=False, default="")
     aciklama = Column(String(250), nullable=False, default="")
     sistem_rolu = Column(Boolean, nullable=False, default=False)
