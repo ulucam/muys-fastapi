@@ -27,15 +27,57 @@ def siparisleri_listele(db: Session):
     } for s in siparisler]
 
 
-def siparis_sayfasi_verisi(db: Session, musteri_id: int | None, durum: str | None):
-    musteri = db.query(Musteri).filter(Musteri.id == musteri_id).first() if musteri_id else None
-    sorgu = db.query(Siparis)
-    if musteri_id:
-        sorgu = sorgu.filter(Siparis.musteri_id == musteri_id)
-    if durum:
-        sorgu = sorgu.filter(Siparis.durum == durum)
-    siparisler = sorgu.order_by(Siparis.teslim_tarihi.asc(), Siparis.created_at.desc()).all()
-    return musteri, {d: [s for s in siparisler if s.durum == d] for d in SIPARIS_DURUMLARI}
+def _kalem_durumu(kalem: SiparisKalem) -> str:
+    if (kalem.sevk_miktar or 0) >= (kalem.miktar or 0) and (kalem.miktar or 0) > 0:
+        return "Sevk Edildi"
+    if (kalem.uretilen_miktar or 0) >= (kalem.miktar or 0) and (kalem.miktar or 0) > 0:
+        return "Hazır"
+    if kalem.durum == "Üretimde" or (kalem.uretilen_miktar or 0) > 0:
+        return "Üretimde"
+    return "Üretimi Bekliyor"
+
+
+def siparis_liste_ekrani_verisi(db: Session, secili_durum: str | None = None) -> dict:
+    """Sipariş listesi için yalnız seçilen durumdaki tablo ve açılır detay verisi."""
+    secili_durum = secili_durum if secili_durum in SIPARIS_DURUMLARI else SIPARIS_DURUMLARI[0]
+    sayaclar = {
+        durum: db.query(Siparis).filter(Siparis.aktif.is_(True), Siparis.durum == durum).count()
+        for durum in SIPARIS_DURUMLARI
+    }
+    kayitlar = (
+        db.query(Siparis, Musteri)
+        .join(Musteri, Musteri.id == Siparis.musteri_id)
+        .filter(Siparis.aktif.is_(True), Siparis.durum == secili_durum)
+        .order_by(Siparis.teslim_tarihi.asc(), Siparis.created_at.desc())
+        .all()
+    )
+    siparis_idleri = [siparis.id for siparis, _ in kayitlar]
+    kalemler = (
+        db.query(SiparisKalem, Urun)
+        .join(Urun, Urun.id == SiparisKalem.urun_id)
+        .filter(SiparisKalem.siparis_id.in_(siparis_idleri), SiparisKalem.aktif.is_(True))
+        .order_by(SiparisKalem.siparis_id, SiparisKalem.sira_no)
+        .all()
+        if siparis_idleri else []
+    )
+    kalem_haritasi = {siparis_id: [] for siparis_id in siparis_idleri}
+    for kalem, urun in kalemler:
+        kalem_haritasi[kalem.siparis_id].append({
+            "urun_adi": urun.adi,
+            "miktar": kalem.miktar,
+            "birim": kalem.birim,
+            "uretilen_miktar": kalem.uretilen_miktar or 0,
+            "durum": _kalem_durumu(kalem),
+        })
+    return {
+        "siparis_durumlari": SIPARIS_DURUMLARI,
+        "secili_siparis_durumu": secili_durum,
+        "siparis_sayaclari": sayaclar,
+        "siparis_satirlari": [
+            {"siparis": siparis, "musteri": musteri, "kalemler": kalem_haritasi.get(siparis.id, [])}
+            for siparis, musteri in kayitlar
+        ],
+    }
 
 
 def siparis_form_verisi(db: Session, siparis_id: int | None = None) -> dict:
