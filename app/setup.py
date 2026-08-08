@@ -19,17 +19,18 @@ def setup_database(db: Session):
         db.commit()
 
         varsayilan_roller = [
-            ("Admin", 100, True, "Tüm modüller", True),
-            ("Patron", 90, False, "Onay ve izleme", True),
-            ("Yönetici", 80, False, "Yönetim ekranları", True),
-            ("Üretim", 60, False, "Üretim ve reçete", True),
-            ("Satış", 50, False, "Müşteri ve sipariş", True),
-            ("Depo", 40, False, "Stok işlemleri", True),
-            ("Operatör", 20, False, "Atandığı istasyonlar", True),
+            ("Admin", 100, True, True, True, "Tüm modüller", True),
+            ("Patron", 90, False, False, False, "Onay ve izleme", True),
+            ("Yönetici", 80, False, False, False, "Yönetim ekranları", True),
+            ("Üretim", 60, False, False, False, "Üretim ve reçete", True),
+            ("Satış", 50, False, False, False, "Müşteri ve sipariş", True),
+            ("Depo", 40, False, False, False, "Stok işlemleri", True),
+            ("Operatör", 20, False, False, False, "Atandığı istasyonlar", True),
         ]
-        for ad, seviye, ekleyebilir, yetkiler, sistem_rolu in varsayilan_roller:
+        for ad, seviye, ekleyebilir, yedekleme_yapabilir, loglarini_gorebilir, yetkiler, sistem_rolu in varsayilan_roller:
             if not db.query(RolSinifi).filter(RolSinifi.adi == ad).first():
                 db.add(RolSinifi(adi=ad, seviye=seviye, kullanici_ekleyebilir=ekleyebilir,
+                    yedekleme_yapabilir=yedekleme_yapabilir, loglarini_gorebilir=loglarini_gorebilir,
                     yetkiler=yetkiler, sistem_rolu=sistem_rolu, aktif=True))
         db.commit()
 
