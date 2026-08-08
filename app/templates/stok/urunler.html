@@ -31,7 +31,7 @@
             <form method="post" action="/receteler/kaydet" class="row g-2 border rounded p-3 mb-4">
                 <div class="col-md-3"><label class="form-label">Reçete No</label><div class="form-control bg-light text-muted">Otomatik: {{ siradaki_recete_no }}</div></div>
                 <div class="col-md-3"><label class="form-label">Üretilecek Yarı Mamul / Mamul</label><select class="form-select" name="urun_id" required><option value="">Ürün seçin</option>{% for urun in uretilebilir_urunler %}<option value="{{ urun.id }}">{{ urun.kodu }} · {{ urun.adi }}</option>{% endfor %}</select></div>
-                <div class="col-md-2"><label class="form-label">Tahmini Süre (dk/adet)</label><input class="form-control" type="number" step="0.1" min="0" name="tahmini_uretim_suresi" value="0" required></div>
+                <div class="col-md-2"><label class="form-label">Tahmini Süre</label><div class="form-control bg-light text-muted">İstasyonlardan otomatik</div></div>
                 <div class="col-md-2"><label class="form-label">Açıklama</label><input class="form-control" name="aciklama"></div>
                 <div class="col-md-2 d-flex align-items-end"><button class="btn btn-info w-100" type="submit" {% if not uretilebilir_urunler %}disabled{% endif %}>Reçete Aç</button></div>
             </form>
