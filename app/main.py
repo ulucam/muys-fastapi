@@ -37,7 +37,6 @@ app = FastAPI(
 )
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
-app.add_middleware(SessionMiddleware, secret_key=Config.SECRET_KEY)
 
 
 @app.middleware("http")
@@ -61,6 +60,11 @@ async def firma_bilgisi_ekle(request, call_next):
     finally:
         db.close()
     return await call_next(request)
+
+
+# Oturum katmanı, aşağıdaki rol/bakım middleware'inden önce çalışmalıdır.
+# Starlette middleware'leri son eklenenden başlayarak sarıldığı için bu satır burada yer alır.
+app.add_middleware(SessionMiddleware, secret_key=Config.SECRET_KEY)
 
 
 app.include_router(auth.router)
