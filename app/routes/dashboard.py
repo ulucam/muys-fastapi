@@ -22,7 +22,7 @@ from app.models.istasyon import Istasyon
 from app.models.personel import Personel
 from app.models.siparis import Siparis
 from app.models.uretim_plani import UretimPlani, UretimPlanAsamasi
-from app.services.uretim_plan_service import plan_asamasini_tamamla, uretim_plani_olustur
+from app.services.uretim_plan_service import plan_asamasini_tamamla, uretim_plani_olustur, uretim_planini_iptal_et
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -117,10 +117,13 @@ async def uretim_bitir(kayit_id: int, request: Request, db: Session = Depends(ge
         raise HTTPException(status_code=422, detail="Miktar alanları sayı olmalıdır.")
     if miktar < 0 or fire < 0 or miktar + fire <= 0:
         raise HTTPException(status_code=422, detail="Üretim veya fire miktarı girilmelidir.")
+    emir = db.query(UretimEmri).filter(UretimEmri.id == kayit.uretim_emri_id).first()
+    urun = db.query(Urun).filter(Urun.id == emir.urun_id).first() if emir else None
+    if urun and urun.birim == "Adet" and (not miktar.is_integer() or not fire.is_integer()):
+        raise HTTPException(status_code=422, detail="Adet birimli üretim ve fire miktarı tam sayı olmalıdır.")
     kayit.uretilen_miktar, kayit.fire_miktari = miktar, fire
     kayit.aciklama = (form.get("aciklama") or "").strip()[:500]
     kayit.bitis, kayit.durum = datetime.now(), "Tamamlandı"
-    emir = db.query(UretimEmri).filter(UretimEmri.id == kayit.uretim_emri_id).first()
     if emir:
         toplam = sum(k.uretilen_miktar or 0 for k in db.query(UretimKaydi).filter(UretimKaydi.uretim_emri_id == emir.id).all())
         if toplam >= emir.miktar:
@@ -143,6 +146,17 @@ async def uretim_planla(request: Request, db: Session = Depends(get_db)):
     except (ValueError, TypeError):
         return RedirectResponse("/?plan=hata#dashboard-uretim", status_code=303)
     return RedirectResponse("/?plan=hazir#dashboard-uretim", status_code=303)
+
+
+@router.post("/uretim/plan/{plan_id}/iptal")
+def uretim_plani_iptal(plan_id: int, request: Request, db: Session = Depends(get_db)):
+    if request.session.get("rol") not in ("Admin", "Yönetici", "YÃ¶netici", "Üretim", "Ãœretim"):
+        raise HTTPException(status_code=403, detail="Üretim planı iptal yetkiniz yok.")
+    try:
+        uretim_planini_iptal_et(db, plan_id)
+    except ValueError:
+        return RedirectResponse("/?plan=iptal_hata#dashboard-uretim", status_code=303)
+    return RedirectResponse("/?plan=iptal#dashboard-uretim", status_code=303)
 
 
 @router.post("/uretim/{emir_id}/istasyon")
