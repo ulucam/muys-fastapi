@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services.auth_service import kullanici_dogrula
+from app.services.ayarlar_service import bakim_modu_aktif_mi
 from app.models.rol_sinifi import RolSinifi
 
 
@@ -27,7 +28,8 @@ async def login_page(request: Request):
     return templates.TemplateResponse(
         "login.html",
         {
-            "request": request
+            "request": request,
+            "hata": "Sistem bakım modunda. Lütfen daha sonra tekrar deneyin." if request.query_params.get("bakim") else None,
         }
     )
 
@@ -60,6 +62,12 @@ async def login(
     if user:
 
 
+
+        if user.rol != "Admin" and bakim_modu_aktif_mi(db):
+            return templates.TemplateResponse(
+                "login.html",
+                {"request": request, "hata": "Sistem bakım modunda. Yalnızca yönetici erişebilir."},
+            )
 
         # pasif kullanıcı kontrolü
 
