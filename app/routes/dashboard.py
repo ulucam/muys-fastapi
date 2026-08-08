@@ -22,7 +22,7 @@ from app.models.istasyon import Istasyon
 from app.models.personel import Personel
 from app.models.siparis import Siparis
 from app.models.uretim_plani import UretimPlani, UretimPlanAsamasi
-from app.services.uretim_plan_service import plan_asamasini_tamamla, uretim_plani_olustur, uretim_planini_iptal_et
+from app.services.uretim_plan_service import plan_asamasini_tamamla, secimden_uretim_plani_olustur, uretim_planini_iptal_et
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -140,9 +140,13 @@ async def uretim_planla(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Üretim planlama yetkiniz yok.")
     form = await request.form()
     try:
-        uretim_plani_olustur(db, int(form.get("recete_id") or 0), float(form.get("miktar") or 0),
-            form.get("hedef_turu") or "", int(form.get("siparis_kalem_id")) if str(form.get("siparis_kalem_id") or "").isdigit() else None,
-            form.get("aciklama") or "")
+        hedef_turu = form.get("hedef_turu") or ""
+        secimden_uretim_plani_olustur(
+            db, hedef_turu, float(form.get("miktar") or 0),
+            int(form.get("siparis_kalem_id")) if str(form.get("siparis_kalem_id") or "").isdigit() else None,
+            int(form.get("stok_urun_id")) if str(form.get("stok_urun_id") or "").isdigit() else None,
+            form.get("aciklama") or "",
+        )
     except (ValueError, TypeError):
         return RedirectResponse("/?plan=hata#dashboard-uretim", status_code=303)
     return RedirectResponse("/?plan=hazir#dashboard-uretim", status_code=303)
