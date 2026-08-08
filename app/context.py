@@ -18,7 +18,13 @@ def template_data(request: Request):
             "rol",
             ""
         ),
-        "kullanici_ekleyebilir": request.session.get("kullanici_ekleyebilir", request.session.get("rol") == "Admin"),
+        "kullanici_ekleyebilir": getattr(
+            request.state,
+            "kullanici_ekleyebilir",
+            request.session.get("kullanici_ekleyebilir", request.session.get("rol") == "Admin"),
+        ),
+        "yedekleme_yapabilir": getattr(request.state, "yedekleme_yapabilir", request.session.get("rol") == "Admin"),
+        "loglarini_gorebilir": getattr(request.state, "loglarini_gorebilir", request.session.get("rol") == "Admin"),
 
         "firma_adi": getattr(request.state, "firma_adi", "MÜYS"),
         "firma_logo_yolu": getattr(request.state, "firma_logo_yolu", ""),
