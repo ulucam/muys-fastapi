@@ -9,6 +9,7 @@ from app.models.siparis_kalem import SiparisKalem
 from app.models.siparis import Siparis
 from app.models.stok_hareket import StokHareket
 from app.models.uretim_emri import UretimEmri
+from app.models.uretim_kaydi import UretimKaydi
 from app.models.uretim_plani import UretimPlani, UretimPlanAsamasi
 from app.models.urun import Urun
 from app.models.stok_urun_turu import StokUrunTuru
@@ -81,6 +82,19 @@ def recete_kaydet(db: Session, urun_id: int, tahmini_uretim_suresi: float = 0, a
     return recete, mevcut_recete
 
 
+def _recete_toplam_suresini_guncelle(db: Session, recete_id: int) -> float:
+    recete = db.query(Recete).filter(Recete.id == recete_id).first()
+    if not recete:
+        return 0
+    toplam = sum(asama.hedef_cevrim_suresi or 0 for asama in db.query(ReceteAsama).filter(
+        ReceteAsama.recete_id == recete.id, ReceteAsama.aktif.is_(True)
+    ).all())
+    urun = db.query(Urun).filter(Urun.id == recete.urun_id).first()
+    if urun:
+        urun.tahmini_uretim_suresi = toplam
+    return toplam
+
+
 def recete_asamasi_kaydet(db: Session, recete_id: int, sira_no: int, istasyon_id: int, operasyon_adi: str, hedef_cevrim_suresi: float = 0, aciklama: str = "") -> ReceteAsama:
     recete = db.query(Recete).filter(Recete.id == recete_id, Recete.aktif.is_(True)).first()
     istasyon = db.query(Istasyon).filter(Istasyon.id == istasyon_id, Istasyon.aktif.is_(True)).first()
@@ -91,20 +105,22 @@ def recete_asamasi_kaydet(db: Session, recete_id: int, sira_no: int, istasyon_id
         raise ValueError("Bu sıra numarası reçetede kullanılıyor")
     asama = ReceteAsama(recete_id=recete.id, sira_no=sira_no, istasyon_id=istasyon.id,
         operasyon_adi=operasyon_adi[:150], hedef_cevrim_suresi=max(0, hedef_cevrim_suresi), aciklama=aciklama.strip()[:500])
-    db.add(asama); db.commit()
+    db.add(asama); db.flush(); _recete_toplam_suresini_guncelle(db, recete.id); db.commit()
     return asama
 
 
-def asama_malzemesi_kaydet(db: Session, asama_id: int, malzeme_id: int, miktar: int, birim: str, fire_orani: float = 0) -> ReceteAsamaMalzeme:
+def asama_malzemesi_kaydet(db: Session, asama_id: int, malzeme_id: int, miktar: float, birim: str, fire_orani: float = 0) -> ReceteAsamaMalzeme:
     asama = db.query(ReceteAsama).filter(ReceteAsama.id == asama_id, ReceteAsama.aktif.is_(True)).first()
     malzeme = db.query(Urun).filter(Urun.id == malzeme_id, Urun.aktif.is_(True)).first()
-    if not asama or not malzeme or miktar <= 0 or int(miktar) != miktar:
+    if not asama or not malzeme or miktar <= 0:
         raise ValueError("Aşama, malzeme ve pozitif miktar zorunludur")
     kayit = db.query(ReceteAsamaMalzeme).filter(ReceteAsamaMalzeme.asama_id == asama.id, ReceteAsamaMalzeme.malzeme_id == malzeme.id).first()
     kayit = kayit or ReceteAsamaMalzeme(asama_id=asama.id, malzeme_id=malzeme.id)
     secili_birim = birim.strip()
     if secili_birim not in {"Adet", "Kg"}:
         raise ValueError("Birim Adet veya Kg olmalıdır")
+    if secili_birim == "Adet" and not float(miktar).is_integer():
+        raise ValueError("Adet birimli malzeme miktarı tam sayı olmalıdır")
     kayit.miktar, kayit.birim, kayit.fire_orani = miktar, secili_birim, max(0, fire_orani)
     db.add(kayit); db.commit()
     return kayit
@@ -125,6 +141,7 @@ def recete_duzenleme_verisi(db: Session, recete_id: int) -> dict | None:
         "urunler": db.query(Urun).filter(Urun.aktif.isnot(False)).order_by(Urun.adi).all(),
         "uretilebilir_urunler": [urun for urun in db.query(Urun).filter(Urun.aktif.isnot(False)).order_by(Urun.adi).all() if uretilebilir_urun_mu(urun, _uretim_stok_tur_idleri(db))],
         "istasyonlar": db.query(Istasyon).filter(Istasyon.aktif.is_(True)).order_by(Istasyon.adi).all(),
+        "toplam_tahmini_sure": _recete_toplam_suresini_guncelle(db, recete.id),
     }
 
 
@@ -136,7 +153,7 @@ def recete_guncelle(db: Session, recete_id: int, urun_id: int, tahmini_uretim_su
         raise ValueError("Geçerli ve başka aktif reçetesi olmayan bir üretim ürünü seçin")
     recete.urun_id, recete.aciklama = urun.id, aciklama.strip()[:250]
     urun.tahmini_uretim_suresi = max(0, tahmini_uretim_suresi)
-    db.commit()
+    _recete_toplam_suresini_guncelle(db, recete_id); db.commit()
     return recete
 
 
@@ -149,7 +166,7 @@ def recete_asamasi_guncelle(db: Session, recete_id: int, asama_id: int, sira_no:
     asama.sira_no, asama.istasyon_id = sira_no, istasyon.id
     asama.operasyon_adi, asama.hedef_cevrim_suresi = operasyon_adi.strip()[:150], max(0, hedef_cevrim_suresi)
     asama.aciklama = aciklama.strip()[:500]
-    db.commit()
+    _recete_toplam_suresini_guncelle(db, recete_id); db.commit()
     return asama
 
 
@@ -159,7 +176,7 @@ def recete_asamasi_sil(db: Session, recete_id: int, asama_id: int) -> None:
         raise ValueError("Reçete aşaması bulunamadı")
     db.query(ReceteAsamaMalzeme).filter(ReceteAsamaMalzeme.asama_id == asama.id).delete()
     db.delete(asama)
-    db.commit()
+    db.flush(); _recete_toplam_suresini_guncelle(db, recete_id); db.commit()
 
 
 def asama_malzemesi_sil(db: Session, asama_id: int, malzeme_id: int) -> None:
@@ -185,6 +202,9 @@ def uretim_plani_olustur(db: Session, recete_id: int, miktar: float, hedef_turu:
         raise ValueError("Aşamalı reçete, hedef ve pozitif miktar zorunludur")
     if hedef_turu == "Siparis" and (not siparis_kalemi or siparis_kalemi.urun_id != recete.urun_id):
         raise ValueError("Reçete ürünüyle eşleşen sipariş kalemi seçilmelidir")
+    urun = db.query(Urun).filter(Urun.id == recete.urun_id).first()
+    if urun and urun.birim == "Adet" and not float(miktar).is_integer():
+        raise ValueError("Adet birimli üretim miktarı tam sayı olmalıdır")
     plan = UretimPlani(plan_no=_siradaki_plan_no(db), hedef_turu=hedef_turu,
         siparis_kalem_id=siparis_kalemi.id if siparis_kalemi else None, urun_id=recete.urun_id,
         recete_id=recete.id, miktar=miktar, durum="Hazır", aciklama=aciklama.strip()[:500])
@@ -198,6 +218,35 @@ def uretim_plani_olustur(db: Session, recete_id: int, miktar: float, hedef_turu:
             urun_id=plan.urun_id, miktar=miktar, durum="Planlandı" if index == 0 else "Sırada",
             aciklama=asama.operasyon_adi, aktif=index == 0, istasyon_id=asama.istasyon_id,
             uretim_plani_id=plan.id, plan_asamasi_id=plan_asamasi.id))
+    db.commit()
+    return plan
+
+
+def uretim_planini_iptal_et(db: Session, plan_id: int) -> UretimPlani:
+    """İptalde tamamlanan son aşamayı ara stok olarak korur."""
+    plan = db.query(UretimPlani).filter(UretimPlani.id == plan_id, UretimPlani.aktif.is_(True)).first()
+    if not plan or plan.durum == "Tamamlandı":
+        raise ValueError("İptal edilecek aktif üretim planı bulunamadı")
+    emirler = db.query(UretimEmri).filter(UretimEmri.uretim_plani_id == plan.id).all()
+    emir_idleri = [emir.id for emir in emirler]
+    if emir_idleri and db.query(UretimKaydi).filter(UretimKaydi.uretim_emri_id.in_(emir_idleri), UretimKaydi.durum == "Devam Ediyor").first():
+        raise ValueError("Önce devam eden operatör işini bitirin")
+    asamalar = db.query(UretimPlanAsamasi).filter(UretimPlanAsamasi.uretim_plani_id == plan.id).order_by(UretimPlanAsamasi.sira_no).all()
+    tamamlananlar = [asama for asama in asamalar if asama.durum == "Tamamlandı" and (asama.tamamlanan_miktar or 0) > 0]
+    if tamamlananlar:
+        son_asama = tamamlananlar[-1]
+        urun = db.query(Urun).filter(Urun.id == plan.urun_id).first()
+        if urun:
+            urun.mevcut_stok = (urun.mevcut_stok or 0) + son_asama.tamamlanan_miktar
+            db.add(StokHareket(urun_id=urun.id, hareket_tipi="Giriş", miktar=son_asama.tamamlanan_miktar,
+                aciklama=f"{plan.plan_no} iptal: {son_asama.sira_no}. aşama ({son_asama.operasyon_adi}) ara stok", referans=plan.plan_no))
+    for asama in asamalar:
+        if asama.durum != "Tamamlandı":
+            asama.durum = "İptal"
+    for emir in emirler:
+        if emir.durum != "Tamamlandı":
+            emir.durum, emir.aktif = "İptal", False
+    plan.durum, plan.aktif = "İptal", False
     db.commit()
     return plan
 
