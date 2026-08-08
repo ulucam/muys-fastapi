@@ -14,11 +14,12 @@
             {{ dock_toggle('Sipariş bölümleri') }}
             {% if siparis_duzenleyebilir %}{{ panel_button('siparis-giris', 'Sipariş Gir', 'bi-plus-lg', 'success', none, true) }}{% endif %}
             {% for durum_adi in durumlar %}
-                {{ panel_button('durum-' ~ loop.index, durum_adi, 'bi-list-check' if loop.first else ('bi-gear' if loop.index == 2 else 'bi-truck'), 'primary' if loop.first else ('success' if loop.index == 2 else 'warning'), siparisler_duruma_gore[durum_adi]|length) }}
+                {{ panel_button('durum-' ~ loop.index, durum_adi, 'bi-list-check' if loop.first else ('bi-gear' if loop.index == 2 else 'bi-truck'), 'primary' if loop.first else ('success' if loop.index == 2 else 'warning'), siparisler_duruma_gore[durum_adi]|length, not siparis_duzenleyebilir and loop.first) }}
             {% endfor %}
         </aside>
 
         <div class="module-panel-area">
+            {% if not siparis_duzenleyebilir %}<div class="alert alert-info py-2"><i class="bi bi-eye me-1"></i>Sipariş durumlarını soldaki açılır bölümden görüntüleyebilirsiniz. Bu rol sipariş oluşturamaz veya düzenleyemez.</div>{% endif %}
             {% if siparis_duzenleyebilir %}<section class="module-panel is-active" data-module-panel="siparis-giris">
                 {% if request.query_params.get('error') %}<div class="alert alert-danger">Sipariş bilgilerini, müşteri ve ürün kalemlerini kontrol edin.</div>{% elif request.query_params.get('kaydedildi') %}<div class="alert alert-success">Sipariş kaydedildi.</div>{% endif %}
                 {% set form_action = '/siparisler/kaydet' %}{% include 'siparisler/_form.html' %}
