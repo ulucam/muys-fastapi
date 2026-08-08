@@ -76,6 +76,7 @@ def duzenle(id: int, request: Request, kullanici_adi: str = Form(...), sifre: st
 
 @router.post("/roller")
 def rol_kaydet(request: Request, adi: str = Form(...), seviye: int = Form(...), kullanici_ekleyebilir: bool = Form(False),
+    yedekleme_yapabilir: bool = Form(False), loglarini_gorebilir: bool = Form(False),
     yetkiler: str = Form(""), aciklama: str = Form(""), rol_id: int | None = Form(None), db: Session = Depends(get_db),
     yetki=Depends(yetki_kontrol(ADMIN))):
     rol = db.query(RolSinifi).filter(RolSinifi.id == rol_id).first() if rol_id else RolSinifi()
@@ -88,6 +89,7 @@ def rol_kaydet(request: Request, adi: str = Form(...), seviye: int = Form(...), 
         raise HTTPException(400, "Rol seviyesi 1-99 arasında olmalıdır.")
     eski_ad = rol.adi if rol_id else None
     rol.adi, rol.seviye, rol.kullanici_ekleyebilir = adi, seviye, kullanici_ekleyebilir
+    rol.yedekleme_yapabilir, rol.loglarini_gorebilir = yedekleme_yapabilir, loglarini_gorebilir
     rol.yetkiler, rol.aciklama, rol.aktif = yetkiler.strip(), aciklama.strip(), True
     try:
         db.add(rol)
