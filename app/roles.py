@@ -31,6 +31,13 @@ SIPARIS = [
     "Operatör"
 ]
 
+SIPARIS_YONET = [
+    "Admin",
+    "Yönetici",
+    "Satış",
+    "Üretim",
+]
+
 STOK = [
     "Admin",
     "Yönetici",
