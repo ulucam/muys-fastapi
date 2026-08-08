@@ -153,10 +153,11 @@ def uretim_plani_iptal(plan_id: int, request: Request, db: Session = Depends(get
     if request.session.get("rol") not in ("Admin", "Yönetici", "YÃ¶netici", "Üretim", "Ãœretim"):
         raise HTTPException(status_code=403, detail="Üretim planı iptal yetkiniz yok.")
     try:
-        uretim_planini_iptal_et(db, plan_id)
+        plan = uretim_planini_iptal_et(db, plan_id)
     except ValueError:
         return RedirectResponse("/?plan=iptal_hata#dashboard-uretim", status_code=303)
-    return RedirectResponse("/?plan=iptal#dashboard-uretim", status_code=303)
+    sonuc = "iptal_bekliyor" if plan.durum == "İptal Bekliyor" else "iptal"
+    return RedirectResponse(f"/?plan={sonuc}#dashboard-uretim", status_code=303)
 
 
 @router.post("/uretim/{emir_id}/istasyon")
