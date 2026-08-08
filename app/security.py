@@ -36,3 +36,20 @@ def kullanici_yonetim_kontrol(request: Request, db: Session = Depends(get_db)):
     if rol_adi != "Admin" and (not rol or not rol.kullanici_ekleyebilir):
         raise HTTPException(status_code=403, detail="Kullanıcı yönetimi yetkiniz yok.")
     return rol
+
+
+def yedekleme_kontrol(request: Request, db: Session = Depends(get_db)):
+    """Admin veya Admin'in yedek/Excel aktarım izni verdiği rol."""
+    rol_adi = request.session.get("rol", "")
+    rol = db.query(RolSinifi).filter(RolSinifi.adi == rol_adi, RolSinifi.aktif.is_(True)).first()
+    if rol_adi != "Admin" and (not rol or not rol.yedekleme_yapabilir):
+        raise HTTPException(status_code=403, detail="Yedekleme ve Excel aktarımı yetkiniz yok.")
+    return rol
+
+
+def kendi_loglarini_gorme_kontrol(request: Request, db: Session = Depends(get_db)):
+    rol_adi = request.session.get("rol", "")
+    rol = db.query(RolSinifi).filter(RolSinifi.adi == rol_adi, RolSinifi.aktif.is_(True)).first()
+    if not request.session.get("user_id") or (rol_adi != "Admin" and (not rol or not rol.loglarini_gorebilir)):
+        raise HTTPException(status_code=403, detail="İşlem geçmişinizi görüntüleme yetkiniz yok.")
+    return rol
