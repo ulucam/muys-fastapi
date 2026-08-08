@@ -122,10 +122,10 @@
         {% else %}
         {% if uretim_yonetebilir %}<div id="uretim-emirleri" class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-3"><strong><i class="bi bi-calendar2-check me-2"></i>Üretim Planı Başlat</strong><div class="small text-muted">Aşamalı reçeteyi sipariş için veya doğrudan stok için üretime alın.</div></div>
-            <div class="card-body"><form method="post" action="/uretim/planla" class="row g-3">
-                <div class="col-md-3"><label class="form-label">Reçete</label><select class="form-select" name="recete_id" required><option value="">Reçete seçin</option>{% for recete in plan_receteleri %}{% set urun = plan_urun_haritasi.get(recete.urun_id) %}<option value="{{ recete.id }}">{{ recete.recete_no }} · {{ urun.adi if urun else '-' }}</option>{% endfor %}</select></div>
+            <div class="card-body"><form method="post" action="/uretim/planla" class="row g-3" id="uretimPlanForm">
                 <div class="col-md-2"><label class="form-label">Hedef</label><select class="form-select" name="hedef_turu" id="planHedefTuru" required><option value="Stok">Stoğa Çalış</option><option value="Siparis">Siparişe Çalış</option></select></div>
-                <div class="col-md-3"><label class="form-label">Sipariş Kalemi</label><select class="form-select" name="siparis_kalem_id"><option value="">Stok üretiminde boş bırakın</option>{% for kalem in bekleyen_siparis_kalemleri %}{% set siparis = plan_siparis_haritasi.get(kalem.siparis_id) %}{% set urun = plan_urun_haritasi.get(kalem.urun_id) %}<option value="{{ kalem.id }}">{{ siparis.siparis_no if siparis else '-' }} · {{ urun.adi if urun else '-' }} · {{ kalem.miktar }} {{ kalem.birim }}</option>{% endfor %}</select></div>
+                <div class="col-md-6" id="stokUrunAlani"><label class="form-label">Mamül / Yedek Parça</label><select class="form-select" name="stok_urun_id"><option value="">Ürün seçin</option>{% for urun in stok_uretim_urunleri %}<option value="{{ urun.id }}">{{ urun.adi }}</option>{% endfor %}</select><div class="form-text">Yalnız aktif reçetesi bulunan mamül ve yedek parçalar listelenir.</div></div>
+                <div class="col-md-6 d-none" id="siparisKalemAlani"><label class="form-label">Sipariş Kalemi</label><select class="form-select" name="siparis_kalem_id"><option value="">Sipariş ürünü seçin</option>{% for kalem in bekleyen_siparis_kalemleri %}{% set siparis = plan_siparis_haritasi.get(kalem.siparis_id) %}{% set urun = plan_urun_haritasi.get(kalem.urun_id) %}<option value="{{ kalem.id }}">{{ siparis.siparis_no if siparis else '-' }} · {{ urun.adi if urun else '-' }} · {{ kalem.miktar }} {{ kalem.birim }}</option>{% endfor %}</select><div class="form-text">Seçilen sipariş kaleminin reçetesi otomatik kullanılır.</div></div>
                 <div class="col-md-2"><label class="form-label">Miktar</label><input class="form-control" type="number" step="0.001" min="0.001" name="miktar" required></div>
                 <div class="col-md-2 d-flex align-items-end"><button class="btn btn-success w-100"><i class="bi bi-play-circle me-1"></i>Planı Başlat</button></div>
                 <div class="col-12"><input class="form-control" name="aciklama" maxlength="500" placeholder="Plan açıklaması (isteğe bağlı)"></div>
@@ -164,4 +164,14 @@
 </div>
 <script src="/static/js/dashboard.js?v=4"></script>
 <script src="/static/js/production-dashboard.js?v=2"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const hedef = document.getElementById('planHedefTuru');
+  const stok = document.getElementById('stokUrunAlani');
+  const siparis = document.getElementById('siparisKalemAlani');
+  if (!hedef || !stok || !siparis) return;
+  const guncelle = () => { const siparisMi = hedef.value === 'Siparis'; stok.classList.toggle('d-none', siparisMi); siparis.classList.toggle('d-none', !siparisMi); stok.querySelector('select').required = !siparisMi; siparis.querySelector('select').required = siparisMi; };
+  hedef.addEventListener('change', guncelle); guncelle();
+});
+</script>
 {% endblock %}
