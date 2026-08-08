@@ -46,106 +46,27 @@
                         Sistemin tamamının yedeğini bilgisayarınıza indirebilirsiniz.
                     </p>
 
-                    <button class="btn btn-primary">
+                    <form method="post" action="/ayarlar/yedek/olustur">
+                    <button class="btn btn-primary" type="submit">
                         <i class="bi bi-download"></i>
                         Yedek Oluştur
                     </button>
+                    </form>
 
                 </div>
 
             </div>
 
         </div>
-
-        <!-- Geri Yükle -->
 
         <div class="col-lg-6">
-
             <div class="card shadow-sm border-0 h-100">
-
                 <div class="card-body text-center">
-
-                    <i class="bi bi-cloud-arrow-up fs-1 text-success"></i>
-
-                    <h5 class="mt-3">
-                        Yedekten Geri Yükle
-                    </h5>
-
-                    <p class="text-muted">
-                        Daha önce alınmış bir yedeği sisteme geri yükleyebilirsiniz.
-                    </p>
-
-                    <input class="form-control mb-3"
-                           type="file"
-                           accept=".zip,.bak">
-
-                    <button class="btn btn-success">
-                        <i class="bi bi-upload"></i>
-                        Geri Yükle
-                    </button>
-
+                    <i class="bi bi-shield-check fs-1 text-success"></i>
+                    <h5 class="mt-3">Güvenli Yedek</h5>
+                    <p class="text-muted mb-0">Yedek, tüm kayıtları ZIP içindeki okunabilir JSON dosyası olarak indirir. Geri yükleme işlemi yanlış veri silinmesini önlemek için ayrıca kontrollü aktarım akışıyla yapılacaktır.</p>
                 </div>
-
             </div>
-
-        </div>
-
-        <!-- Geçmiş -->
-
-        <div class="col-12">
-
-            <div class="card shadow-sm border-0">
-
-                <div class="card-body">
-
-                    <h5 class="mb-3">
-                        <i class="bi bi-clock-history"></i>
-                        Yedek Geçmişi
-                    </h5>
-
-                    <table class="table table-hover align-middle">
-
-                        <thead>
-
-                        <tr>
-
-                            <th>Tarih</th>
-                            <th>Boyut</th>
-                            <th>Oluşturan</th>
-                            <th>Durum</th>
-
-                        </tr>
-
-                        </thead>
-
-                        <tbody>
-
-                        <tr>
-
-                            <td>-</td>
-                            <td>-</td>
-                            <td>-</td>
-
-                            <td>
-
-                                <span class="badge bg-secondary">
-
-                                    Henüz Yedek Yok
-
-                                </span>
-
-                            </td>
-
-                        </tr>
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            </div>
-
         </div>
 
     </div>
