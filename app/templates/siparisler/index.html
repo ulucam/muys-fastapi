@@ -1,46 +1,38 @@
 {% extends "base.html" %}
-{% from "components/module_toolbar.html" import panel_button, link_button, dock_toggle %}
+{% from "components/module_toolbar.html" import dock_toggle, link_button %}
 {% block title %}Siparişler{% endblock %}
 {% block content %}
 <div class="container-fluid py-3 px-0">
-    <div class="mb-4">
-        <h3 class="mb-1"><i class="bi bi-clipboard-check"></i> Sipariş Yönetimi</h3>
-        <p class="text-muted mb-0">Siparişleri durumuna göre geniş alanda inceleyin.</p>
-        {% if musteri_id %}<div class="small text-muted mt-2"><strong>{{ musteri.firma_adi if musteri else 'Müşteri bulunamadı' }}</strong>{% if durum %} · {{ durum }} siparişleri{% endif %}</div>{% endif %}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div><h3 class="mb-1"><i class="bi bi-clipboard-check"></i> Siparişler</h3><p class="text-muted mb-0">Duruma göre siparişleri ve üretim hazırlıklarını takip edin.</p></div>
+        {% if siparis_duzenleyebilir %}<a class="btn btn-success" href="/siparisler?giris=1"><i class="bi bi-plus-lg me-1"></i> Yeni Sipariş</a>{% endif %}
     </div>
 
-    <div class="module-workspace" data-module-workspace>
-        <aside class="module-toolbar" aria-label="Sipariş bölümleri">
-            {{ dock_toggle('Sipariş bölümleri') }}
-            {% if siparis_duzenleyebilir %}{{ panel_button('siparis-giris', 'Sipariş Gir', 'bi-plus-lg', 'success', none, true) }}{% endif %}
-            {% for durum_adi in durumlar %}
-                {{ panel_button('durum-' ~ loop.index, durum_adi, 'bi-list-check' if loop.first else ('bi-gear' if loop.index == 2 else 'bi-truck'), 'primary' if loop.first else ('success' if loop.index == 2 else 'warning'), siparisler_duruma_gore[durum_adi]|length, not siparis_duzenleyebilir and loop.first) }}
+    <div class="module-workspace">
+        <aside class="module-toolbar" aria-label="Sipariş durumları">
+            {{ dock_toggle('Sipariş durumları') }}
+            {% for durum in siparis_durumlari %}
+            {{ link_button('/siparisler?durum=' ~ durum, durum, 'bi-hourglass-split' if loop.first else ('bi-gear-wide-connected' if loop.index == 2 else 'bi-truck'), 'warning' if loop.first else ('primary' if loop.index == 2 else 'success'), siparis_sayaclari[durum], durum == secili_siparis_durumu) }}
             {% endfor %}
         </aside>
 
         <div class="module-panel-area">
-            {% if not siparis_duzenleyebilir %}<div class="alert alert-info py-2"><i class="bi bi-eye me-1"></i>Sipariş durumlarını soldaki açılır bölümden görüntüleyebilirsiniz. Bu rol sipariş oluşturamaz veya düzenleyemez.</div>{% endif %}
-            {% if siparis_duzenleyebilir %}<section class="module-panel is-active" data-module-panel="siparis-giris">
-                {% if request.query_params.get('error') %}<div class="alert alert-danger">Sipariş bilgilerini, müşteri ve ürün kalemlerini kontrol edin.</div>{% elif request.query_params.get('kaydedildi') %}<div class="alert alert-success">Sipariş kaydedildi.</div>{% endif %}
+            {% if siparis_giris_acik %}
+                {% if request.query_params.get('error') %}<div class="alert alert-danger">Sipariş bilgilerini, müşteri ve ürün kalemlerini kontrol edin.</div>{% endif %}
                 {% set form_action = '/siparisler/kaydet' %}{% include 'siparisler/_form.html' %}
-            </section>{% endif %}
-            {% for durum_adi in durumlar %}
-            <section class="module-panel{% if not siparis_duzenleyebilir and loop.first %} is-active{% endif %}" data-module-panel="durum-{{ loop.index }}" {% if siparis_duzenleyebilir or not loop.first %}hidden{% endif %}>
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                        <strong>{{ durum_adi }}</strong><span class="badge text-bg-secondary">{{ siparisler_duruma_gore[durum_adi]|length }}</span>
-                    </div>
-                    <div class="list-group list-group-flush">
-                        {% for siparis in siparisler_duruma_gore[durum_adi] %}
-                        <div class="list-group-item py-3 d-flex justify-content-between align-items-center gap-3">
-                            <div><div class="fw-semibold">{{ siparis.siparis_no }}</div><small class="text-muted">Sipariş: {{ siparis.siparis_tarihi.strftime('%d.%m.%Y') if siparis.siparis_tarihi else '-' }} · Teslim: {{ siparis.teslim_tarihi.strftime('%d.%m.%Y') if siparis.teslim_tarihi else '-' }}</small>{% if siparis.aciklama %}<small class="d-block text-muted mt-1">{{ siparis.aciklama }}</small>{% endif %}</div>
-                            <div class="d-flex align-items-center gap-2"><span class="badge text-bg-light">{{ durum_adi }}</span>{% if siparis_duzenleyebilir %}<a class="btn btn-sm btn-outline-primary" href="/siparisler/{{ siparis.id }}/duzenle">Düzenle</a>{% endif %}</div>
-                        </div>
-                        {% else %}<div class="list-group-item text-muted text-center py-5">Bu durumda sipariş bulunmuyor.</div>{% endfor %}
-                    </div>
-                </div>
-            </section>
+            {% else %}
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center"><strong>{{ secili_siparis_durumu }} Siparişler</strong><span class="badge text-bg-secondary">{{ siparis_sayaclari[secili_siparis_durumu] }}</span></div>
+                <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Sipariş No</th><th>Müşteri</th><th>Sipariş Tarihi</th><th>Teslim Tarihi</th><th>Ürün Sayısı</th><th>Durum</th>{% if siparis_duzenleyebilir %}<th></th>{% endif %}</tr></thead><tbody>
+                    {% for satir in siparis_satirlari %}{% set siparis = satir.siparis %}
+                    <tr><td><button class="btn btn-link p-0 fw-semibold text-decoration-none" type="button" data-bs-toggle="modal" data-bs-target="#siparisDetay{{ siparis.id }}">{{ siparis.siparis_no }}</button></td><td>{{ satir.musteri.firma_adi }}</td><td>{{ siparis.siparis_tarihi.strftime('%d.%m.%Y') if siparis.siparis_tarihi else '-' }}</td><td>{{ siparis.teslim_tarihi.strftime('%d.%m.%Y') if siparis.teslim_tarihi else '-' }}</td><td>{{ satir.kalemler|length }}</td><td><span class="badge text-bg-light border">{{ siparis.durum }}</span></td>{% if siparis_duzenleyebilir %}<td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/siparisler/{{ siparis.id }}/duzenle">Düzenle</a></td>{% endif %}</tr>
+                    {% else %}<tr><td colspan="{{ 7 if siparis_duzenleyebilir else 6 }}" class="text-center text-muted py-5">Bu durumda sipariş bulunmuyor.</td></tr>{% endfor %}
+                </tbody></table></div>
+            </div>
+            {% for satir in siparis_satirlari %}{% set siparis = satir.siparis %}
+            <div class="modal fade" id="siparisDetay{{ siparis.id }}" tabindex="-1" aria-labelledby="siparisBaslik{{ siparis.id }}" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><div><h5 class="modal-title" id="siparisBaslik{{ siparis.id }}">{{ siparis.siparis_no }}</h5><small class="text-muted">{{ satir.musteri.firma_adi }}{% if satir.musteri.yetkili %} · {{ satir.musteri.yetkili }}{% endif %}</small></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="row small mb-3"><div class="col-md-6"><strong>Telefon:</strong> {{ satir.musteri.telefon or '-' }}</div><div class="col-md-6"><strong>Teslim:</strong> {{ siparis.teslim_tarihi.strftime('%d.%m.%Y') if siparis.teslim_tarihi else '-' }}</div></div>{% if siparis.aciklama %}<p class="small text-muted">{{ siparis.aciklama }}</p>{% endif %}<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Ürün</th><th class="text-end">Miktar</th><th class="text-end">Üretilen</th><th>Üretim Durumu</th></tr></thead><tbody>{% for kalem in satir.kalemler %}<tr><td>{{ kalem.urun_adi }}</td><td class="text-end">{{ kalem.miktar }} {{ kalem.birim }}</td><td class="text-end">{{ kalem.uretilen_miktar }} {{ kalem.birim }}</td><td><span class="badge {% if kalem.durum == 'Hazır' %}text-bg-success{% elif kalem.durum == 'Üretimde' %}text-bg-primary{% else %}text-bg-warning{% endif %}">{{ kalem.durum }}</span></td></tr>{% else %}<tr><td colspan="4" class="text-center text-muted">Ürün kalemi bulunmuyor.</td></tr>{% endfor %}</tbody></table></div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Kapat</button>{% if siparis_duzenleyebilir %}<a class="btn btn-primary" href="/siparisler/{{ siparis.id }}/duzenle">Düzenle</a>{% endif %}</div></div></div></div>
             {% endfor %}
+            {% endif %}
         </div>
     </div>
 </div>
