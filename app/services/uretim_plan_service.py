@@ -223,23 +223,29 @@ def uretim_plani_olustur(db: Session, recete_id: int, miktar: float, hedef_turu:
 
 
 def uretim_planini_iptal_et(db: Session, plan_id: int) -> UretimPlani:
-    """İptalde tamamlanan son aşamayı ara stok olarak korur."""
+    """İptalde ara çıktıyı ilgili operasyonun yarı mamul kartına aktarır."""
     plan = db.query(UretimPlani).filter(UretimPlani.id == plan_id, UretimPlani.aktif.is_(True)).first()
     if not plan or plan.durum == "Tamamlandı":
         raise ValueError("İptal edilecek aktif üretim planı bulunamadı")
     emirler = db.query(UretimEmri).filter(UretimEmri.uretim_plani_id == plan.id).all()
     emir_idleri = [emir.id for emir in emirler]
-    if emir_idleri and db.query(UretimKaydi).filter(UretimKaydi.uretim_emri_id.in_(emir_idleri), UretimKaydi.durum == "Devam Ediyor").first():
-        raise ValueError("Önce devam eden operatör işini bitirin")
+    aktif_kayit = db.query(UretimKaydi).filter(UretimKaydi.uretim_emri_id.in_(emir_idleri), UretimKaydi.durum == "Devam Ediyor").first() if emir_idleri else None
     asamalar = db.query(UretimPlanAsamasi).filter(UretimPlanAsamasi.uretim_plani_id == plan.id).order_by(UretimPlanAsamasi.sira_no).all()
     tamamlananlar = [asama for asama in asamalar if asama.durum == "Tamamlandı" and (asama.tamamlanan_miktar or 0) > 0]
+    if aktif_kayit:
+        # Operatörün başlattığı iş kesilmez; bitirdiğinde bu aşamanın çıktısı ara stoka alınır.
+        plan.durum = "İptal Bekliyor"
+        aktif_emir_id = aktif_kayit.uretim_emri_id
+        for asama in asamalar:
+            if asama.durum not in ("Tamamlandı", "Üretimde"):
+                asama.durum = "İptal"
+        for emir in emirler:
+            if emir.id != aktif_emir_id and emir.durum != "Tamamlandı":
+                emir.durum, emir.aktif = "İptal", False
+        db.commit()
+        return plan
     if tamamlananlar:
-        son_asama = tamamlananlar[-1]
-        urun = db.query(Urun).filter(Urun.id == plan.urun_id).first()
-        if urun:
-            urun.mevcut_stok = (urun.mevcut_stok or 0) + son_asama.tamamlanan_miktar
-            db.add(StokHareket(urun_id=urun.id, hareket_tipi="Giriş", miktar=son_asama.tamamlanan_miktar,
-                aciklama=f"{plan.plan_no} iptal: {son_asama.sira_no}. aşama ({son_asama.operasyon_adi}) ara stok", referans=plan.plan_no))
+        _plan_ara_stoga_al(db, plan, tamamlananlar[-1], tamamlananlar[-1].tamamlanan_miktar)
     for asama in asamalar:
         if asama.durum != "Tamamlandı":
             asama.durum = "İptal"
@@ -249,6 +255,24 @@ def uretim_planini_iptal_et(db: Session, plan_id: int) -> UretimPlani:
     plan.durum, plan.aktif = "İptal", False
     db.commit()
     return plan
+
+
+def _plan_ara_stoga_al(db: Session, plan: UretimPlani, asama: UretimPlanAsamasi, miktar: float) -> None:
+    """Her ürün/operasyon çifti için tek ara yarı mamul kartı kullanır."""
+    if miktar <= 0:
+        return
+    ana_urun = db.query(Urun).filter(Urun.id == plan.urun_id).first()
+    if not ana_urun:
+        return
+    kod = f"ARA-{plan.urun_id}-{asama.recete_asama_id}"
+    ara_urun = db.query(Urun).filter(Urun.kodu == kod).first()
+    if not ara_urun:
+        ara_urun = Urun(kodu=kod, adi=f"{ana_urun.adi} · {asama.operasyon_adi} sonrası yarı mamul",
+            urun_tipi="Yarı Mamül", birim=ana_urun.birim, aktif=True, mevcut_stok=0, min_stok=0)
+        db.add(ara_urun); db.flush()
+    ara_urun.mevcut_stok = (ara_urun.mevcut_stok or 0) + miktar
+    db.add(StokHareket(urun_id=ara_urun.id, hareket_tipi="Giriş", miktar=miktar,
+        aciklama=f"{plan.plan_no} iptal: {asama.sira_no}. aşama ({asama.operasyon_adi}) yarı mamul", referans=plan.plan_no))
 
 
 def plan_asamasini_tamamla(db: Session, emir: UretimEmri, uretilen_miktar: float, fire_miktari: float) -> None:
@@ -269,6 +293,10 @@ def plan_asamasini_tamamla(db: Session, emir: UretimEmri, uretilen_miktar: float
         malzeme.mevcut_stok = (malzeme.mevcut_stok or 0) - tuketim
         db.add(StokHareket(urun_id=malzeme.id, hareket_tipi="Çıkış", miktar=tuketim,
             aciklama=f"{plan.plan_no} / {asama.operasyon_adi}", referans=plan.plan_no))
+    if plan.durum == "İptal Bekliyor":
+        _plan_ara_stoga_al(db, plan, asama, uretilen_miktar)
+        plan.durum, plan.aktif = "İptal", False
+        return
     sonraki = db.query(UretimPlanAsamasi).filter(UretimPlanAsamasi.uretim_plani_id == plan.id,
         UretimPlanAsamasi.sira_no > asama.sira_no).order_by(UretimPlanAsamasi.sira_no).first()
     if sonraki:
