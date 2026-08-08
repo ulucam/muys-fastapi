@@ -12,19 +12,19 @@
     <div class="module-workspace" data-module-workspace>
         <aside class="module-toolbar" aria-label="Sipariş bölümleri">
             {{ dock_toggle('Sipariş bölümleri') }}
-            {{ panel_button('siparis-giris', 'Sipariş Gir', 'bi-plus-lg', 'success', none, true) }}
+            {% if siparis_duzenleyebilir %}{{ panel_button('siparis-giris', 'Sipariş Gir', 'bi-plus-lg', 'success', none, true) }}{% endif %}
             {% for durum_adi in durumlar %}
                 {{ panel_button('durum-' ~ loop.index, durum_adi, 'bi-list-check' if loop.first else ('bi-gear' if loop.index == 2 else 'bi-truck'), 'primary' if loop.first else ('success' if loop.index == 2 else 'warning'), siparisler_duruma_gore[durum_adi]|length) }}
             {% endfor %}
         </aside>
 
         <div class="module-panel-area">
-            <section class="module-panel is-active" data-module-panel="siparis-giris">
+            {% if siparis_duzenleyebilir %}<section class="module-panel is-active" data-module-panel="siparis-giris">
                 {% if request.query_params.get('error') %}<div class="alert alert-danger">Sipariş bilgilerini, müşteri ve ürün kalemlerini kontrol edin.</div>{% elif request.query_params.get('kaydedildi') %}<div class="alert alert-success">Sipariş kaydedildi.</div>{% endif %}
                 {% set form_action = '/siparisler/kaydet' %}{% include 'siparisler/_form.html' %}
-            </section>
+            </section>{% endif %}
             {% for durum_adi in durumlar %}
-            <section class="module-panel" data-module-panel="durum-{{ loop.index }}" hidden>
+            <section class="module-panel{% if not siparis_duzenleyebilir and loop.first %} is-active{% endif %}" data-module-panel="durum-{{ loop.index }}" {% if siparis_duzenleyebilir or not loop.first %}hidden{% endif %}>
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                         <strong>{{ durum_adi }}</strong><span class="badge text-bg-secondary">{{ siparisler_duruma_gore[durum_adi]|length }}</span>
@@ -33,7 +33,7 @@
                         {% for siparis in siparisler_duruma_gore[durum_adi] %}
                         <div class="list-group-item py-3 d-flex justify-content-between align-items-center gap-3">
                             <div><div class="fw-semibold">{{ siparis.siparis_no }}</div><small class="text-muted">Sipariş: {{ siparis.siparis_tarihi.strftime('%d.%m.%Y') if siparis.siparis_tarihi else '-' }} · Teslim: {{ siparis.teslim_tarihi.strftime('%d.%m.%Y') if siparis.teslim_tarihi else '-' }}</small>{% if siparis.aciklama %}<small class="d-block text-muted mt-1">{{ siparis.aciklama }}</small>{% endif %}</div>
-                            <div class="d-flex align-items-center gap-2"><span class="badge text-bg-light">{{ durum_adi }}</span><a class="btn btn-sm btn-outline-primary" href="/siparisler/{{ siparis.id }}/duzenle">Düzenle</a></div>
+                            <div class="d-flex align-items-center gap-2"><span class="badge text-bg-light">{{ durum_adi }}</span>{% if siparis_duzenleyebilir %}<a class="btn btn-sm btn-outline-primary" href="/siparisler/{{ siparis.id }}/duzenle">Düzenle</a>{% endif %}</div>
                         </div>
                         {% else %}<div class="list-group-item text-muted text-center py-5">Bu durumda sipariş bulunmuyor.</div>{% endfor %}
                     </div>
